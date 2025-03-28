@@ -1,0 +1,113 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+
+    RewriteRule ^$ index.php [L,QSA]
+    RewriteRule ^login$ dangnhap.php [L,QSA]
+
+    RewriteRule ^categories$ categories.php [L,QSA]
+    RewriteRule ^search$ search.php [L,QSA]
+    RewriteRule ^wishlists$ wishlists.php [L,QSA]
+    RewriteRule ^compare$ compare.php [L,QSA]
+    RewriteRule ^logout$ logout.php [L,QSA]
+    RewriteRule ^all-notifications$   all-notifications.php [L,QSA]
+    RewriteRule ^customer-packages$   customer-packages.php [L,QSA]
+
+    
+
+  
+
+    RewriteRule ^checkout/delivery_info$ checkout/delivery_info.php [L,QSA]
+    RewriteRule ^checkout/payment_select$ checkout/payment_select.php [L,QSA]
+    RewriteRule ^checkout/order-confirmed$ checkout/order-confirmed.php [L,QSA]
+
+
+   
+
+    
+
+    
+
+
+
+    
+    RewriteRule ^dashboard$ dashboard.php [L,QSA]
+    RewriteRule ^purchase_history$ purchase_history.php [L,QSA]
+    RewriteRule ^wallet$ wallet.php [L,QSA]
+    RewriteRule ^profile$ profile.php [L,QSA]
+
+
+    RewriteRule ^conversations$ conversations.php [L,QSA]
+    RewriteRule ^customer_products$ customer_products.php [L,QSA]
+    RewriteRule ^support_ticket$ support_ticket.php [L,QSA]
+    RewriteRule ^digital-purchase-history$ users/digital-purchase-history.php [L,QSA]
+
+    
+
+    
+
+
+
+
+
+
+
+    RewriteRule ^category/(.+)$ category/index.php?path=$1 [QSA,L]
+
+    # RewriteRule ^product/variant_price.php$ product/variant_price.php [QSA,L]
+    # RewriteRule ^product/(.+)$ product/index.php?product=$1 [QSA,L]
+
+    RewriteRule ^product/variant_price$ product/variant_price.php [QSA,L]
+    RewriteRule ^product/([a-zA-Z0-9_-]+)$ product/index.php?product=$1 [QSA,L]
+
+    RewriteRule ^cart/addtocart$ cart/addtocart.php [QSA,L]
+    RewriteRule ^cart/removeFromCart$ cart/removeFromCart.php [QSA,L]
+    RewriteRule ^cart/updateQuantity$ cart/updateQuantity.php [QSA,L]
+
+
+    RewriteRule ^users/login$ users/login.php [QSA,L]
+    RewriteRule ^users/registration$ users/registration.php [QSA,L]
+    RewriteRule ^language$ users/language.php [QSA,L]
+
+
+    RewriteRule ^users/offline-wallet-recharge-modal$ users/offline-wallet-recharge-modal.php [QSA,L]
+
+
+    
+
+
+
+    
+
+
+
+
+
+
+
+    # RewriteRule ^category/(.+)$ category.php?path=$1 [L,QSA]
+
+    
+
+    RewriteRule ^api/video/getVideoList$ api/video.php?getVideoList [L,QSA]
+
+
+    
+
+
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+    
+
+</IfModule>
