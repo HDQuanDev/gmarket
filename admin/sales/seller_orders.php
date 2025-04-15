@@ -14,7 +14,7 @@
 
     <!-- Favicon -->
     <link rel="icon" href="/public/uploads/all/ImUXrP5YC9e0hsv4zR6xjoYJCuxmFYkonSInvGtJ.jpg">
-    <title>GMARKETVN | Buy Korean domestic products at original prices from the manufacturer</title>
+    <title>Takashimaya | Buy Korean domestic products at original prices from the manufacturer</title>
 
     <!-- google font -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Poppins:300,400,500,600,700">
@@ -73,7 +73,7 @@
                         <form class="" action="" id="sort_orders" method="GET">
                             <div class="card-header row gutters-5">
                                 <div class="col">
-                                    <h5 class="mb-md-0 h6">All Orders</h5>
+                                    <h5 class="mb-md-0 h6">Seller Orders</h5>
                                 </div>
 
                                 <div class="dropdown mb-2 mb-md-0">
@@ -153,117 +153,213 @@
                                     </thead>
                                     <tbody>
                                         <?php 
-                                        $sql=mysqli_query($conn,"SELECT * FROM orders  ");
-                                        $i=0;
-                                        while($row=fetch_assoc($sql)){
-                                            $checkSeller=fetch_array("SELECT * FROM detail_orders WHERE order_id='{$row['id']}' and from_seller is not null");
-                                            if(!$checkSeller)continue;
+                                        // Set up pagination
+                                        $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
+                                        $limit = 10; // Number of records per page
+                                        $offset = ($page - 1) * $limit;
+                                        
+                                        // Get total records for pagination
+                                        $total_query = mysqli_query($conn, "SELECT COUNT(DISTINCT o.id) as total FROM orders o 
+                                                                          JOIN detail_orders do ON o.id = do.order_id 
+                                                                          WHERE do.from_seller IS NOT NULL");
+                                        $total_records = mysqli_fetch_assoc($total_query)['total'];
+                                        $total_pages = ceil($total_records / $limit);
+                                        
+                                        // Build the query with filtering
+                                        $sql = "SELECT DISTINCT o.*, 
+                                                (SELECT SUM(do2.price * do2.quantity) FROM detail_orders do2 WHERE do2.order_id = o.id AND do2.from_seller IS NOT NULL) as seller_amount 
+                                                FROM orders o 
+                                                JOIN detail_orders do ON o.id = do.order_id 
+                                                WHERE do.from_seller IS NOT NULL";
+                                        
+                                        // Add filters if set
+                                        if(isset($_GET['delivery_status']) && !empty($_GET['delivery_status'])) {
+                                            $delivery_status = mysqli_real_escape_string($conn, $_GET['delivery_status']);
+                                            $sql .= " AND o.delivery_status = '$delivery_status'";
+                                        }
+                                        
+                                        if(isset($_GET['payment_status']) && !empty($_GET['payment_status'])) {
+                                            $payment_status = mysqli_real_escape_string($conn, $_GET['payment_status']);
+                                            $sql .= " AND o.payment_status = '$payment_status'";
+                                        }
+                                        
+                                        if(isset($_GET['search']) && !empty($_GET['search'])) {
+                                            $search = mysqli_real_escape_string($conn, $_GET['search']);
+                                            $sql .= " AND o.code LIKE '%$search%'";
+                                        }
+                                        
+                                        if(isset($_GET['search2']) && !empty($_GET['search2'])) {
+                                            $search2 = mysqli_real_escape_string($conn, $_GET['search2']);
+                                            $sql .= " AND (
+                                                EXISTS (SELECT 1 FROM users u WHERE u.id = o.user_id AND (u.full_name LIKE '%$search2%' OR u.email LIKE '%$search2%'))
+                                            )";
+                                        }
+                                        
+                                        // Add pagination
+                                        $sql .= " ORDER BY o.create_date DESC LIMIT $offset, $limit";
+                                        
+                                        $result = mysqli_query($conn, $sql);
+                                        $i = 0;
+                                        while($row = mysqli_fetch_assoc($result)){
                                             $i++;
-                                            $user=fetch_array("SELECT * from users WHERE id='{$row['user_id']}' LIMIT 1");
-                                            $num_product=fetch_array("SELECT IFNULL(count(*),0) as count FROM detail_orders WHERE order_id='{$row['id']}' ")['count'];
-                                            $code=$row['code'];
+                                            $user = fetch_array("SELECT * FROM users WHERE id='{$row['user_id']}' LIMIT 1");
+                                            $num_product = fetch_array("SELECT COUNT(*) as count FROM detail_orders WHERE order_id='{$row['id']}' AND from_seller IS NOT NULL")['count'];
+                                            $code = $row['code'];
+                                            
+                                            // Get sellers related to this order
+                                            $seller_query = mysqli_query($conn, "SELECT DISTINCT s.* 
+                                                                        FROM detail_orders do 
+                                                                        JOIN sellers s ON do.from_seller = s.id 
+                                                                        WHERE do.order_id = '{$row['id']}'");
+                                            $sellers = [];
+                                            while($seller = mysqli_fetch_assoc($seller_query)) {
+                                                $sellers[] = $seller['shop_name'] ? $seller['shop_name'] : $seller['full_name'];
+                                            }
+                                            $seller_names = implode(", ", $sellers);
                                         ?>
                                         <tr>
                                             <td>
                                                 <div class="form-group">
                                                     <div class="aiz-checkbox-inline">
                                                         <label class="aiz-checkbox">
-                                                            <input type="checkbox" class="check-one" name="id[]" value="5826">
+                                                            <input type="checkbox" class="check-one" name="id[]" value="<?=$row['id']?>">
                                                             <span class="aiz-square-check"></span>
                                                         </label>
                                                     </div>
                                                 </div>
                                             </td>
                                             <td>
-                                                <?=$code?> <span class="badge badge-inline badge-info">new</span> </td>
+                                                <?=$code?> 
+                                                <?php if(strtotime($row['create_date']) > strtotime('-7 days')): ?>
+                                                <span class="badge badge-inline badge-info">new</span>
+                                                <?php endif; ?>
+                                            </td>
                                             <td>
                                                 <?=$num_product?>
                                             </td>
                                             <td>
-                                                <?=$user['full_name']?>
+                                                <?=isset($user['full_name']) ? $user['full_name'] : 'Unknown'?>
                                             </td>
                                             <td>
-                                                Inhouse Order
+                                                <?=$seller_names ? $seller_names : 'Unknown Seller'?>
                                             </td>
                                             <td>
-                                                <?=$row['amount']?>$
+                                                <?=number_format($row['seller_amount'], 2)?>$
                                             </td>
                                             <td>
-                                                <?=$row['delivery_status']?>
+                                                <?php
+                                                $status_class = '';
+                                                switch($row['delivery_status']) {
+                                                    case 'Picked_up': $status_class = 'badge-success'; break;
+                                                    case 'Cancelled': $status_class = 'badge-danger'; break;
+                                                    case 'Confirmed': $status_class = 'badge-info'; break;
+                                                    default: $status_class = 'badge-secondary';
+                                                }
+                                                ?>
+                                                <span class="badge badge-inline <?=$status_class?>"><?=$row['delivery_status']?></span>
                                             </td>
                                             <td>
                                                 <?=$row['payment_option']?>
                                             </td>
                                             <td>
-                                                <span class="badge badge-inline badge-danger"><?=$row['payment_status']?></span>
+                                                <span class="badge badge-inline <?=$row['payment_status'] == 'Paid' ? 'badge-success' : 'badge-danger'?>">
+                                                    <?=$row['payment_status']?>
+                                                </span>
                                             </td>
                                             <td class="text-right">
-
                                                 <a class="btn btn-soft-primary btn-icon btn-circle btn-sm" href="/admin/sales/view_order.php?id=<?=$row['id']?>" title="View">
                                                     <i class="las la-eye"></i>
                                                 </a>
-                                                <!-- <a class="btn btn-soft-info btn-icon btn-circle btn-sm" href="https://tmdtquocte.com/invoice/5826" title="Download Invoice">
-                                                    <i class="las la-download"></i>
-                                                </a> -->
                                                 <a href="#" class="btn btn-soft-danger btn-icon btn-circle btn-sm confirm-delete" data-href="/admin/sales/delete_order.php?id=<?=$row['id']?>" title="Delete">
                                                     <i class="las la-trash"></i>
                                                 </a>
                                             </td>
                                         </tr>
                                         <?php }?>
-                                        
-                                        
                                     </tbody>
                                 </table>
 
                                 <div class="aiz-pagination">
                                     <nav>
                                         <ul class="pagination">
-
-                                            <li class="page-item disabled" aria-disabled="true" aria-label="« Previous">
-                                                <span class="page-link" aria-hidden="true">&lsaquo;</span>
-                                            </li>
-
-
-
-
-
-                                            <li class="page-item active" aria-current="page"><span class="page-link">1</span></li>
-                                            <li class="page-item"><a class="page-link" href="/admin/sales/all_orders.php?page=2">2</a></li>
-                                            <li class="page-item"><a class="page-link" href="/admin/sales/all_orders.php?page=3">3</a></li>
-                                            <li class="page-item"><a class="page-link" href="/admin/sales/all_orders.php?page=4">4</a></li>
-                                            <li class="page-item"><a class="page-link" href="/admin/sales/all_orders.php?page=5">5</a></li>
-                                            <li class="page-item"><a class="page-link" href="/admin/sales/all_orders.php?page=6">6</a></li>
-                                            <li class="page-item"><a class="page-link" href="/admin/sales/all_orders.php?page=7">7</a></li>
-                                            <li class="page-item"><a class="page-link" href="/admin/sales/all_orders.php?page=8">8</a></li>
-                                            <li class="page-item"><a class="page-link" href="/admin/sales/all_orders.php?page=9">9</a></li>
-                                            <li class="page-item"><a class="page-link" href="/admin/sales/all_orders.php?page=10">10</a></li>
-
-                                            <li class="page-item disabled" aria-disabled="true"><span class="page-link">...</span></li>
-
-
-
-
-
-                                            <li class="page-item"><a class="page-link" href="/admin/sales/all_orders?page=380">380</a></li>
-                                            <li class="page-item"><a class="page-link" href="/admin/sales/all_orders?page=381">381</a></li>
-
-
-                                            <li class="page-item">
-                                                <a class="page-link" href="/admin/all_orders?page=2" rel="next" aria-label="Next »">&rsaquo;</a>
-                                            </li>
+                                            <?php
+                                            // Previous page link
+                                            if($page > 1) {
+                                                echo '<li class="page-item">
+                                                    <a class="page-link" href="?page='.($page-1).
+                                                    (isset($_GET['delivery_status']) ? '&delivery_status='.$_GET['delivery_status'] : '').
+                                                    (isset($_GET['payment_status']) ? '&payment_status='.$_GET['payment_status'] : '').
+                                                    (isset($_GET['search']) ? '&search='.$_GET['search'] : '').
+                                                    (isset($_GET['search2']) ? '&search2='.$_GET['search2'] : '').
+                                                    (isset($_GET['date']) ? '&date='.$_GET['date'] : '').
+                                                    '" aria-label="Previous">&lsaquo;</a>
+                                                </li>';
+                                            } else {
+                                                echo '<li class="page-item disabled">
+                                                    <span class="page-link" aria-hidden="true">&lsaquo;</span>
+                                                </li>';
+                                            }
+                                            
+                                            // Page numbers
+                                            $start_page = max(1, $page - 5);
+                                            $end_page = min($total_pages, $page + 5);
+                                            
+                                            for($i = $start_page; $i <= $end_page; $i++) {
+                                                if($i == $page) {
+                                                    echo '<li class="page-item active"><span class="page-link">'.$i.'</span></li>';
+                                                } else {
+                                                    echo '<li class="page-item">
+                                                        <a class="page-link" href="?page='.$i.
+                                                        (isset($_GET['delivery_status']) ? '&delivery_status='.$_GET['delivery_status'] : '').
+                                                        (isset($_GET['payment_status']) ? '&payment_status='.$_GET['payment_status'] : '').
+                                                        (isset($_GET['search']) ? '&search='.$_GET['search'] : '').
+                                                        (isset($_GET['search2']) ? '&search2='.$_GET['search2'] : '').
+                                                        (isset($_GET['date']) ? '&date='.$_GET['date'] : '').
+                                                        '">'.$i.'</a>
+                                                    </li>';
+                                                }
+                                            }
+                                            
+                                            // Show dots if needed
+                                            if($end_page < $total_pages) {
+                                                echo '<li class="page-item disabled"><span class="page-link">...</span></li>';
+                                                echo '<li class="page-item">
+                                                    <a class="page-link" href="?page='.$total_pages.
+                                                    (isset($_GET['delivery_status']) ? '&delivery_status='.$_GET['delivery_status'] : '').
+                                                    (isset($_GET['payment_status']) ? '&payment_status='.$_GET['payment_status'] : '').
+                                                    (isset($_GET['search']) ? '&search='.$_GET['search'] : '').
+                                                    (isset($_GET['search2']) ? '&search2='.$_GET['search2'] : '').
+                                                    (isset($_GET['date']) ? '&date='.$_GET['date'] : '').
+                                                    '">'.$total_pages.'</a>
+                                                </li>';
+                                            }
+                                            
+                                            // Next page link
+                                            if($page < $total_pages) {
+                                                echo '<li class="page-item">
+                                                    <a class="page-link" href="?page='.($page+1).
+                                                    (isset($_GET['delivery_status']) ? '&delivery_status='.$_GET['delivery_status'] : '').
+                                                    (isset($_GET['payment_status']) ? '&payment_status='.$_GET['payment_status'] : '').
+                                                    (isset($_GET['search']) ? '&search='.$_GET['search'] : '').
+                                                    (isset($_GET['search2']) ? '&search2='.$_GET['search2'] : '').
+                                                    (isset($_GET['date']) ? '&date='.$_GET['date'] : '').
+                                                    '" rel="next" aria-label="Next">&rsaquo;</a>
+                                                </li>';
+                                            } else {
+                                                echo '<li class="page-item disabled">
+                                                    <span class="page-link" aria-hidden="true">&rsaquo;</span>
+                                                </li>';
+                                            }
+                                            ?>
                                         </ul>
                                     </nav>
-
                                 </div>
-
                             </div>
                         </form>
                     </div>
-
                 </div>
                 <div class="bg-white text-center py-3 px-15px px-lg-25px mt-auto">
-                    <p class="mb-0">&copy; GMARKETVN v7.4.0</p>
+                    <p class="mb-0">&copy; Takashimaya v7.4.0</p>
                 </div>
             </div><!-- .aiz-main-content -->
         </div><!-- .aiz-content-wrapper -->
@@ -305,26 +401,6 @@
             }
 
         });
-
-        //        function change_status() {
-        //            var data = new FormData($('#order_form')[0]);
-        //            $.ajax({
-        //                headers: {
-        //                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-        //                },
-        //                url: "/admin/bulk-order-status",
-        //                type: 'POST',
-        //                data: data,
-        //                cache: false,
-        //                contentType: false,
-        //                processData: false,
-        //                success: function (response) {
-        //                    if(response == 1) {
-        //                        location.reload();
-        //                    }
-        //                }
-        //            });
-        //        }
 
         function bulk_delete() {
             var data = new FormData($('#sort_orders')[0]);

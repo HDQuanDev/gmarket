@@ -75,7 +75,7 @@
     <div class="aiz-main-wrapper">
         <?php include("../layout/sidebar.php")?>
 
-        <div class="aiz-content-wrapper">
+        <div class="py-3 px-4 lg:px-6">
             <?php include("../layout/topbar.php")?>
 
             <div class="aiz-main-content">
@@ -147,7 +147,7 @@
 
                 </div>
                 <div class="bg-white text-center py-3 px-15px px-lg-25px mt-auto border-sm-top">
-                    <p class="mb-0">&copy; Gmarket Viet Nam v7.4.0</p>
+                    <p class="mb-0"></p>
                 </div>
             </div><!-- .aiz-main-content -->
         </div><!-- .aiz-content-wrapper -->

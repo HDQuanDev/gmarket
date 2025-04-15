@@ -74,7 +74,7 @@
     <div class="aiz-main-wrapper">
         <?php include("../layout/sidebar.php") ?>
 
-        <div class="aiz-content-wrapper">
+        <div class="py-3 px-4 lg:px-6">
             <?php include("../layout/topbar.php") ?>
 
             <div class="aiz-main-content">
@@ -84,28 +84,28 @@
                         <form id="sort_orders" action="" method="GET">
                             <div class="card-header row gutters-5">
                                 <div class="col text-center text-md-left">
-                                    <h5 class="mb-md-0 h6">Orders</h5>
+                                    <h5 class="mb-md-0 h6">Đơn hàng</h5>
                                 </div>
                                 <div class="col-md-3 ml-auto">
-                                    <select class="form-control aiz-selectpicker" data-placeholder="Filter by Payment Status" name="payment_status" onchange="sort_orders()">
-                                        <option value="">Filter by Payment Status</option>
-                                        <option value="paid">Paid</option>
-                                        <option value="unpaid">Un-Paid</option>
+                                    <select class="form-control aiz-selectpicker" data-placeholder="Lọc theo trạng thái thanh toán" name="payment_status" onchange="sort_orders()">
+                                        <option value="">Lọc theo trạng thái thanh toán</option>
+                                        <option value="paid" <?= isset($_GET['payment_status']) && $_GET['payment_status'] == 'paid' ? 'selected' : '' ?>>Đã thanh toán</option>
+                                        <option value="unpaid" <?= isset($_GET['payment_status']) && $_GET['payment_status'] == 'unpaid' ? 'selected' : '' ?>>Chưa thanh toán</option>
                                     </select>
                                 </div>
 
                                 <div class="col-md-3 ml-auto">
-                                    <select class="form-control aiz-selectpicker" data-placeholder="Filter by Payment Status" name="delivery_status" onchange="sort_orders()">
-                                        <option value="">Filter by Deliver Status</option>
-                                        <option value="pending">Pending</option>
-                                        <option value="confirmed">Confirmed</option>
-                                        <option value="on_delivery">On delivery</option>
-                                        <option value="delivered">Delivered</option>
+                                    <select class="form-control aiz-selectpicker" data-placeholder="Lọc theo trạng thái giao hàng" name="delivery_status" onchange="sort_orders()">
+                                        <option value="">Lọc theo trạng thái giao hàng</option>
+                                        <option value="pending" <?= isset($_GET['delivery_status']) && $_GET['delivery_status'] == 'pending' ? 'selected' : '' ?>>Đang chờ</option>
+                                        <option value="confirmed" <?= isset($_GET['delivery_status']) && $_GET['delivery_status'] == 'confirmed' ? 'selected' : '' ?>>Đã xác nhận</option>
+                                        <option value="on_delivery" <?= isset($_GET['delivery_status']) && $_GET['delivery_status'] == 'on_delivery' ? 'selected' : '' ?>>Đang giao</option>
+                                        <option value="delivered" <?= isset($_GET['delivery_status']) && $_GET['delivery_status'] == 'delivered' ? 'selected' : '' ?>>Đã giao</option>
                                     </select>
                                 </div>
                                 <div class="col-md-3">
                                     <div class="from-group mb-0">
-                                        <input type="text" class="form-control" id="search" name="search" placeholder="Type Order code &amp; hit Enter">
+                                        <input type="text" class="form-control" id="search" name="search" placeholder="Type Order code & hit Enter" value="<?= isset($_GET['search']) ? htmlspecialchars($_GET['search']) : '' ?>">
                                     </div>
                                 </div>
                             </div>
@@ -116,1017 +116,355 @@
                                 <thead>
                                     <tr>
                                         <th>#</th>
-                                        <th>Order Code:</th>
-                                        <th data-breakpoints="lg">Num. of Products</th>
-                                        <th data-breakpoints="lg">Customer</th>
-                                        <th data-breakpoints="md">Amount</th>
-                                        <th data-breakpoints="lg">Delivery Status</th>
-                                        <th>Payment Status</th>
-                                        <th class="text-right">Options</th>
+                                        <th>Mã đặt hàng</th>
+                                        <th>Sản Phẩm</th>
+                                        <th >Phương Thức Thanh Toán</th>
+                                        <th>Khách Hàng</th>
+                                        <th >Số Tiền</th>
+                                        <th>Trạng Thái Giao Hàng</th> 
+                                        <th>Trạng Thái Thanh Toán</th>
+                                        <th class="text-right">Tùy Chọn</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <?php
-                                    $sql=mysqli_query($conn,"SELECT * FROM detail_orders WHERE from_seller='$seller_id'");
-                                    while($row=fetch_assoc($sql)){
+                                    // Build the query with filters
+                                    $where = "WHERE do.from_seller = '$seller_id'";
+                                    
+                                    if (isset($_GET['payment_status']) && !empty($_GET['payment_status'])) {
+                                        $payment_status = mysqli_real_escape_string($conn, $_GET['payment_status']);
+                                        if ($payment_status == 'paid') {
+                                            $where .= " AND o.payment_status = 'Paid'";
+                                        } elseif ($payment_status == 'unpaid') {
+                                            $where .= " AND o.payment_status = 'Un-paid'";
+                                        }
+                                    }
+                                    
+                                    if (isset($_GET['delivery_status']) && !empty($_GET['delivery_status'])) {
+                                        $delivery_status = mysqli_real_escape_string($conn, $_GET['delivery_status']);
+                                        $where .= " AND o.delivery_status = '" . ucfirst($delivery_status) . "'";
+                                    }
+                                    
+                                    if (isset($_GET['search']) && !empty($_GET['search'])) {
+                                        $search = mysqli_real_escape_string($conn, $_GET['search']);
+                                        $where .= " AND o.code LIKE '%$search%'";
+                                    }
+                                    
+                                    // Pagination
+                                    $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
+                                    $limit = 10;
+                                    $offset = ($page - 1) * $limit;
+                                    
+                                    // Count total orders for pagination
+                                    $count_query = "SELECT COUNT(DISTINCT o.id) AS total 
+                                                  FROM detail_orders do
+                                                  JOIN orders o ON do.order_id = o.id
+                                                  $where";
+                                    $count_result = mysqli_query($conn, $count_query);
+                                    $total_rows = mysqli_fetch_assoc($count_result)['total'];
+                                    $total_pages = ceil($total_rows / $limit);
+                                    
+                                    // Get orders with details
+                                    
+                                    // Query: gom tất cả chi tiết đơn hàng của 1 đơn hàng vào 1 dòng dùng GROUP_CONCAT()
+                                    $sql = "SELECT 
+                                                o.id, 
+                                                o.code, 
+                                                o.delivery_status, 
+                                                o.payment_status, 
+                                                o.create_date, 
+                                                o.payment_option, 
+                                                u.email, 
+                                                u.full_name,
+                                                GROUP_CONCAT(
+                                                    CONCAT(do.id, '|', do.price, '|', do.quantity, '|', do.name, '|', do.status_xuli) 
+                                                    ORDER BY do.create_date DESC
+                                                    SEPARATOR '||'
+                                                ) AS order_details
+                                            FROM orders o
+                                            LEFT JOIN users u ON o.user_id = u.id
+                                            LEFT JOIN detail_orders do ON do.order_id = o.id
+                                            $where
+                                            GROUP BY o.id
+                                            ORDER BY o.create_date DESC
+                                            LIMIT $offset, $limit";
+                                    
+                                    $result = mysqli_query($conn, $sql);
+                                    $i = $offset;
+                                    
+                                    if (mysqli_num_rows($result) > 0) {
+                                        while ($row = mysqli_fetch_assoc($result)) {
+                                            $i++;
+                                            $customer_name = !empty($row['full_name']) 
+                                                ? $row['full_name'] 
+                                                : (!empty($row['username']) ? $row['username'] : $row['email']);
+                                            
+                                            // Khởi tạo tổng số tiền của đơn hàng
+                                            $total_order_amount = 0;
+                                            $orderDetails = [];
+                                    
+                                            if (!empty($row['order_details'])) {
+                                                // Tách mỗi detail dựa trên ký tự phân cách "||"
+                                                $details = explode("||", $row['order_details']);
+                                                foreach ($details as $detail) {
+                                                    // Từng phần của detail được phân cách bởi "|"
+                                                    list($detail_id, $price, $quantity, $name, $status_xuli) = explode("|", $detail);
+                                                    $total = $price * $quantity;
+                                                    $total_order_amount += $total;
+                                                    $orderDetails[] = [
+                                                        'detail_id'   => $detail_id,
+                                                        'price'       => $price,
+                                                        'quantity'    => $quantity,
+                                                        'name'        => $name,
+                                                        'status_xuli' => $status_xuli, // Truyền status_xuli từ order detail
+                                                        'total'       => $total
+                                                    ];
+                                                }
+                                            }
+                                            ?>
+                                            <tr>
+                                                <td><?php echo $i; ?></td>
+                                                <td>
+                                                    <!-- Hiển thị mã đơn hàng và ngày tạo -->
+                                                    <a href="order_detail.php?id=<?= $row['id'] ?>"><?= $row['code'] ?></a>
+                                                    <br>
+                                                    <small class="text-muted"><?= date('d M Y, h:i A', strtotime($row['create_date'])) ?></small>
+                                                    <?php 
+                                                    // Nếu có ít nhất 1 chi tiết mà status_xuli != 1 và payment_option là cash_on_delivery
+                                                    // Lưu ý: Ở đây bạn có thể chọn điều kiện hiển thị theo detail cụ thể. 
+                                                    // Ví dụ, nếu muốn xuất hiện nút xử lý khi có ít nhất 1 product chưa xử lý:
+                                                    $show_process_btn = false;
+                                                    if ($row['payment_option'] == "cash_on_delivery") {
+                                                        foreach ($orderDetails as $od) {
+                                                            if ($od['status_xuli'] != 1) {
+                                                                $show_process_btn = true;
+                                                                break;
+                                                            }
+                                                        }
+                                                    }
+                                                    if ($show_process_btn): ?>
+                                                        <br>
+                                                        <a href="javascript:void(0)" 
+                                                           class="process-order-btn small text-primary" 
+                                                           data-id="<?= $row['id'] ?>" 
+                                                           data-order-code="<?= $row['code'] ?>"
+                                                           data-amount="<?= $total_order_amount ?>">
+                                                            <i class="las la-check-circle"></i> Xử lý đơn hàng
+                                                        </a>
+                                                    <?php endif; ?>
+                                                </td>
+                                                <td>
+                                                    <?php 
+                                                    // Hiển thị tên sản phẩm của từng chi tiết (có thể lặp nhiều dòng nếu cần)
+                                                    if (!empty($orderDetails)) {
+                                                        foreach ($orderDetails as $detail) {
+                                                            ?>
+                                                            <div class="media">
+                                                                <div class="media-body">
+                                                                    <h6 class="mb-0 text-truncate" style="max-width: 200px;">
+                                                                        <?= htmlspecialchars($detail['name']) ?>
+                                                                    </h6>
+                                                                </div>
+                                                            </div>
+                                                            <?php 
+                                                        }
+                                                    }
+                                                    ?>
+                                                </td>
+                                                <td><?= tran($row['payment_option']) ?></td>
+                                                <td><?= htmlspecialchars($customer_name) ?></td>
+                                                <td><?= number_format($total_order_amount) ?> $</td>
+                                                <td>
+                                                    <?php
+                                                    // Màu hiển thị trạng thái giao hàng
+                                                    $status_color = 'secondary';
+                                                    switch ($row['delivery_status']) {
+                                                        case 'Pending':
+                                                            $status_color = 'warning';
+                                                            break;
+                                                        case 'Confirmed':
+                                                            $status_color = 'info';
+                                                            break;
+                                                        case 'On delivery':
+                                                            $status_color = 'primary';
+                                                            break;
+                                                        case 'Delivered':
+                                                            $status_color = 'success';
+                                                            break;
+                                                    }
+                                                    ?>
+                                                    <span class="badge badge-inline badge-<?= $status_color ?>">
+                                                        <?= $row['delivery_status'] ?>
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <span class="badge badge-inline badge-<?= $row['payment_status'] == 'Paid' ? 'success' : 'danger' ?>">
+                                                        <?= tran($row['payment_status']) ?>
+                                                    </span>
+                                                </td>
+                                                <td class="text-right">
+                                                    <a href="order_detail.php?id=<?= $row['id'] ?>" class="btn btn-soft-info btn-icon btn-circle btn-sm" title="Order Details">
+                                                        <i class="las la-eye"></i>
+                                                    </a>
+                                                    <a href="/seller/invoice/print.php?id=<?= $row['id'] ?>" class="btn btn-soft-warning btn-icon btn-circle btn-sm" title="Download Invoice">
+                                                        <i class="las la-download"></i>
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                            <?php 
+                                        }
+                                    } else {
+                                        ?>
+                                        <tr>
+                                            <td colspan="9" class="text-center">Không tìm thấy đơn hàng nào</td>
+                                        </tr>
+                                        <?php 
+                                    }
                                     ?>
+                                </tbody>
+                                <tfoot>
                                     <tr>
-                                        <td>
-                                            1
-                                        </td>
-                                        <td>
-                                            <a href="#20241115-20431426" onclick="show_order_details(2754)">20241115-20431426</a>
-                                        </td>
-                                        <td>
-                                            1
-                                        </td>
-                                        <td>
-                                            Dmitry
-                                        </td>
-                                        <td>
-                                            79.80$
-                                        </td>
-                                        <td>
-                                            Confirmed
-                                        </td>
-                                        <td>
-                                            <span class="badge badge-inline badge-success">Paid</span>
-                                        </td>
-                                        <td class="text-right">
-                                            <a href="./order_detail.php?id=<?=$row['id']?>" class="btn btn-soft-info btn-icon btn-circle btn-sm" title="Order Details">
-                                                <i class="las la-eye"></i>
-                                            </a>
-                                            <!-- <a href="/seller/invoice/2754" class="btn btn-soft-warning btn-icon btn-circle btn-sm" title="Download Invoice">
-                                                <i class="las la-download"></i>
-                                            </a> -->
+                                        <td colspan="5" class="text-right font-weight-bold">Tổng cộng:</td>
+                                        <td colspan="4" class="font-weight-bold">
+                                            <?php
+                                            // Calculate total amount for all matching orders
+                                            $total_query = "SELECT SUM(do.price * do.quantity) as total_amount 
+                                                        FROM detail_orders do
+                                                        JOIN orders o ON do.order_id = o.id
+                                                        $where";
+                                            $total_result = mysqli_query($conn, $total_query);
+                                            $total_sum = mysqli_fetch_assoc($total_result)['total_amount'];
+                                            echo number_format($total_sum, 2) . ' $';
+                                            ?>
                                         </td>
                                     </tr>
-                                    <?php }?>
-                                    
-                                </tbody>
+                                </tfoot>
                             </table>
-                            <div class="aiz-pagination">
-
+                            
+                            <!-- Pagination -->
+                            <?php if ($total_pages > 1): ?>
+                            <div class="aiz-pagination mt-3">
+                                <nav>
+                                    <ul class="pagination justify-content-center">
+                                        <?php if ($page > 1): ?>
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page=<?= $page-1 ?><?= isset($_GET['payment_status']) ? '&payment_status='.$_GET['payment_status'] : '' ?><?= isset($_GET['delivery_status']) ? '&delivery_status='.$_GET['delivery_status'] : '' ?><?= isset($_GET['search']) ? '&search='.$_GET['search'] : '' ?>">
+                                                <i class="las la-angle-left"></i>
+                                            </a>
+                                        </li>
+                                        <?php endif; ?>
+                                        
+                                        <?php
+                                        $start_page = max(1, $page - 2);
+                                        $end_page = min($total_pages, $page + 2);
+                                        
+                                        for ($i = $start_page; $i <= $end_page; $i++):
+                                        ?>
+                                        <li class="page-item <?= $page == $i ? 'active' : '' ?>">
+                                            <a class="page-link" href="?page=<?= $i ?><?= isset($_GET['payment_status']) ? '&payment_status='.$_GET['payment_status'] : '' ?><?= isset($_GET['delivery_status']) ? '&delivery_status='.$_GET['delivery_status'] : '' ?><?= isset($_GET['search']) ? '&search='.$_GET['search'] : '' ?>">
+                                                <?= $i ?>
+                                            </a>
+                                        </li>
+                                        <?php endfor; ?>
+                                        
+                                        <?php if ($page < $total_pages): ?>
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page=<?= $page+1 ?><?= isset($_GET['payment_status']) ? '&payment_status='.$_GET['payment_status'] : '' ?><?= isset($_GET['delivery_status']) ? '&delivery_status='.$_GET['delivery_status'] : '' ?><?= isset($_GET['search']) ? '&search='.$_GET['search'] : '' ?>">
+                                                <i class="las la-angle-right"></i>
+                                            </a>
+                                        </li>
+                                        <?php endif; ?>
+                                    </ul>
+                                </nav>
                             </div>
+                            <?php endif; ?>
                         </div>
                     </div>
 
                 </div>
                 <div class="bg-white text-center py-3 px-15px px-lg-25px mt-auto border-sm-top">
-                    <p class="mb-0">&copy; Gmarket Viet Nam v7.4.0</p>
+                    <p class="mb-0"></p>
                 </div>
             </div><!-- .aiz-main-content -->
         </div><!-- .aiz-content-wrapper -->
     </div><!-- .aiz-main-wrapper -->
 
-
-
     <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script>
     <script src="/public/assets/js/vendors.js"></script>
     <script src="/public/assets/js/aiz-core.js"></script>
 
-    <script type="text/javascript">
-        function sort_orders(el) {
+    <script>
+        function sort_orders() {
             $('#sort_orders').submit();
         }
-
-        function process(id) {
-            $.post('/seller/orders/process', {
-                _token: 'eObVDgS1BnyzqUZf3wNmMehk2sbNi4MatBxDBYhn',
-                id: id
-            }, function(data) {
-                if (data == '1') {
-                    AIZ.plugins.notify('success', 'Process successfully');
-                } else {
-                    AIZ.plugins.notify('danger', 'Your wallet balance is not enough');
-                }
-                AIZ.plugins.bootstrapSelect('refresh');
-            });
-        }
-    </script>
-
-    <script type="text/javascript">
-        if ($('#lang-change').length > 0) {
-            $('#lang-change .dropdown-menu a').each(function() {
-                $(this).on('click', function(e) {
-                    e.preventDefault();
-                    var $this = $(this);
-                    var locale = $this.data('flag');
-                    $.post('/language', {
-                        _token: 'eObVDgS1BnyzqUZf3wNmMehk2sbNi4MatBxDBYhn',
-                        locale: locale
-                    }, function(data) {
-                        location.reload();
-                    });
-
-                });
-            });
-        }
-
-        function menuSearch() {
-            var filter, item;
-            filter = $("#menu-search").val().toUpperCase();
-            items = $("#main-menu").find("a");
-            items = items.filter(function(i, item) {
-                if ($(item).find(".aiz-side-nav-text")[0].innerText.toUpperCase().indexOf(filter) > -1 && $(item).attr('href') !== '#') {
-                    return item;
+        
+        $(document).ready(function() {
+            // Enable search form submission on Enter key
+            $('#search').keypress(function(e) {
+                if (e.which == 13) {
+                    $('#sort_orders').submit();
                 }
             });
-
-            if (filter !== '') {
-                $("#main-menu").addClass('d-none');
-                $("#search-menu").html('')
-                if (items.length > 0) {
-                    for (i = 0; i < items.length; i++) {
-                        const text = $(items[i]).find(".aiz-side-nav-text")[0].innerText;
-                        const link = $(items[i]).attr('href');
-                        $("#search-menu").append(`<li class="aiz-side-nav-item"><a href="${link}" class="aiz-side-nav-link"><i class="las la-ellipsis-h aiz-side-nav-icon"></i><span>${text}</span></a></li`);
-                    }
-                } else {
-                    $("#search-menu").html(`<li class="aiz-side-nav-item"><span	class="text-center text-muted d-block">Nothing found</span></li>`);
-                }
-            } else {
-                $("#main-menu").removeClass('d-none');
-                $("#search-menu").html('')
-            }
-        }
-    </script>
-    <script>
-        var $jscomp = $jscomp || {};
-        $jscomp.scope = {};
-        $jscomp.arrayIteratorImpl = function(b) {
-            var d = 0;
-            return function() {
-                return d < b.length ? {
-                    done: !1,
-                    value: b[d++]
-                } : {
-                    done: !0
-                }
-            }
-        };
-        $jscomp.arrayIterator = function(b) {
-            return {
-                next: $jscomp.arrayIteratorImpl(b)
-            }
-        };
-        $jscomp.ASSUME_ES5 = !1;
-        $jscomp.ASSUME_NO_NATIVE_MAP = !1;
-        $jscomp.ASSUME_NO_NATIVE_SET = !1;
-        $jscomp.SIMPLE_FROUND_POLYFILL = !1;
-        $jscomp.defineProperty = $jscomp.ASSUME_ES5 || "function" == typeof Object.defineProperties ? Object.defineProperty : function(b, d, a) {
-            b != Array.prototype && b != Object.prototype && (b[d] = a.value)
-        };
-        $jscomp.getGlobal = function(b) {
-            return "undefined" != typeof window && window === b ? b : "undefined" != typeof global && null != global ? global : b
-        };
-        $jscomp.global = $jscomp.getGlobal(this);
-        $jscomp.SYMBOL_PREFIX = "jscomp_symbol_";
-        $jscomp.initSymbol = function() {
-            $jscomp.initSymbol = function() {};
-            $jscomp.global.Symbol || ($jscomp.global.Symbol = $jscomp.Symbol)
-        };
-        $jscomp.Symbol = function() {
-            var b = 0;
-            return function(d) {
-                return $jscomp.SYMBOL_PREFIX + (d || "") + b++
-            }
-        }();
-        $jscomp.initSymbolIterator = function() {
-            $jscomp.initSymbol();
-            var b = $jscomp.global.Symbol.iterator;
-            b || (b = $jscomp.global.Symbol.iterator = $jscomp.global.Symbol("iterator"));
-            "function" != typeof Array.prototype[b] && $jscomp.defineProperty(Array.prototype, b, {
-                configurable: !0,
-                writable: !0,
-                value: function() {
-                    return $jscomp.iteratorPrototype($jscomp.arrayIteratorImpl(this))
-                }
-            });
-            $jscomp.initSymbolIterator = function() {}
-        };
-        $jscomp.initSymbolAsyncIterator = function() {
-            $jscomp.initSymbol();
-            var b = $jscomp.global.Symbol.asyncIterator;
-            b || (b = $jscomp.global.Symbol.asyncIterator = $jscomp.global.Symbol("asyncIterator"));
-            $jscomp.initSymbolAsyncIterator = function() {}
-        };
-        $jscomp.iteratorPrototype = function(b) {
-            $jscomp.initSymbolIterator();
-            b = {
-                next: b
-            };
-            b[$jscomp.global.Symbol.iterator] = function() {
-                return this
-            };
-            return b
-        };
-        $jscomp.iteratorFromArray = function(b, d) {
-            $jscomp.initSymbolIterator();
-            b instanceof String && (b += "");
-            var a = 0,
-                c = {
-                    next: function() {
-                        if (a < b.length) {
-                            var e = a++;
-                            return {
-                                value: d(e, b[e]),
-                                done: !1
+            
+            // Process Order Button Click
+            $(document).on('click', '.process-order-btn', function() {
+                var orderId = $(this).data('id');
+                var orderCode = $(this).data('order-code');
+                var amount = $(this).data('amount');
+                var $processBtn = $(this);
+                // Find the payment status badge for this order row
+                var $paymentStatusBadge = $processBtn.closest('tr').find('td:nth-child(8) span.badge');
+                // Find the delivery status badge for this order row
+                var $deliveryStatusBadge = $processBtn.closest('tr').find('td:nth-child(7) span.badge');
+                
+                // Confirm before processing
+                if (confirm('Are you sure you want to process order ' + orderCode + '?\nThis will mark the order as delivered.')) {
+                    // Show loading indicator
+                    $processBtn.html('<i class="las la-spinner la-spin"></i> Processing...');
+                    
+                    // Send Ajax request
+                    $.ajax({
+                        url: 'process_order.php',
+                        type: 'POST',
+                        data: {
+                            order_id: orderId,
+                            amount: amount
+                        },
+                        dataType: 'json',
+                        success: function(response) {
+                            if (response.success) {
+                                // Remove the process button
+                                $processBtn.fadeOut(function() {
+                                    $(this).remove();
+                                });
+                                
+                                // Update payment status badge to "Paid"
+                                $paymentStatusBadge.removeClass('badge-danger').addClass('badge-success');
+                                $paymentStatusBadge.text('Paid');
+                                
+                                // Update delivery status badge to "Delivered"
+                                $deliveryStatusBadge.removeClass('badge-warning badge-info badge-primary badge-secondary').addClass('badge-primary');
+                                $deliveryStatusBadge.text('Confirmed');
+                                
+                                // Show success message
+                                AIZ.plugins.notify('success', response.message);
+                            } else {
+                                // Show error message
+                                AIZ.plugins.notify('danger', response.message);
+                                // Reset button
+                                $processBtn.html('<i class="las la-check-circle"></i> Process Order');
                             }
+                        },
+                        error: function() {
+                            // Show error message
+                            AIZ.plugins.notify('danger', 'An error occurred while processing the order.');
+                            // Reset button
+                            $processBtn.html('<i class="las la-check-circle"></i> Process Order');
                         }
-                        c.next = function() {
-                            return {
-                                done: !0,
-                                value: void 0
-                            }
-                        };
-                        return c.next()
-                    }
-                };
-            c[Symbol.iterator] = function() {
-                return c
-            };
-            return c
-        };
-        $jscomp.polyfill = function(b, d, a, c) {
-            if (d) {
-                a = $jscomp.global;
-                b = b.split(".");
-                for (c = 0; c < b.length - 1; c++) {
-                    var e = b[c];
-                    e in a || (a[e] = {});
-                    a = a[e]
+                    });
                 }
-                b = b[b.length - 1];
-                c = a[b];
-                d = d(c);
-                d != c && null != d && $jscomp.defineProperty(a, b, {
-                    configurable: !0,
-                    writable: !0,
-                    value: d
-                })
-            }
-        };
-        $jscomp.polyfill("Array.prototype.values", function(b) {
-            return b ? b : function() {
-                return $jscomp.iteratorFromArray(this, function(b, a) {
-                    return a
-                })
-            }
-        }, "es8", "es3");
-        $jscomp.findInternal = function(b, d, a) {
-            b instanceof String && (b = String(b));
-            for (var c = b.length, e = 0; e < c; e++) {
-                var l = b[e];
-                if (d.call(a, l, e, b)) return {
-                    i: e,
-                    v: l
-                }
-            }
-            return {
-                i: -1,
-                v: void 0
-            }
-        };
-        $jscomp.polyfill("Array.prototype.find", function(b) {
-            return b ? b : function(b, a) {
-                return $jscomp.findInternal(this, b, a).v
-            }
-        }, "es6", "es3");
-        (function(b) {
-            function d(a, c) {
-                this._initialized = !1;
-                this.settings = null;
-                this.popups = [];
-                this.options = b.extend({}, d.Defaults, c);
-                this.$element = b(a);
-                this.init();
-                this.y = this.x = 0;
-                this._interval;
-                this._callbackOpened = this._popupOpened = this._menuOpened = !1;
-                this.countdown = null
-            }
-            d.Defaults = {
-                activated: !1,
-                pluginVersion: "2.0.1",
-                wordpressPluginVersion: !1,
-                align: "right",
-                mode: "regular",
-                countdown: 0,
-                drag: !1,
-                buttonText: "Contact us",
-                buttonSize: "large",
-                menuSize: "normal",
-                buttonIcon: '<svg width="20" height="20" viewBox="0 0 20 20" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><g transform="translate(-825 -308)"><g><path transform="translate(825 308)" fill="#FFFFFF" d="M 19 4L 17 4L 17 13L 4 13L 4 15C 4 15.55 4.45 16 5 16L 16 16L 20 20L 20 5C 20 4.45 19.55 4 19 4ZM 15 10L 15 1C 15 0.45 14.55 0 14 0L 1 0C 0.45 0 0 0.45 0 1L 0 15L 4 11L 14 11C 14.55 11 15 10.55 15 10Z"/></g></g></svg>',
-                ajaxUrl: "server.php",
-                action: "callback",
-                phonePlaceholder: "+X-XXX-XXX-XX-XX",
-                callbackSubmitText: "Waiting for call",
-                reCaptcha: !1,
-                reCaptchaAction: "callbackRequest",
-                reCaptchaKey: "",
-                errorMessage: "Connection error. Please try again.",
-                callProcessText: "We are calling you to phone",
-                callSuccessText: "Thank you.<br>We are call you back soon.",
-                showMenuHeader: !1,
-                menuHeaderText: "How would you like to contact us?",
-                showHeaderCloseBtn: !0,
-                menuInAnimationClass: "show-messageners-block",
-                menuOutAnimationClass: "",
-                eaderCloseBtnBgColor: "#787878",
-                eaderCloseBtnColor: "#FFFFFF",
-                items: [],
-                itemsIconType: "rounded",
-                iconsAnimationSpeed: 800,
-                iconsAnimationPause: 2E3,
-                promptPosition: "side",
-                callbackFormFields: {
-                    name: {
-                        name: "name",
-                        enabled: !0,
-                        required: !0,
-                        type: "text",
-                        label: "Please enter your name",
-                        placeholder: "Your full name"
-                    },
-                    email: {
-                        name: "email",
-                        enabled: !0,
-                        required: !1,
-                        type: "email",
-                        label: "Enter your email address",
-                        placeholder: "Optional field. Example: email@domain.com"
-                    },
-                    time: {
-                        name: "time",
-                        enabled: !0,
-                        required: !1,
-                        type: "dropdown",
-                        label: "Please choose schedule time",
-                        values: [{
-                            value: "asap",
-                            label: "Call me ASAP"
-                        }, "00:00", "01:00", "02:00", "03:00", "04:00", "05:00", "06:00", "07:00", "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00", "23:00"]
-                    },
-                    phone: {
-                        name: "phone",
-                        enabled: !0,
-                        required: !0,
-                        type: "tel",
-                        label: "Please enter your phone number",
-                        placeholder: "+X-XXX-XXX-XX-XX"
-                    },
-                    description: {
-                        name: "description",
-                        enabled: !0,
-                        required: !1,
-                        type: "textarea",
-                        label: "Please leave a message with your request"
-                    }
-                },
-                theme: "#000000",
-                callbackFormText: "Please enter your phone number<br>and we call you back soon",
-                closeIcon: '<svg width="12" height="13" viewBox="0 0 14 14" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><g transform="translate(-4087 108)"><g><path transform="translate(4087 -108)" fill="currentColor" d="M 14 1.41L 12.59 0L 7 5.59L 1.41 0L 0 1.41L 5.59 7L 0 12.59L 1.41 14L 7 8.41L 12.59 14L 14 12.59L 8.41 7L 14 1.41Z"></path></g></g></svg>',
-                callbackStateIcon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M493.4 24.6l-104-24c-11.3-2.6-22.9 3.3-27.5 13.9l-48 112c-4.2 9.8-1.4 21.3 6.9 28l60.6 49.6c-36 76.7-98.9 140.5-177.2 177.2l-49.6-60.6c-6.8-8.3-18.2-11.1-28-6.9l-112 48C3.9 366.5-2 378.1.6 389.4l24 104C27.1 504.2 36.7 512 48 512c256.1 0 464-207.5 464-464 0-11.2-7.7-20.9-18.6-23.4z"></path></svg>'
-            };
-            d.prototype.init = function() {
-                if (this._initialized) return !1;
-                this.destroy();
-                this.settings = b.extend({}, this.options);
-                this.$element.addClass("arcontactus-widget").addClass("arcontactus-message");
-                "left" === this.settings.align ? this.$element.addClass("left") : this.$element.addClass("right");
-                this.settings.items.length ? (this.$element.append("\x3c!--noindex--\x3e"), this._initCallbackBlock(), "regular" == this.settings.mode && this._initMessengersBlock(), this.popups.length && this._initPopups(), this._initMessageButton(),
-                    this._initPrompt(), this._initEvents(), this.startAnimation(), this.$element.append("\x3c!--/noindex--\x3e"), this.$element.addClass("active")) : console.info("jquery.contactus:no items");
-                this._initialized = !0;
-                this.$element.trigger("arcontactus.init")
-            };
-            d.prototype.destroy = function() {
-                if (!this._initialized) return !1;
-                this.$element.html("");
-                this._initialized = !1;
-                this.$element.trigger("arcontactus.destroy")
-            };
-            d.prototype._initCallbackBlock = function() {
-                var a = b("<div>", {
-                        class: "callback-countdown-block",
-                        style: this._colorStyle()
-                    }),
-                    c = b("<div>", {
-                        class: "callback-countdown-block-close",
-                        style: "background-color:" + this.settings.theme + "; color: #FFFFFF"
-                    });
-                c.append(this.settings.closeIcon);
-                var e = b("<div>", {
-                    class: "callback-countdown-block-phone"
-                });
-                e.append("<p>" + this.settings.callbackFormText + "</p>");
-                var d = b("<form>", {
-                        id: "arcu-callback-form",
-                        action: this.settings.ajaxUrl,
-                        method: "POST"
-                    }),
-                    h = b("<div>", {
-                        class: "callback-countdown-block-form-group"
-                    }),
-                    f = b("<input>", {
-                        name: "action",
-                        type: "hidden",
-                        value: this.settings.action
-                    }),
-                    g = b("<input>", {
-                        name: "gtoken",
-                        class: "ar-g-token",
-                        type: "hidden",
-                        value: ""
-                    });
-                h.append(f);
-                h.append(g);
-                this._initCallbackFormFields(h);
-                f = b("<div>", {
-                    class: "arcu-form-group arcu-form-button"
-                });
-                g = b("<button>", {
-                    id: "arcontactus-message-callback-phone-submit",
-                    type: "submit",
-                    style: this._backgroundStyle()
-                });
-                g.text(this.settings.callbackSubmitText);
-                f.append(g);
-                h.append(f);
-                f = b("<div>", {
-                    class: "callback-countdown-block-timer"
-                });
-                g = b("<p>" + this.settings.callProcessText + "</p>");
-                var k = b("<div>", {
-                    class: "callback-countdown-block-timer_timer"
-                });
-                f.append(g);
-                f.append(k);
-                g = b("<div>", {
-                    class: "callback-countdown-block-sorry"
-                });
-                k = b("<p>" + this.settings.callSuccessText + "</p>");
-                g.append(k);
-                d.append(h);
-                e.append(d);
-                a.append(c);
-                a.append(e);
-                a.append(f);
-                a.append(g);
-                this.$element.append(a)
-            };
-            d.prototype._initCallbackFormFields = function(a) {
-                var c = this;
-                b.each(c.settings.callbackFormFields, function(e) {
-                    var d = b("<div>", {
-                            class: "arcu-form-group arcu-form-group-type-" + c.settings.callbackFormFields[e].type + " arcu-form-group-" + c.settings.callbackFormFields[e].name + (c.settings.callbackFormFields[e].required ?
-                                " arcu-form-group-required" : "")
-                        }),
-                        h = "<input>";
-                    switch (c.settings.callbackFormFields[e].type) {
-                        case "textarea":
-                            h = "<textarea>";
-                            break;
-                        case "dropdown":
-                            h = "<select>"
-                    }
-                    if (c.settings.callbackFormFields[e].label) {
-                        var f = b("<div>", {
-                            class: "arcu-form-label"
-                        });
-                        f.html(c.settings.callbackFormFields[e].label);
-                        d.append(f)
-                    }
-                    var g = b(h, {
-                        name: c.settings.callbackFormFields[e].name,
-                        class: "arcu-form-field arcu-field-" + c.settings.callbackFormFields[e].name,
-                        required: c.settings.callbackFormFields[e].required,
-                        type: "dropdown" == c.settings.callbackFormFields[e].type ?
-                            null : c.settings.callbackFormFields[e].type,
-                        value: ""
-                    });
-                    g.attr("placeholder", c.settings.callbackFormFields[e].placeholder);
-                    "undefined" != typeof c.settings.callbackFormFields[e].maxlength && g.attr("maxlength", c.settings.callbackFormFields[e].maxlength);
-                    "dropdown" == c.settings.callbackFormFields[e].type && b.each(c.settings.callbackFormFields[e].values, function(a) {
-                        var d = c.settings.callbackFormFields[e].values[a],
-                            l = c.settings.callbackFormFields[e].values[a];
-                        "object" == typeof c.settings.callbackFormFields[e].values[a] &&
-                            (d = c.settings.callbackFormFields[e].values[a].value, l = c.settings.callbackFormFields[e].values[a].label);
-                        a = b("<option>", {
-                            value: d
-                        });
-                        a.text(l);
-                        g.append(a)
-                    });
-                    d.append(g);
-                    a.append(d)
-                })
-            };
-            d.prototype._initPopups = function() {
-                var a = this,
-                    c = b("<div>", {
-                        class: "popups-block arcuAnimated"
-                    }),
-                    e = b("<div>", {
-                        class: "popups-list-container"
-                    });
-                b.each(this.popups, function() {
-                    var c = b("<div>", {
-                            class: "arcu-popup",
-                            id: "arcu-popup-" + this.id
-                        }),
-                        d = b("<div>", {
-                            class: "arcu-popup-header",
-                            style: a.settings.theme ? "background-color:" + a.settings.theme : null
-                        }),
-                        f = b("<div>", {
-                            class: "arcu-popup-close",
-                            style: a.settings.theme ? "background-color:" + a.settings.theme : null
-                        }),
-                        g = b("<div>", {
-                            class: "arcu-popup-back",
-                            style: a.settings.theme ? "background-color:" + a.settings.theme : null
-                        });
-                    f.append(a.settings.closeIcon);
-                    g.append('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512"><path fill="currentColor" d="M231.293 473.899l19.799-19.799c4.686-4.686 4.686-12.284 0-16.971L70.393 256 251.092 74.87c4.686-4.686 4.686-12.284 0-16.971L231.293 38.1c-4.686-4.686-12.284-4.686-16.971 0L4.908 247.515c-4.686 4.686-4.686 12.284 0 16.971L214.322 473.9c4.687 4.686 12.285 4.686 16.971-.001z" class=""></path></svg>');
-                    d.text(this.title);
-                    d.append(f);
-                    d.append(g);
-                    f = b("<div>", {
-                        class: "arcu-popup-content"
-                    });
-                    f.html(this.popupContent);
-                    c.append(d);
-                    c.append(f);
-                    e.append(c)
-                });
-                c.append(e);
-                this.$element.append(c)
-            };
-            d.prototype._initMessengersBlock = function() {
-                var a = b("<div>", {
-                        class: "messangers-block arcuAnimated"
-                    }),
-                    c = b("<div>", {
-                        class: "messangers-list-container"
-                    }),
-                    e = b("<ul>", {
-                        class: "messangers-list"
-                    });
-                "normal" !== this.settings.menuSize && "large" !== this.settings.menuSize || a.addClass("lg");
-                "small" === this.settings.menuSize && a.addClass("sm");
-                this._appendMessengerIcons(e);
-                if (this.settings.showMenuHeader) {
-                    var d = b("<div>", {
-                        class: "arcu-menu-header",
-                        style: this.settings.theme ? "background-color:" + this.settings.theme : null
-                    });
-                    d.html(this.settings.menuHeaderText);
-                    if (this.settings.showHeaderCloseBtn) {
-                        var h = b("<div>", {
-                            class: "arcu-header-close",
-                            style: "color:" + this.settings.headerCloseBtnColor + "; background:" + this.settings.headerCloseBtnBgColor
-                        });
-                        h.append(this.settings.closeIcon);
-                        d.append(h)
-                    }
-                    a.append(d);
-                    a.addClass("has-header")
-                }
-                "rounded" == this.settings.itemsIconType ?
-                    e.addClass("rounded-items") : e.addClass("not-rounded-items");
-                c.append(e);
-                a.append(c);
-                this.$element.append(a)
-            };
-            d.prototype._appendMessengerIcons = function(a) {
-                var c = this;
-                b.each(this.settings.items, function(e) {
-                    e = b("<li>", {});
-                    if ("callback" == this.href) var d = b("<div>", {
-                        class: "messanger call-back " + (this.class ? this.class : "")
-                    });
-                    else if ("_popup" == this.href) c.popups.push(this), d = b("<div>", {
-                        class: "messanger arcu-popup-link " + (this.class ? this.class : ""),
-                        "data-id": this.id ? this.id : null
-                    });
-                    else if (d = b("<a>", {
-                            class: "messanger " +
-                                (this.class ? this.class : ""),
-                            id: this.id ? this.id : null,
-                            href: this.href
-                        }), this.onClick) {
-                        var h = this;
-                        d.on("click", function(a) {
-                            h.onClick(a)
-                        })
-                    }
-                    var f = "rounded" == c.settings.itemsIconType ? b("<span>", {
-                        style: this.color ? "background-color:" + this.color : null
-                    }) : b("<span>", {
-                        style: (this.color ? "color:" + this.color : null) + "; background-color: transparent"
-                    });
-                    f.append(this.icon);
-                    d.append(f);
-                    f = b("<div>", {
-                        class: "arcu-item-label"
-                    });
-                    var g = b("<div>", {
-                        class: "arcu-item-title"
-                    });
-                    g.text(this.title);
-                    f.append(g);
-                    "undefined" != typeof this.subTitle && this.subTitle && (g = b("<div>", {
-                        class: "arcu-item-subtitle"
-                    }), g.text(this.subTitle), f.append(g));
-                    d.append(f);
-                    e.append(d);
-                    a.append(e)
-                })
-            };
-            d.prototype._initMessageButton = function() {
-                var a = this,
-                    c = b("<div>", {
-                        class: "arcontactus-message-button",
-                        style: this._backgroundStyle()
-                    });
-                "large" === this.settings.buttonSize && this.$element.addClass("lg");
-                "huge" === this.settings.buttonSize && this.$element.addClass("hg");
-                "medium" === this.settings.buttonSize && this.$element.addClass("md");
-                "small" === this.settings.buttonSize && this.$element.addClass("sm");
-                var e = b("<div>", {
-                    class: "static"
-                });
-                e.append(this.settings.buttonIcon);
-                !1 !== this.settings.buttonText ? e.append("<p>" + this.settings.buttonText + "</p>") : c.addClass("no-text");
-                var d = b("<div>", {
-                    class: "callback-state",
-                    style: a._colorStyle()
-                });
-                d.append(this.settings.callbackStateIcon);
-                var h = b("<div>", {
-                        class: "icons hide"
-                    }),
-                    f = b("<div>", {
-                        class: "icons-line"
-                    });
-                b.each(this.settings.items, function(c) {
-                    c = b("<span>", {
-                        style: a._colorStyle()
-                    });
-                    c.append(this.icon);
-                    f.append(c)
-                });
-                h.append(f);
-                var g = b("<div>", {
-                    class: "arcontactus-close"
-                });
-                g.append(this.settings.closeIcon);
-                var k = b("<div>", {
-                        class: "pulsation",
-                        style: a._backgroundStyle()
-                    }),
-                    m = b("<div>", {
-                        class: "pulsation",
-                        style: a._backgroundStyle()
-                    });
-                c.append(e).append(d).append(h).append(g).append(k).append(m);
-                this.$element.append(c)
-            };
-            d.prototype._initPrompt = function() {
-                var a = b("<div>", {
-                        class: "arcontactus-prompt arcu-prompt-" + this.settings.promptPosition
-                    }),
-                    c = b("<div>", {
-                        class: "arcontactus-prompt-close",
-                        style: this._backgroundStyle() +
-                            "; color: #FFFFFF"
-                    });
-                c.append(this.settings.closeIcon);
-                var e = b("<div>", {
-                    class: "arcontactus-prompt-inner"
-                });
-                a.append(c).append(e);
-                this.$element.append(a)
-            };
-            d.prototype._initEvents = function() {
-                var a = this.$element,
-                    c = this;
-                a.find(".arcontactus-message-button").on("mousedown", function(a) {
-                    c.x = a.pageX;
-                    c.y = a.pageY
-                }).on("mouseup", function(a) {
-                    if (c.settings.drag && a.pageX === c.x && a.pageY === c.y || !c.settings.drag) "regular" == c.settings.mode ? c._menuOpened || c._popupOpened || c._callbackOpened ? (c._menuOpened && c.closeMenu(),
-                        c._popupOpened && c.closePopup()) : c.openMenu() : c.openCallbackPopup(), a.preventDefault()
-                });
-                this.settings.drag && (a.draggable(), a.get(0).addEventListener("touchmove", function(c) {
-                    var b = c.targetTouches[0];
-                    a.get(0).style.left = b.pageX - 25 + "px";
-                    a.get(0).style.top = b.pageY - 25 + "px";
-                    c.preventDefault()
-                }, !1));
-                b(document).on("click", function(a) {
-                    c.closeMenu();
-                    c.closePopup()
-                });
-                a.on("click", function(a) {
-                    a.stopPropagation()
-                });
-                a.find(".call-back").on("click", function() {
-                    c.openCallbackPopup()
-                });
-                a.find(".arcu-popup-link").on("click",
-                    function() {
-                        var a = b(this).data("id");
-                        c.openPopup(a)
-                    });
-                a.find(".arcu-header-close").on("click", function() {
-                    c.closeMenu()
-                });
-                a.find(".arcu-popup-close").on("click", function() {
-                    c.closePopup()
-                });
-                a.find(".arcu-popup-back").on("click", function() {
-                    c.closePopup();
-                    c.openMenu()
-                });
-                a.find(".callback-countdown-block-close").on("click", function() {
-                    null != c.countdown && (clearInterval(c.countdown), c.countdown = null);
-                    c.closeCallbackPopup()
-                });
-                a.find(".arcontactus-prompt-close").on("click", function() {
-                    c.hidePrompt()
-                });
-                a.find("#arcu-callback-form").on("submit",
-                    function(b) {
-                        b.preventDefault();
-                        a.find(".callback-countdown-block-phone").addClass("ar-loading");
-                        c.settings.reCaptcha ? grecaptcha.execute(c.settings.reCaptchaKey, {
-                            action: c.settings.reCaptchaAction
-                        }).then(function(b) {
-                            a.find(".ar-g-token").val(b);
-                            c.sendCallbackRequest()
-                        }) : c.sendCallbackRequest()
-                    });
-                setTimeout(function() {
-                    c._processHash()
-                }, 500);
-                b(window).on("hashchange", function(a) {
-                    c._processHash()
-                })
-            };
-            d.prototype._processHash = function() {
-                switch (window.location.hash) {
-                    case "#callback-form":
-                    case "callback-form":
-                        this.openCallbackPopup();
-                        break;
-                    case "#callback-form-close":
-                    case "callback-form-close":
-                        this.closeCallbackPopup();
-                        break;
-                    case "#contactus-menu":
-                    case "contactus-menu":
-                        this.openMenu();
-                        break;
-                    case "#contactus-menu-close":
-                    case "contactus-menu-close":
-                        this.closeMenu();
-                        break;
-                    case "#contactus-hide":
-                    case "contactus-hide":
-                        this.hide();
-                        break;
-                    case "#contactus-show":
-                    case "contactus-show":
-                        this.show()
-                }
-            };
-            d.prototype._callBackCountDownMethod = function() {
-                var a = this.settings.countdown,
-                    c = this.$element,
-                    b = this,
-                    d = 60;
-                c.find(".callback-countdown-block-phone, .callback-countdown-block-timer").toggleClass("display-flex");
-                this.countdown = setInterval(function() {
-                    --d;
-                    var e = a,
-                        f = d;
-                    10 > a && (e = "0" + a);
-                    10 > d && (f = "0" + d);
-                    e = e + ":" + f;
-                    c.find(".callback-countdown-block-timer_timer").html(e);
-                    0 === d && 0 === a && (clearInterval(b.countdown), b.countdown = null, c.find(".callback-countdown-block-sorry, .callback-countdown-block-timer").toggleClass("display-flex"));
-                    0 === d && (d = 60, --a)
-                }, 20)
-            };
-            d.prototype.sendCallbackRequest = function() {
-                var a = this,
-                    c = a.$element;
-                this.$element.trigger("arcontactus.beforeSendCallbackRequest");
-                b.ajax({
-                    url: a.settings.ajaxUrl,
-                    type: "POST",
-                    dataType: "json",
-                    data: c.find("form").serialize(),
-                    success: function(b) {
-                        a.settings.countdown && a._callBackCountDownMethod();
-                        c.find(".callback-countdown-block-phone").removeClass("ar-loading");
-                        if (b.success) a.settings.countdown || c.find(".callback-countdown-block-sorry, .callback-countdown-block-phone").toggleClass("display-flex");
-                        else if (b.errors) {
-                            var d = b.errors.join("\n\r");
-                            alert(d)
-                        } else alert(a.settings.errorMessage);
-                        a.$element.trigger("arcontactus.successCallbackRequest", b)
-                    },
-                    error: function() {
-                        c.find(".callback-countdown-block-phone").removeClass("ar-loading");
-                        alert(a.settings.errorMessage);
-                        a.$element.trigger("arcontactus.errorCallbackRequest")
-                    }
-                })
-            };
-            d.prototype.show = function() {
-                this.$element.addClass("active");
-                this.$element.trigger("arcontactus.show")
-            };
-            d.prototype.hide = function() {
-                this.$element.removeClass("active");
-                this.$element.trigger("arcontactus.hide")
-            };
-            d.prototype.openPopup = function(a) {
-                this.closeMenu();
-                var c = this.$element;
-                c.find("#arcu-popup-" + a).addClass("show-messageners-block");
-                c.find("#arcu-popup-" + a).hasClass("popup-opened") || (this.stopAnimation(),
-                    c.addClass("popup-opened"), c.find("#arcu-popup-" + a).addClass(this.settings.menuInAnimationClass), c.find(".arcontactus-close").addClass("show-messageners-block"), c.find(".icons, .static").addClass("hide"), c.find(".pulsation").addClass("stop"), this._popupOpened = !0, this.$element.trigger("arcontactus.openPopup"))
-            };
-            d.prototype.closePopup = function() {
-                var a = this.$element;
-                a.find(".arcu-popup").hasClass("show-messageners-block") && (setTimeout(function() {
-                        a.removeClass("popup-opened")
-                    }, 150), a.find(".arcu-popup").removeClass(this.settings.menuInAnimationClass).addClass(this.settings.menuOutAnimationClass),
-                    setTimeout(function() {
-                        a.removeClass("popup-opened")
-                    }, 150), a.find(".arcontactus-close").removeClass("show-messageners-block"), a.find(".icons, .static").removeClass("hide"), a.find(".pulsation").removeClass("stop"), this.startAnimation(), this._popupOpened = !1, this.$element.trigger("arcontactus.closeMenu"))
-            };
-            d.prototype.openMenu = function() {
-                if ("callback" == this.settings.mode) return console.log("Widget in callback mode"), !1;
-                var a = this.$element;
-                a.find(".messangers-block").hasClass(this.settings.menuInAnimationClass) ||
-                    (this.stopAnimation(), a.addClass("open"), a.find(".messangers-block").addClass(this.settings.menuInAnimationClass), a.find(".arcontactus-close").addClass("show-messageners-block"), a.find(".icons, .static").addClass("hide"), a.find(".pulsation").addClass("stop"), this._menuOpened = !0, this.$element.trigger("arcontactus.openMenu"))
-            };
-            d.prototype.closeMenu = function() {
-                if ("callback" == this.settings.mode) return console.log("Widget in callback mode"), !1;
-                var a = this.$element,
-                    c = this;
-                a.find(".messangers-block").hasClass(this.settings.menuInAnimationClass) &&
-                    (setTimeout(function() {
-                        a.removeClass("open")
-                    }, 150), a.find(".messangers-block").removeClass(this.settings.menuInAnimationClass).addClass(this.settings.menuOutAnimationClass), setTimeout(function() {
-                        a.find(".messangers-block").removeClass(c.settings.menuOutAnimationClass)
-                    }, 1E3), a.find(".arcontactus-close").removeClass("show-messageners-block"), a.find(".icons, .static").removeClass("hide"), a.find(".pulsation").removeClass("stop"), this.startAnimation(), this._menuOpened = !1, this.$element.trigger("arcontactus.closeMenu"))
-            };
-            d.prototype.toggleMenu = function() {
-                var a = this.$element;
-                this.hidePrompt();
-                if (a.find(".callback-countdown-block").hasClass("display-flex")) return !1;
-                a.find(".messangers-block").hasClass(this.settings.menuInAnimationClass) ? this.closeMenu() : this.openMenu();
-                this.$element.trigger("arcontactus.toggleMenu")
-            };
-            d.prototype.openCallbackPopup = function() {
-                var a = this.$element;
-                a.addClass("opened");
-                this.closeMenu();
-                this.stopAnimation();
-                a.find(".icons, .static").addClass("hide");
-                a.find(".pulsation").addClass("stop");
-                a.find(".callback-countdown-block").addClass("display-flex");
-                a.find(".callback-countdown-block-phone").addClass("display-flex");
-                a.find(".callback-state").addClass("display-flex");
-                this._callbackOpened = !0;
-                this.$element.trigger("arcontactus.openCallbackPopup")
-            };
-            d.prototype.closeCallbackPopup = function() {
-                var a = this.$element;
-                a.removeClass("opened");
-                a.find(".messangers-block").removeClass(this.settings.menuInAnimationClass);
-                a.find(".arcontactus-close").removeClass("show-messageners-block");
-                a.find(".icons, .static").removeClass("hide");
-                a.find(".pulsation").removeClass("stop");
-                a.find(".callback-countdown-block, .callback-countdown-block-phone, .callback-countdown-block-sorry, .callback-countdown-block-timer").removeClass("display-flex");
-                a.find(".callback-state").removeClass("display-flex");
-                this.startAnimation();
-                this._callbackOpened = !1;
-                this.$element.trigger("arcontactus.closeCallbackPopup")
-            };
-            d.prototype.startAnimation = function() {
-                var a = this.$element,
-                    c = a.find(".icons-line"),
-                    b = a.find(".static"),
-                    d = a.find(".icons-line>span:first-child").width() +
-                    40;
-                if ("huge" === this.settings.buttonSize) var h = 2,
-                    f = 0;
-                "large" === this.settings.buttonSize && (h = 2, f = 0);
-                "medium" === this.settings.buttonSize && (h = 4, f = -2);
-                "small" === this.settings.buttonSize && (h = 4, f = -2);
-                var g = a.find(".icons-line>span").length,
-                    k = 0;
-                this.stopAnimation();
-                if (0 === this.settings.iconsAnimationSpeed) return !1;
-                var m = this;
-                this._interval = setInterval(function() {
-                    0 === k && (c.parent().removeClass("hide"), b.addClass("hide"));
-                    var a = "translate(" + -(d * k + h) + "px, " + f + "px)";
-                    c.css({
-                        "-webkit-transform": a,
-                        "-ms-transform": a,
-                        transform: a
-                    });
-                    k++;
-                    if (k > g) {
-                        if (k > g + 1) {
-                            if (m.settings.iconsAnimationPause) return m.stopAnimation(), setTimeout(function() {
-                                if (m._callbackOpened || m._menuOpened || m._popupOpened) return !1;
-                                m.startAnimation()
-                            }, m.settings.iconsAnimationPause), !1;
-                            k = 0
-                        }
-                        c.parent().addClass("hide");
-                        b.removeClass("hide");
-                        a = "translate(" + -h + "px, " + f + "px)";
-                        c.css({
-                            "-webkit-transform": a,
-                            "-ms-transform": a,
-                            transform: a
-                        })
-                    }
-                }, this.settings.iconsAnimationSpeed)
-            };
-            d.prototype.stopAnimation = function() {
-                clearInterval(this._interval);
-                var a = this.$element,
-                    b = a.find(".icons-line");
-                a = a.find(".static");
-                b.parent().addClass("hide");
-                a.removeClass("hide");
-                b.css({
-                    "-webkit-transform": "translate(-2px, 0px)",
-                    "-ms-transform": "translate(-2px, 0px)",
-                    transform: "translate(-2px, 0px)"
-                })
-            };
-            d.prototype.showPrompt = function(a) {
-                var b = this.$element.find(".arcontactus-prompt");
-                a && a.content && b.find(".arcontactus-prompt-inner").html(a.content);
-                b.addClass("active");
-                this.$element.trigger("arcontactus.showPrompt")
-            };
-            d.prototype.hidePrompt = function() {
-                this.$element.find(".arcontactus-prompt").removeClass("active");
-                this.$element.trigger("arcontactus.hidePrompt")
-            };
-            d.prototype.showPromptTyping = function() {
-                this.$element.find(".arcontactus-prompt").find(".arcontactus-prompt-inner").html("");
-                this._insertPromptTyping();
-                this.showPrompt({});
-                this.$element.trigger("arcontactus.showPromptTyping")
-            };
-            d.prototype._insertPromptTyping = function() {
-                var a = this.$element.find(".arcontactus-prompt-inner"),
-                    c = b("<div>", {
-                        class: "arcontactus-prompt-typing"
-                    }),
-                    d = b("<div>");
-                c.append(d);
-                c.append(d.clone());
-                c.append(d.clone());
-                a.append(c)
-            };
-            d.prototype.hidePromptTyping =
-                function() {
-                    this.$element.find(".arcontactus-prompt").removeClass("active");
-                    this.$element.trigger("arcontactus.hidePromptTyping")
-                };
-            d.prototype._backgroundStyle = function() {
-                return "background-color: " + this.settings.theme
-            };
-            d.prototype._colorStyle = function() {
-                return "color: " + this.settings.theme
-            };
-            b.fn.contactUs = function(a) {
-                var c = Array.prototype.slice.call(arguments, 1);
-                return this.each(function() {
-                    var e = b(this),
-                        l = e.data("ar.contactus");
-                    l || (l = new d(this, "object" == typeof a && a), e.data("ar.contactus", l));
-                    "string" ==
-                    typeof a && "_" !== a.charAt(0) && l[a].apply(l, c)
-                })
-            };
-            b.fn.contactUs.Constructor = d
-        })(jQuery);
+            });
+        });
     </script>
 
 </body>

@@ -1,0 +1,581 @@
+<?php include("../config.php");
+if (!$isSeller) header("Location: /users/login");
+
+// Fetch seller information using prepared statement
+$stmt = $conn->prepare("SELECT * FROM sellers WHERE id=?");
+$stmt->bind_param("i", $seller_id);
+$stmt->execute();
+$seller_info = $stmt->get_result()->fetch_assoc();
+$stmt->close();
+
+$seller_rating = floatval($seller_info['rating'] ?? 0);
+$seller_visitors = intval($seller_info['visitors'] ?? 0);
+$is_verified = intval($seller_info['is_verified'] ?? 0);
+$seller_shop_name = htmlspecialchars($seller_info['shop_name'] ?? 'My Shop');
+
+// Count uploaded products
+$stmt = $conn->prepare("SELECT COUNT(*) as count FROM products WHERE seller_id=?");
+$stmt->bind_param("i", $seller_id);
+$stmt->execute();
+$count_uploaded_product = intval($stmt->get_result()->fetch_assoc()['count']);
+$stmt->close();
+
+// Calculate order statistics
+$stmt = $conn->prepare("SELECT COUNT(DISTINCT order_id) as count FROM detail_orders WHERE from_seller=?");
+$stmt->bind_param("i", $seller_id);
+$stmt->execute();
+$total_orders = intval($stmt->get_result()->fetch_assoc()['count']);
+$stmt->close();
+// get hoa hồng
+
+$stmt = $conn->prepare("SELECT * FROM seller_setting");
+$stmt->execute();
+$result = $stmt->get_result()->fetch_assoc();
+$commission = $result['commission'] ? $result['commission'] / 100 : 0;
+$stmt->close();
+
+// Lấy detail_orders của seller
+$sql = "SELECT d.*, o.payment_status  
+        FROM detail_orders d
+        JOIN orders o ON d.order_id = o.id
+        WHERE d.from_seller = ? AND o.payment_status = 'paid'";
+
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("i", $seller_id);
+$stmt->execute();
+$res = $stmt->get_result();
+
+$total_sales = 0;
+while ($row = $res->fetch_assoc()) {
+    $total_sales += $commission * $row['price'];
+ 
+}
+
+$stmt->close();
+
+
+
+
+// Calculate monthly sales
+$current_month = date('Y-m-01');
+$stmt = $conn->prepare("SELECT SUM(price * quantity) as total FROM detail_orders WHERE from_seller=? AND create_date >= ?");
+$stmt->bind_param("is", $seller_id, $current_month);
+$stmt->execute();
+$result = $stmt->get_result()->fetch_assoc();
+$current_month_sales = floatval($result['total'] ?? 0);
+$stmt->close();
+
+$last_month = date('Y-m-01', strtotime('-1 month'));
+$last_month_end = date('Y-m-t', strtotime('-1 month'));
+$stmt = $conn->prepare("SELECT SUM(price * quantity) as total FROM detail_orders WHERE from_seller=? AND create_date BETWEEN ? AND ?");
+$stmt->bind_param("iss", $seller_id, $last_month, $last_month_end);
+$stmt->execute();
+$result = $stmt->get_result()->fetch_assoc();
+$last_month_sales = floatval($result['total'] ?? 0);
+$stmt->close();
+
+// Get top products
+$stmt = $conn->prepare("SELECT * FROM products WHERE seller_id=? AND published=1 ORDER BY unit_price * quantity DESC LIMIT 12");
+$stmt->bind_param("i", $seller_id);
+$stmt->execute();
+$top_products = $stmt->get_result();
+$stmt->close();
+
+// Get seller's current package
+$seller_package_info = null;
+$package_purchase_history = null;
+if ($seller_info && !empty($seller_info['package_id'])) {
+    $stmt = $conn->prepare("SELECT * FROM seller_packages WHERE id = ?");
+    $stmt->bind_param("i", $seller_info['package_id']);
+    $stmt->execute();
+    $seller_package_info = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    $stmt = $conn->prepare("SELECT * FROM package_purchase_history WHERE package_id = ? AND member_id = ?");
+    $stmt->bind_param("ii", $seller_info['package_id'], $seller_id);
+    $stmt->execute();
+    $package_purchase_history = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+}
+
+$seller_package_info_end_date = null;
+$package_logo  = null;
+if($package_purchase_history) {
+    $seller_package_info_end_date = 
+date('d/m/Y', strtotime($package_purchase_history['create_date']) + ($seller_package_info['duration'] * 86400));
+$package_logo = get_image($conn,$seller_package_info['logo']);
+}
+?>
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta name="csrf-token" content="WHlv8s3iHwKLAGXuo3YNzXWSxeiLQwI3HCTT6iXe">
+    <meta name="app-url" content="//gmarketagents.com/">
+    <meta name="file-base-url" content="//gmarketagents.com/public/">
+
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Favicon -->
+    <link rel="icon" href="/public/uploads/all/gTpdv1822yoHhDKtwGLenMSNg19P86n99DzgA91a.jpg">
+    <title>TAKASHIMAYA ONLINE STORE VIETNAM | Mua sản phẩm nội địa Nhật Bản với giá gốc từ nhà sản xuất</title>
+    <!-- google font -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Poppins:300,400,500,600,700">
+
+    <!-- aiz core css -->
+    <link rel="stylesheet" href="/public/assets/css/vendors.css">
+    <link rel="stylesheet" href="/public/assets/css/aiz-seller.css">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'shopee': {
+                            50: '#fff2ee',
+                            100: '#ffe5d8',
+                            200: '#ffd0b5',
+                            300: '#ffb184',
+                            400: '#ff8547',
+                            500: '#d40000',
+                            /* Changed to deeper red */
+                            600: '#b00000',
+                            /* Adjusted deeper red */
+                            700: '#8c0000',
+                            800: '#680000',
+                            900: '#440000',
+                        },
+                    },
+                },
+            },
+        }
+    </script>
+
+    <!-- Add Font Awesome for better icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <style>
+        body {
+            font-size: 14px;
+            font-family: 'Poppins', sans-serif;
+            background-color: #f8fafc;
+        }
+
+        .dashboard-card {
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transition: all 0.3s ease;
+        }
+
+        .dashboard-card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            transform: translateY(-2px);
+        }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+        }
+
+        .product-card {
+            transition: all 0.3s ease;
+        }
+
+        .product-card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            transform: translateY(-2px);
+        }
+
+        .action-card {
+            transition: all 0.3s ease;
+        }
+
+        .action-card:hover {
+            transform: translateY(-5px);
+        }
+
+        /* Custom overrides for deeper red */
+        .bg-shopee-500,
+        .hover\:bg-shopee-500:hover {
+            background-color: #d40000 !important;
+        }
+
+        .bg-shopee-600,
+        .hover\:bg-shopee-600:hover {
+            background-color: #b00000 !important;
+        }
+
+        .text-shopee-500,
+        .hover\:text-shopee-500:hover {
+            color: #d40000 !important;
+        }
+
+        .text-shopee-600,
+        .hover\:text-shopee-600:hover {
+            color: #b00000 !important;
+        }
+
+        .bg-shopee-100 {
+            background-color: #ffeded !important;
+        }
+
+        .bg-shopee-50 {
+            background-color: #fff5f5 !important;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="aiz-main-wrapper">
+        <?php include("./layout/sidebar.php") ?>
+        <div class="py-3 px-4 lg:px-6">
+            <?php include("./layout/topbar.php") ?>
+
+            <div class="aiz-main-content">
+                <div class="px-15px px-lg-25px">
+                    <!-- Shop Header -->
+                    <div class="bg-white rounded-lg shadow-sm p-4 mb-5 mt-4">
+                        <div class="flex flex-wrap items-center justify-between">
+                            <div>
+                                <h1 class="text-2xl font-bold text-gray-800"><?= $seller_shop_name ?></h1>
+                                <div class="flex items-center mt-2">
+                                    <?php
+                                    for ($i = 1; $i <= 5; $i++) {
+                                        if ($i <= $seller_rating) {
+                                            echo '<i class="fas fa-star text-yellow-400"></i>';
+                                        } else {
+                                            echo '<i class="far fa-star text-gray-300"></i>';
+                                        }
+                                    }
+                                    ?>
+                                    <span class="ml-2 text-gray-600"><?= number_format($seller_rating, 1) ?> sao</span>
+                                </div>
+                            </div>
+                            <div>
+                                <?php if (!$is_verified): ?>
+                                    <a href="/seller/shop/apply_for_verification.php" class="inline-flex items-center px-4 py-2 bg-shopee-500 hover:bg-shopee-600 text-white rounded-lg transition-colors">
+                                        <i class="fas fa-check-circle mr-2"></i> Xác thực cửa hàng
+                                    </a>
+                                <?php else: ?>
+                                    <div class="inline-flex items-center px-4 py-2 bg-green-100 text-green-800 rounded-lg">
+                                        <i class="fas fa-check-circle mr-2"></i> Đã xác thực
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Stats Cards -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+                        <!-- Products Card -->
+                        <div class="dashboard-card bg-white p-6">
+                            <div class="flex items-center">
+                                <div class="stat-icon mr-4 bg-blue-100">
+                                    <i class="fas fa-box text-blue-500 text-xl"></i>
+                                </div>
+                                <div>
+                                    <p class="text-gray-500 text-sm">Sản phẩm</p>
+                                    <h3 class="text-2xl font-bold text-gray-800"><?= $count_uploaded_product ?></h3>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Rating Card -->
+                        <div class="dashboard-card bg-white p-6">
+                            <div class="flex items-center">
+                                <div class="stat-icon mr-4 bg-yellow-100">
+                                    <i class="fas fa-star text-yellow-500 text-xl"></i>
+                                </div>
+                                <div>
+                                    <p class="text-gray-500 text-sm">Đánh giá</p>
+                                    <h3 class="text-2xl font-bold text-gray-800"><?= number_format($seller_rating, 1) ?></h3>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Orders Card -->
+                        <div class="dashboard-card bg-white p-6">
+                            <div class="flex items-center">
+                                <div class="stat-icon mr-4 bg-green-100">
+                                    <i class="fas fa-shopping-cart text-green-500 text-xl"></i>
+                                </div>
+                                <div>
+                                    <p class="text-gray-500 text-sm">Đơn hàng</p>
+                                    <h3 class="text-2xl font-bold text-gray-800"><?= $total_orders ?></h3>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Sales Card -->
+                        <div class="dashboard-card bg-white p-6">
+                            <div class="flex items-center">
+                                <div class="stat-icon mr-4 bg-shopee-100">
+                                    <i class="fas fa-dollar-sign text-shopee-500 text-xl"></i>
+                                </div>
+                                <div>
+                                    <p class="text-gray-500 text-sm">Doanh số</p>
+                                    <h3 class="text-2xl font-bold text-gray-800">$<?= number_format($total_sales, 2) ?></h3>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Mid Section -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
+                        <!-- Sales Report -->
+                        <div class="dashboard-card bg-white p-6 col-span-1">
+                            <h2 class="text-lg font-semibold text-gray-800 mb-4">Báo cáo bán hàng</h2>
+                            <div class="flex items-center p-4 bg-shopee-50 rounded-lg mb-3">
+                                <div class="bg-shopee-500 text-white p-3 rounded-full mr-4">
+                                    <i class="fas fa-chart-line"></i>
+                                </div>
+                                <div>
+                                    <p class="text-gray-600 text-sm">Tháng này</p>
+                                    <h3 class="text-xl font-bold text-shopee-500">$<?= number_format($current_month_sales, 2) ?></h3>
+                                </div>
+                            </div>
+                            <div class="flex items-center p-4 bg-gray-50 rounded-lg">
+                                <div class="bg-gray-500 text-white p-3 rounded-full mr-4">
+                                    <i class="fas fa-history"></i>
+                                </div>
+                                <div>
+                                    <p class="text-gray-600 text-sm">Tháng trước</p>
+                                    <h3 class="text-xl font-bold text-gray-700">$<?= number_format($last_month_sales, 2) ?></h3>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Visitors Report -->
+                        <div class="dashboard-card bg-white p-6 col-span-1">
+                            <h2 class="text-lg font-semibold text-gray-800 mb-4">Khách hàng truy cập cửa hàng</h2>
+                            <div class="flex items-center p-4 bg-blue-50 rounded-lg">
+                                <div class="bg-blue-500 text-white p-3 rounded-full mr-4">
+                                    <i class="fas fa-users"></i>
+                                </div>
+                                <div>
+                                    <p class="text-gray-600 text-sm">Số lượng khách truy cập</p>
+                                    <h3 class="text-xl font-bold text-blue-600"><?= $seller_visitors ?></h3>
+                                </div>
+                            </div>
+
+                            <!-- Package Info -->
+                            <div class="mt-6">
+                                <h2 class="text-lg font-semibold text-gray-800 mb-4">Gói hiện tại</h2>
+                                <div class="border border-gray-200 rounded-lg p-4">
+                                    <?php if($seller_package_info) {
+                                        ?>
+                                    <div class="flex items-center">
+                                        <img src="<?= $package_logo  ? $package_logo : '/assets/images/package-logo.png' ?>" class="w-16 h-16 rounded-full mr-3">
+                                        <div>
+                                            <h3 class="font-semibold text-shopee-600"><?=$seller_package_info['name']?></h3>
+                                            <p class="text-sm text-gray-600">Giới hạn tải lên: <?=$seller_package_info['product_upload_limit']?> sản phẩm</p>
+                                            <p class="text-xs text-gray-500 mt-1">Hết hạn: <?=$seller_package_info_end_date?></p>
+                                        </div>
+                                    </div>
+                                    <?php } ?>
+                                    <a href="/seller/packages/index.php" class="mt-3 inline-block text-sm px-4 py-2 bg-shopee-500 hover:bg-shopee-600 text-white rounded-lg transition-colors w-full text-center">
+                                        <i class="fas fa-arrow-up mr-1"></i> Nâng gói
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Order Status -->
+                      <?php
+// Đếm số lượng theo từng trạng thái
+$status_counts = [
+    'new' => 0,
+    'cancelled' => 0,
+    'on_delivery' => 0,
+    'delivered' => 0
+];
+  $where = "WHERE do.from_seller = '$seller_id'";
+// Truy vấn dữ liệu
+ $sql = "SELECT do.*, o.code, o.delivery_status, o.payment_status, o.create_date, o.payment_option, 
+                              do.status_xuli, u.email, u.full_name 
+                              FROM detail_orders do
+                              JOIN orders o ON do.order_id = o.id
+                              LEFT JOIN users u ON o.user_id = u.id
+                              $where
+                              ORDER BY o.create_date DESC
+                              ";
+$result = mysqli_query($conn, $sql);
+
+// Đếm theo trạng thái
+while ($row = mysqli_fetch_assoc($result)) {
+    $status = $row['delivery_status'];
+    if ($status == 'Pending') {
+        $status_counts['new']++;
+    } elseif ($status == 'Cancelled') {
+        $status_counts['cancelled']++;
+    } elseif (in_array($status, ['Picked_up', 'Processing', 'Confirmed'])) {
+        $status_counts['on_delivery']++;
+    } elseif ($status == 'Delivered') {
+        $status_counts['delivered']++;
+    }
+}
+?>
+
+<!-- HTML hiển thị -->
+<div class="dashboard-card bg-white p-6 col-span-1">
+    <h2 class="text-lg font-semibold text-gray-800 mb-4">Trạng thái đơn hàng</h2>
+
+    <!-- New Orders -->
+    <div class="flex items-center justify-between p-3 border-b border-gray-100">
+        <div class="flex items-center">
+            <div class="p-2 rounded-lg bg-shopee-100 mr-3">
+                <i class="fas fa-shopping-bag text-shopee-500"></i>
+            </div>
+            <span class="text-gray-700">Đơn hàng mới</span>
+        </div>
+        <span class="text-lg font-semibold text-shopee-500"><?= $status_counts['new'] ?></span>
+    </div>
+
+    <!-- Cancelled -->
+    <div class="flex items-center justify-between p-3 border-b border-gray-100">
+        <div class="flex items-center">
+            <div class="p-2 rounded-lg bg-red-100 mr-3">
+                <i class="fas fa-ban text-red-500"></i>
+            </div>
+            <span class="text-gray-700">Đã huỷ</span>
+        </div>
+        <span class="text-lg font-semibold text-red-500"><?= $status_counts['cancelled'] ?></span>
+    </div>
+
+    <!-- On Delivery -->
+    <div class="flex items-center justify-between p-3 border-b border-gray-100">
+        <div class="flex items-center">
+            <div class="p-2 rounded-lg bg-blue-100 mr-3">
+                <i class="fas fa-truck text-blue-500"></i>
+            </div>
+            <span class="text-gray-700">Đang vận chuyển</span>
+        </div>
+        <span class="text-lg font-semibold text-blue-500"><?= $status_counts['on_delivery'] ?></span>
+    </div>
+
+    <!-- Delivered -->
+    <div class="flex items-center justify-between p-3">
+        <div class="flex items-center">
+            <div class="p-2 rounded-lg bg-green-100 mr-3">
+                <i class="fas fa-check-circle text-green-500"></i>
+            </div>
+            <span class="text-gray-700">Đã nhận</span>
+        </div>
+        <span class="text-lg font-semibold text-green-500"><?= $status_counts['delivered'] ?></span>
+    </div>
+</div>
+
+
+                    <!-- Quick Action Cards -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                        <!-- Money Withdraw -->
+                        <a href="/seller/withdraw_requests.php" class="action-card bg-white p-5 rounded-lg shadow-sm hover:shadow-md text-center">
+                            <div class="flex justify-center mb-3">
+                                <div class="w-14 h-14 rounded-full bg-shopee-100 flex items-center justify-center">
+                                    <i class="fas fa-money-bill-wave text-shopee-500 text-xl"></i>
+                                </div>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-800">Rút tiền</h3>
+                        </a>
+
+                        <!-- Add Products -->
+                        <a href="/seller/products/index.php" class="action-card bg-white p-5 rounded-lg shadow-sm hover:shadow-md text-center">
+                            <div class="flex justify-center mb-3">
+                                <div class="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center">
+                                    <i class="fas fa-plus text-green-500 text-xl"></i>
+                                </div>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-800">Thêm sản phẩm mới</h3>
+                        </a>
+
+                        <!-- Shop Settings -->
+                        <a href="/seller/shop/index.php" class="action-card bg-white p-5 rounded-lg shadow-sm hover:shadow-md text-center">
+                            <div class="flex justify-center mb-3">
+                                <div class="w-14 h-14 rounded-full bg-blue-100 flex items-center justify-center">
+                                    <i class="fas fa-store text-blue-500 text-xl"></i>
+                                </div>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-800">Cài đặt cửa hàng</h3>
+                        </a>
+
+                        <!-- Payment Settings -->
+                        <a href="/seller/shop/profile.php" class="action-card bg-white p-5 rounded-lg shadow-sm hover:shadow-md text-center">
+                            <div class="flex justify-center mb-3">
+                                <div class="w-14 h-14 rounded-full bg-purple-100 flex items-center justify-center">
+                                    <i class="fas fa-credit-card text-purple-500 text-xl"></i>
+                                </div>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-800">Thiết lập thanh toán</h3>
+                        </a>
+                    </div>
+
+                    <!-- Top Products Section -->
+                    <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                        <div class="flex justify-between items-center mb-5">
+                            <h2 class="text-lg font-semibold text-gray-800">Sản phẩm nổi bật</h2>
+                            <a href="/seller/products/index.php" class="text-shopee-500 hover:text-shopee-600 flex items-center">
+                                <span>Xem tất cả</span>
+                                <i class="fas fa-arrow-right ml-1 text-xs"></i>
+                            </a>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+                            <?php
+                            if (mysqli_num_rows($top_products) > 0) {
+                                while ($product = mysqli_fetch_assoc($top_products)) {
+                                    $thumbnail = $product['thumbnail_image'] ? '/public/uploads/all/' . $product['thumbnail_image'] : '/public/uploads/all/default-product.jpg';
+                            ?>
+                                    <a href="/product/<?= $product['slugs'] ?>" class="product-card rounded-lg border border-gray-200 overflow-hidden bg-white">
+                                        <div class="h-32 overflow-hidden">
+                                            <img class="w-full h-full object-cover" src="<?= $thumbnail ?>" alt="<?= $product['name'] ?>">
+                                        </div>
+                                        <div class="p-3">
+                                            <p class="text-sm text-gray-800 font-medium line-clamp-2 h-10 mb-1"><?= $product['name'] ?></p>
+                                            <p class="text-shopee-500 font-semibold">$<?= number_format($product['unit_price'], 2) ?></p>
+                                        </div>
+                                    </a>
+                                <?php
+                                }
+                            } else {
+                                ?>
+                                <div class="col-span-full text-center py-8">
+                                    <div class="inline-flex flex-col items-center">
+                                        <i class="fas fa-box-open text-gray-300 text-5xl mb-4"></i>
+                                        <p class="text-gray-500">Không có sản phẩm </p>
+                                        <a href="/seller/products/index.php" class="mt-3 inline-block px-4 py-2 bg-shopee-500 text-white rounded-lg hover:bg-shopee-600 transition-colors">
+                                            Thêm sản phẩm đầu tiên
+                                        </a>
+                                    </div>
+                                </div>
+                            <?php
+                            }
+                            ?>
+                        </div>
+                    </div>
+                </div>
+            </div><!-- .aiz-main-content -->
+        </div><!-- .aiz-content-wrapper -->
+    </div><!-- .aiz-main-wrapper -->
+
+    <script src="/public/assets/js/vendors.js"></script>
+    <script src="/public/assets/js/aiz-core.js"></script>
+
+    <!-- Add custom script to initialize any components -->
+    <script>
+        // You can add any additional JavaScript here
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize any components that need JavaScript
+        });
+    </script>
+</body>
+
+</html>

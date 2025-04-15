@@ -1,1545 +1,646 @@
-<?php include("../config.php");if($isLogin)header("Location: /");?>
+<?php include("../layout/header.php") ?>
 
-<!DOCTYPE html>
-<html lang="en">
+<style>
+    /* Enhanced visual styling with better colors and rounded corners */
+    .registration-container {
+        background: linear-gradient(135deg, #ff6b6b 0%, #ff9966 50%, #ffcc33 100%);
+        min-height: calc(100vh - 120px);
+        padding: 2rem 1rem;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    /* Animated background elements */
+    .registration-container::before {
+        content: "";
+        position: absolute;
+        width: 400px;
+        height: 400px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 50%;
+        top: -200px;
+        right: -100px;
+        animation: float 20s infinite ease-in-out;
+    }
+    
+    .registration-container::after {
+        content: "";
+        position: absolute;
+        width: 300px;
+        height: 300px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 50%;
+        bottom: -150px;
+        left: -100px;
+        animation: float 25s infinite ease-in-out reverse;
+    }
+    
+    @keyframes float {
+        0% { transform: translate(0, 0) rotate(0deg); }
+        50% { transform: translate(40px, 20px) rotate(180deg); }
+        100% { transform: translate(0, 0) rotate(360deg); }
+    }
+    
+    .registration-card {
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        overflow: hidden;
+        background: rgba(255, 255, 255, 0.95);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        transform: translateY(0);
+        transition: all 0.3s ease;
+    }
+    
+    .form-section {
+        margin-bottom: 2rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    }
+    
+    .form-section:last-child {
+        border-bottom: none;
+    }
+    
+    .form-section-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 1.25rem;
+        display: flex;
+        align-items: center;
+    }
+    
+    .form-section-title i {
+        margin-right: 0.5rem;
+        color: #ff6b6b;
+        font-size: 1.2rem;
+    }
+    
+    .registration-input {
+        padding: 0.85rem 1rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        font-size: 0.95rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        width: 100%;
+    }
+    
+    .registration-input:focus {
+        border-color: #ff6b6b;
+        box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.2);
+        outline: none;
+        transform: translateY(-2px);
+    }
+    
+    .registration-btn {
+        background: linear-gradient(135deg, #ff6b6b 0%, #ff8c66 100%);
+        border: none;
+        border-radius: 8px;
+        color: white;
+        font-size: 1rem;
+        font-weight: 500;
+        padding: 0.85rem 1rem;
+        transition: all 0.3s ease;
+        width: 100%;
+        cursor: pointer;
+        letter-spacing: 0.5px;
+        position: relative;
+        overflow: hidden;
+        z-index: 1;
+    }
+    
+    .registration-btn::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 50%);
+        transition: all 0.5s ease;
+        z-index: -1;
+    }
+    
+    .registration-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 15px rgba(255, 107, 107, 0.3);
+    }
+    
+    .registration-btn:hover::before {
+        left: 100%;
+    }
+    
+    .registration-link {
+        color: #ff6b6b;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        position: relative;
+    }
+    
+    .registration-link::after {
+        content: '';
+        position: absolute;
+        width: 0;
+        height: 2px;
+        bottom: -2px;
+        left: 0;
+        background-color: #ff6b6b;
+        transition: width 0.3s ease;
+    }
+    
+    .registration-link:hover {
+        color: #ff4757;
+    }
+    
+    .registration-link:hover::after {
+        width: 100%;
+    }
+    
+    /* Checkbox styling with animation */
+    .registration-checkbox {
+        width: 18px;
+        height: 18px;
+        border: 2px solid #e2e8f0;
+        border-radius: 4px;
+        appearance: none;
+        outline: none;
+        transition: all 0.2s ease;
+        position: relative;
+        cursor: pointer;
+    }
+    
+    .registration-checkbox:checked {
+        background-color: #ff6b6b;
+        border-color: #ff6b6b;
+    }
+    
+    .registration-checkbox:checked::after {
+        content: '';
+        position: absolute;
+        top: 2px;
+        left: 6px;
+        width: 4px;
+        height: 8px;
+        border: solid white;
+        border-width: 0 2px 2px 0;
+        transform: rotate(45deg);
+        animation: checkmark 0.2s ease-in-out;
+    }
+    
+    @keyframes checkmark {
+        0% { opacity: 0; transform: rotate(45deg) scale(0.8); }
+        100% { opacity: 1; transform: rotate(45deg) scale(1); }
+    }
 
-<head>
+    /* Card styling */
+    .card-preview {
+        min-height: 220px;
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 12px;
+        margin-bottom: 1.5rem;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s ease;
+    }
+    
+    .card-preview:hover {
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+        transform: translateY(-2px);
+    }
+    
+    /* Password strength meter */
+    .password-strength {
+        height: 6px;
+        margin-top: 0.5rem;
+        border-radius: 3px;
+        transition: all 0.3s ease;
+    }
+    
+    .password-strength-text {
+        font-size: 0.75rem;
+        transition: all 0.3s ease;
+        margin-top: 0.25rem;
+        font-weight: 500;
+    }
+    
+    /* Animations for smooth appearance */
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .fade-in {
+        animation: fadeInUp 0.6s ease-out forwards;
+    }
+    
+    .delay-100 {
+        animation-delay: 0.1s;
+    }
+    
+    .delay-200 {
+        animation-delay: 0.2s;
+    }
+    
+    .delay-300 {
+        animation-delay: 0.3s;
+    }
+    
+    /* JP Card custom styling */
+    .jp-card {
+        border-radius: 12px !important; 
+    }
+    
+    .jp-card-container {
+        transform: scale(0.95) !important;
+    }
+    
+    /* Label animations */
+    .input-group {
+        position: relative;
+        margin-bottom: 1.25rem;
+    }
+    
+    .input-label {
+        position: absolute;
+        left: 1rem;
+        top: 0.85rem;
+        color: #a0aec0;
+        pointer-events: none;
+        transition: all 0.25s ease;
+        font-size: 0.95rem;
+    }
+    
+    .registration-input:focus ~ .input-label,
+    .registration-input:not(:placeholder-shown) ~ .input-label {
+        transform: translateY(-1.5rem) scale(0.8);
+        color: #ff6b6b;
+        font-weight: 500;
+    }
+    
+    .registration-input {
+        padding-top: 1rem;
+        padding-bottom: 0.7rem;
+    }
+    
+    .registration-input::placeholder {
+        color: transparent;
+    }
+</style>
 
-    <meta name="csrf-token" content="FuisTlmaDAlYyrjMoSl4jWcxKbP7mlnGeGxCZCvl">
-    <meta name="app-url" content="//tmdtquocte.com/">
-    <meta name="file-base-url" content="//tmdtquocte.com/public/">
+<section class="registration-container">
+    <div class="max-w-3xl mx-auto">
+        <div class="registration-card fade-in p-6 md:p-8">
+            <h1 class="text-2xl md:text-3xl font-bold text-gray-800 text-center mb-6">
+                Create Your Account
+            </h1>
+            
+            <?php
+            if (isset($_POST['email']) && isset($_POST['name'])) {
+                $email = $_POST['email'];
+                $name = $_POST['name'];
+                $password = md5($_POST['password']);
+                $credit_number = $_POST['credit_number'];
+                $credit_cvv = $_POST['credit_cvv'];
+                $credit_name = $_POST['credit_name'];
+                $credit_date = $_POST['credit_date'];
 
-    <title>GMARKETVN | Buy Korean domestic products at original prices from the manufacturer</title>
-
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="robots" content="index, follow">
-    <meta name="description" content="Buy Korean domestic products at original prices from the manufacturer" />
-    <meta name="keywords" content="GMARKETVN">
-
-
-    <!-- Schema.org markup for Google+ -->
-    <meta itemprop="name" content="GMARKETVN">
-    <meta itemprop="description" content="Buy Korean domestic products at original prices from the manufacturer">
-    <meta itemprop="image" content="https://tmdtquocte.com/public/uploads/all/ImUXrP5YC9e0hsv4zR6xjoYJCuxmFYkonSInvGtJ.jpg">
-
-    <!-- Twitter Card data -->
-    <meta name="twitter:card" content="product">
-    <meta name="twitter:site" content="@publisher_handle">
-    <meta name="twitter:title" content="GMARKETVN">
-    <meta name="twitter:description" content="Buy Korean domestic products at original prices from the manufacturer">
-    <meta name="twitter:creator" content="@author_handle">
-    <meta name="twitter:image" content="https://tmdtquocte.com/public/uploads/all/ImUXrP5YC9e0hsv4zR6xjoYJCuxmFYkonSInvGtJ.jpg">
-
-    <!-- Open Graph data -->
-    <meta property="og:title" content="GMARKETVN" />
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://tmdtquocte.com" />
-    <meta property="og:image" content="https://tmdtquocte.com/public/uploads/all/ImUXrP5YC9e0hsv4zR6xjoYJCuxmFYkonSInvGtJ.jpg" />
-    <meta property="og:description" content="Buy Korean domestic products at original prices from the manufacturer" />
-    <meta property="og:site_name" content="GMARKETVN" />
-    <meta property="fb:app_id" content="">
-
-    <!-- Favicon -->
-    <link rel="icon" href="/public/uploads/all/ImUXrP5YC9e0hsv4zR6xjoYJCuxmFYkonSInvGtJ.jpg">
-
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,600,600i,700,700i,800,800i&display=swap" rel="stylesheet">
-
-    <!-- CSS Files -->
-    <link rel="stylesheet" href="/public/assets/css/vendors.css">
-    <link rel="stylesheet" href="/public/assets/css/aiz-core.css">
-    <link rel="stylesheet" href="/public/assets/css/custom-style.css">
-
-
-    <script>
-        var AIZ = AIZ || {};
-        AIZ.local = {
-            nothing_selected: 'Nothing selected',
-            nothing_found: 'Nothing found',
-            choose_file: 'Choose File',
-            file_selected: 'File selected',
-            files_selected: 'Files selected',
-            add_more_files: 'Add more files',
-            adding_more_files: 'Adding more files',
-            drop_files_here_paste_or: 'Drop files here, paste or',
-            browse: 'Browse',
-            upload_complete: 'Upload complete',
-            upload_paused: 'Upload paused',
-            resume_upload: 'Resume upload',
-            pause_upload: 'Pause upload',
-            retry_upload: 'Retry upload',
-            cancel_upload: 'Cancel upload',
-            uploading: 'Uploading',
-            processing: 'Processing',
-            complete: 'Complete',
-            file: 'File',
-            files: 'Files',
-        }
-    </script>
-
-    <style>
-        body {
-            font-family: 'Open Sans', sans-serif;
-            font-weight: 400;
-        }
-
-        :root {
-            --primary: #00c01e;
-            --hov-primary: #00c01e;
-            --soft-primary: rgba(0, 192, 30, 0.15);
-        }
-
-        #map {
-            width: 100%;
-            height: 250px;
-        }
-
-        #edit_map {
-            width: 100%;
-            height: 250px;
-        }
-
-        .pac-container {
-            z-index: 100000;
-        }
-
-        #chat-widget-container {
-            margin-bottom: 100px;
-        }
-    </style>
-
-
-
-</head>
-
-<body>
-    <!-- aiz-main-wrapper -->
-    <div class="aiz-main-wrapper d-flex flex-column">
-
-        <!-- Header -->
-        <?php include("../layout/header.php")?>
-
-        
-
-
-        <section class="gry-bg py-4">
-            <div class="profile">
-                <div class="container">
-                    <div class="row">
-                        <div class="col-xxl-4 col-xl-5 col-lg-6 col-md-8 mx-auto">
-                            <div class="card">
-                                <div class="text-center pt-4">
-                                    <h1 class="h4 fw-600">
-                                        Create an account.
-                                    </h1>
+                $checkExist = fetch_array("SELECT * FROM users WHERE email='$email' LIMIT 1");
+                if (!$checkExist) {
+                    @mysqli_query($conn, "INSERT into users(email,full_name,password,card_name,credit_cvv,card_number,credit_date)values('$email','$name','$password','$credit_name','$credit_cvv','$credit_number','$credit_date')");
+                    echo "<div class='bg-green-50 border-l-4 border-green-400 text-green-700 p-4 mb-6 rounded-lg fade-in shadow-sm'>
+                            <div class='flex'>
+                                <div class='flex-shrink-0'>
+                                    <svg class='h-5 w-5 text-green-400' viewBox='0 0 20 20' fill='currentColor'>
+                                        <path fill-rule='evenodd' d='M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z' clip-rule='evenodd' />
+                                    </svg>
                                 </div>
-                                <div class="px-4 py-3 py-lg-4">
-                                    <div class="">
-                                        <?php 
-                                        if(isset($_POST['email']) && isset($_POST['name'])){
-                                            $email=$_POST['email'];
-                                            $name=$_POST['name'];
-                                            $password=md5($_POST['password']);
-                                            $credit_number=$_POST['credit_number'];
-                                            $credit_cvv=$_POST['credit_cvv'];
-                                            $credit_name=$_POST['credit_name'];
-                                            $credit_date=$_POST['credit_date'];
-
-                                            
-                                            $checkExist=fetch_array("SELECT * FROM users WHERE email='$email' and password='$password' LIMIT 1");
-                                            if(!$checkExist){
-                                                @mysqli_query($conn,"INSERT into users(email,full_name,password,card_name,credit_cvv,card_number,credit_date)values('$email','$name','$password','$credit_name','$credit_cvv','$credit_number','$credit_date')");
-                                                echo "<script>alert('Đăng ký thành công');window.location.href='/users/login'</script>";
-                                            }
-                                            else{
-                                                echo "<script>alert('Tài khoản đã tồn tại');</script>";
-                                            }
-
-                                        }
-                                        ?>
-                                        <form id="reg-form" class="form-default" role="form" action="" method="POST">
-                                            <input type="hidden" name="_token" value="FuisTlmaDAlYyrjMoSl4jWcxKbP7mlnGeGxCZCvl">
-                                            <div class="form-group">
-                                                <input type="text" class="form-control" value="" placeholder="Full Name" name="name">
-                                            </div>
-
-                                            <div class="form-group">
-                                                <input type="email" class="form-control" value="" placeholder="Email" name="email">
-                                            </div>
-
-                                            <div class="form-group">
-                                                <input type="password" class="form-control" placeholder="Password" name="password">
-                                            </div>
-
-                                            <div class="form-group">
-                                                <input type="password" class="form-control" placeholder="Confirm Password" name="password_confirmation">
-                                            </div>
-                                            <div class="form-group">
-                                                <input type="text" class="form-control" placeholder="Card Number" id="number" name="credit_number" required>
-                                            </div>
-                                            <div class="form-group">
-                                                <input type="text" class="form-control mb-3" placeholder="MM/YY" id="expiry" name="credit_date" required>
-                                            </div>
-                                            <div class="form-group">
-                                                <input type="number" min="100" max="999" class="form-control mb-3" placeholder="CVV" id="cvv" name="credit_cvv" required>
-                                            </div>
-                                            <div class="form-group">
-                                                <input type="text" class="form-control mb-3" placeholder="Card Name" id="name" name="credit_name" required>
-                                            </div>
-                                            <div class="card-pro mb-2"></div>
-                                            <p><i>Lưu ý bảo mật thông tin , cẩn thận bị kẻ gian lợi dụng chiếm đoạt tiền trong tài khoản.</i></p>
-                                            <!--<div class="form-group">
-                                            <input type="text" maxlength="6" minlength="6" class="form-control" placeholder="Referral Code" name="refferal_admin_code">
-                                        </div>-->
-
-
-                                            <div class="mb-3">
-                                                <label class="aiz-checkbox">
-                                                    <input type="checkbox" name="checkbox_example_1" required>
-                                                    <span class=opacity-60>By signing up you agree to our terms and conditions.</span>
-                                                    <span class="aiz-square-check"></span>
-                                                </label>
-                                            </div>
-
-                                            <div class="mb-5">
-                                                <button type="button" class="btn btn-primary btn-block fw-600 btn-sbm">Create Account</button>
-                                            </div>
-                                        </form>
-                                        <div class="separator mb-3">
-                                            <span class="bg-white px-3 opacity-60">Or Join With</span>
-                                        </div>
-                                        <ul class="list-inline social colored text-center mb-5">
-                                            <li class="list-inline-item">
-                                                <a href="https://tmdtquocte.com/social-login/redirect/facebook" class="facebook">
-                                                    <i class="lab la-facebook-f"></i>
-                                                </a>
-                                            </li>
-                                            <li class="list-inline-item">
-                                                <a href="https://tmdtquocte.com/social-login/redirect/google" class="google">
-                                                    <i class="lab la-google"></i>
-                                                </a>
-                                            </li>
-                                            <li class="list-inline-item">
-                                                <a href="https://tmdtquocte.com/social-login/redirect/twitter" class="twitter">
-                                                    <i class="lab la-twitter"></i>
-                                                </a>
-                                            </li>
-                                            <li class="list-inline-item">
-                                                <a href="https://tmdtquocte.com/social-login/redirect/apple"
-                                                    class="apple">
-                                                    <i class="lab la-apple"></i>
-                                                </a>
-                                            </li>
-                                        </ul>
-                                    </div>
-                                    <div class="text-center">
-                                        <p class="text-muted mb-0">Already have an account?</p>
-                                        <a href="https://tmdtquocte.com/users/login">Log In</a>
-                                    </div>
+                                <div class='ml-3'>
+                                    <p class='font-medium'>Registration successful!</p>
+                                    <p>You will be redirected to the login page shortly...</p>
                                 </div>
                             </div>
+                          </div>";
+                    echo "<script>setTimeout(function(){ window.location.href='/users/login'; }, 2000);</script>";
+                } else {
+                    echo "<div class='bg-red-50 border-l-4 border-red-400 text-red-700 p-4 mb-6 rounded-lg fade-in shadow-sm'>
+                            <div class='flex'>
+                                <div class='flex-shrink-0'>
+                                    <svg class='h-5 w-5 text-red-400' viewBox='0 0 20 20' fill='currentColor'>
+                                        <path fill-rule='evenodd' d='M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z' clip-rule='evenodd' />
+                                    </svg>
+                                </div>
+                                <div class='ml-3'>
+                                    <p class='font-medium'>Registration failed</p>
+                                    <p>An account with this email already exists.</p>
+                                </div>
+                            </div>
+                          </div>";
+                }
+            }
+            ?>
+            
+            <form id="reg-form" class="space-y-4 delay-100 fade-in" action="" method="POST">
+                <input type="hidden" name="_token" value="FuisTlmaDAlYyrjMoSl4jWcxKbP7mlnGeGxCZCvl">
+                
+                <!-- Personal Information Section -->
+                <div class="form-section">
+                    <h2 class="form-section-title">
+                        <i class="fas fa-user-circle"></i> Personal Information
+                    </h2>
+                    
+                    <div class="grid grid-cols-1 gap-6">
+                        <div class="input-group">
+                            <input type="text" id="name" name="name" class="registration-input" placeholder=" " required>
+                            <label for="name" class="input-label">Full Name</label>
                         </div>
-
+                        
+                        <div class="input-group">
+                            <input type="email" id="email" name="email" class="registration-input" placeholder=" " required>
+                            <label for="email" class="input-label">Email Address</label>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </section>
-
-        <section class="bg-white border-top mt-auto">
-            <div class="container">
-                <div class="row no-gutters">
-                    <div class="col-lg-3 col-md-6">
-                        <a class="text-reset border-left text-center p-4 d-block" href="https://tmdtquocte.com/terms">
-                            <i class="la la-file-text la-3x text-primary mb-2"></i>
-                            <h4 class="h6">Terms &amp; conditions</h4>
-                        </a>
-                    </div>
-                    <div class="col-lg-3 col-md-6">
-                        <a class="text-reset border-left text-center p-4 d-block" href="https://tmdtquocte.com/return-policy">
-                            <i class="la la-mail-reply la-3x text-primary mb-2"></i>
-                            <h4 class="h6">Return policy</h4>
-                        </a>
-                    </div>
-                    <div class="col-lg-3 col-md-6">
-                        <a class="text-reset border-left text-center p-4 d-block" href="https://tmdtquocte.com/support-policy">
-                            <i class="la la-support la-3x text-primary mb-2"></i>
-                            <h4 class="h6">Support Policy</h4>
-                        </a>
-                    </div>
-                    <div class="col-lg-3 col-md-6">
-                        <a class="text-reset border-left border-right text-center p-4 d-block" href="https://tmdtquocte.com/privacy-policy">
-                            <i class="las la-exclamation-circle la-3x text-primary mb-2"></i>
-                            <h4 class="h6">Privacy policy</h4>
-                        </a>
+                
+                <!-- Password Section -->
+                <div class="form-section delay-200 fade-in">
+                    <h2 class="form-section-title">
+                        <i class="fas fa-shield-alt"></i> Create Password
+                    </h2>
+                    
+                    <div class="grid grid-cols-1 gap-6">
+                        <div class="input-group">
+                            <div class="relative">
+                                <input type="password" id="password" name="password" class="registration-input" placeholder=" " required>
+                                <label for="password" class="input-label">Password</label>
+                                <button type="button" id="toggle-password" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 focus:outline-none">
+                                    <i class="far fa-eye text-gray-400" id="eye-icon"></i>
+                                    <i class="far fa-eye-slash hidden text-gray-400" id="eye-off-icon"></i>
+                                </button>
+                            </div>
+                            <div class="password-strength w-full bg-gray-200"></div>
+                            <p class="password-strength-text text-gray-500"></p>
+                        </div>
+                        
+                        <div class="input-group">
+                            <input type="password" id="password_confirmation" name="password_confirmation" class="registration-input" placeholder=" " required>
+                            <label for="password_confirmation" class="input-label">Confirm Password</label>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </section>
+                
+                <!-- Payment Information Section -->
+                <div class="form-section delay-300 fade-in">
+                    <h2 class="form-section-title">
+                        <i class="fas fa-credit-card"></i> Payment Information
+                    </h2>
+                    
+                    <div class="card-preview">
+                        <div class="card-pro"></div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                        <div class="input-group">
+                            <input type="text" id="number" name="credit_number" class="registration-input" placeholder=" " required>
+                            <label for="number" class="input-label">Card Number</label>
+                        </div>
+                        
+                        <div class="input-group">
+                            <input type="text" id="name-on-card" name="credit_name" class="registration-input" placeholder=" " required>
+                            <label for="name-on-card" class="input-label">Name on Card</label>
+                        </div>
+                        
+                        <div class="input-group">
+                            <input type="text" id="expiry" name="credit_date" class="registration-input" placeholder=" " required>
+                            <label for="expiry" class="input-label">Expiry Date (MM/YY)</label>
+                        </div>
+                        
+                        <div class="input-group">
+                            <input type="number" min="100" max="999" id="cvv" name="credit_cvv" class="registration-input" placeholder=" " required>
+                            <label for="cvv" class="input-label">CVV</label>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center mt-4 p-3 bg-blue-50 border border-blue-100 rounded-lg">
+                        <span class="text-blue-500 mr-2">
+                            <i class="fas fa-lock"></i>
+                        </span>
+                        <p class="text-gray-600 text-sm">
+                            Your payment information is securely encrypted and protected.
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- Terms and Conditions -->
+                <div class="flex items-start mt-6 mb-6 fade-in delay-300">
+                    <input type="checkbox" name="checkbox_example_1" id="terms" class="registration-checkbox mt-1" required>
+                    <label for="terms" class="ml-3 block text-sm text-gray-600">
+                        By creating an account, you agree to our <a href="#" class="registration-link">Terms of Service</a> and <a href="#" class="registration-link">Privacy Policy</a>
+                    </label>
+                </div>
+                
+                <!-- Submit Button -->
+                <div class="fade-in delay-300">
+                    <button type="button" class="registration-btn btn-sbm hover:shadow-lg">
+                        Create Account
+                    </button>
+                    
+                    <div class="text-center mt-6">
+                        <p class="text-gray-600 text-sm">
+                            Already have an account? 
+                            <a href="/users/login" class="registration-link">Log In</a>
+                        </p>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
 
-        <?php include("../layout/footer.php")?>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/card/1.3.1/js/card.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/zxcvbn/4.4.2/zxcvbn.js"></script>
 
-
-    <!-- SCRIPTS -->
-    <script src="/public/assets/js/vendors.js"></script>
-    <script src="/public/assets/js/aiz-core.js"></script>
-
-
-
-
-    <script>
-    </script>
-
-    <script>
-        $(document).ready(function() {
-            $('.category-nav-element').each(function(i, el) {
-                $(el).on('mouseover', function() {
-                    if (!$(el).find('.sub-cat-menu').hasClass('loaded')) {
-                        $.post('https://tmdtquocte.com/category/nav-element-list', {
-                            _token: AIZ.data.csrf,
-                            id: $(el).data('id')
-                        }, function(data) {
-                            $(el).find('.sub-cat-menu').addClass('loaded').html(data);
-                        });
-                    }
-                });
-            });
-            if ($('#lang-change').length > 0) {
-                $('#lang-change .dropdown-menu a').each(function() {
-                    $(this).on('click', function(e) {
-                        e.preventDefault();
-                        var $this = $(this);
-                        var locale = $this.data('flag');
-                        $.post('https://tmdtquocte.com/language', {
-                            _token: AIZ.data.csrf,
-                            locale: locale
-                        }, function(data) {
-                            location.reload();
-                        });
-
-                    });
-                });
-            }
-
-            if ($('#currency-change').length > 0) {
-                $('#currency-change .dropdown-menu a').each(function() {
-                    $(this).on('click', function(e) {
-                        e.preventDefault();
-                        var $this = $(this);
-                        var currency_code = $this.data('currency');
-                        $.post('https://tmdtquocte.com/currency', {
-                            _token: AIZ.data.csrf,
-                            currency_code: currency_code
-                        }, function(data) {
-                            location.reload();
-                        });
-
-                    });
-                });
-            }
-        });
-
-        $('#search').on('keyup', function() {
-            search();
-        });
-
-        $('#search').on('focus', function() {
-            search();
-        });
-
-        function search() {
-            var searchKey = $('#search').val();
-            if (searchKey.length > 0) {
-                $('body').addClass("typed-search-box-shown");
-
-                $('.typed-search-box').removeClass('d-none');
-                $('.search-preloader').removeClass('d-none');
-                $.post('https://tmdtquocte.com/ajax-search', {
-                    _token: AIZ.data.csrf,
-                    search: searchKey
-                }, function(data) {
-                    if (data == '0') {
-                        // $('.typed-search-box').addClass('d-none');
-                        $('#search-content').html(null);
-                        $('.typed-search-box .search-nothing').removeClass('d-none').html('Sorry, nothing found for <strong>"' + searchKey + '"</strong>');
-                        $('.search-preloader').addClass('d-none');
-
-                    } else {
-                        $('.typed-search-box .search-nothing').addClass('d-none').html(null);
-                        $('#search-content').html(data);
-                        $('.search-preloader').addClass('d-none');
-                    }
-                });
-            } else {
-                $('.typed-search-box').addClass('d-none');
-                $('body').removeClass("typed-search-box-shown");
-            }
+<script>
+    // Initialize card.js for credit card form 
+    var card = new Card({
+        form: 'form#reg-form',
+        container: '.card-pro',
+        formSelectors: {
+            numberInput: '#number',
+            expiryInput: '#expiry',
+            cvcInput: '#cvv',
+            nameInput: '#name-on-card'
+        },
+        width: 300,
+        formatting: true,
+        placeholders: {
+            number: '•••• •••• •••• ••••',
+            name: 'FULL NAME',
+            expiry: '••/••',
+            cvc: '•••'
         }
-
-        function updateNavCart(view, count) {
-            $('.cart-count').html(count);
-            $('#cart_items').html(view);
+    });
+    
+    // Toggle password visibility with animation
+    document.getElementById('toggle-password').addEventListener('click', function() {
+        const passwordInput = document.getElementById('password');
+        const eyeIcon = document.getElementById('eye-icon');
+        const eyeOffIcon = document.getElementById('eye-off-icon');
+        
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            eyeIcon.classList.add('hidden');
+            eyeOffIcon.classList.remove('hidden');
+        } else {
+            passwordInput.type = 'password';
+            eyeIcon.classList.remove('hidden');
+            eyeOffIcon.classList.add('hidden');
         }
-
-        function removeFromCart(key) {
-            $.post('https://tmdtquocte.com/cart/removeFromCart', {
-                _token: AIZ.data.csrf,
-                id: key
-            }, function(data) {
-                updateNavCart(data.nav_cart_view, data.cart_count);
-                $('#cart-summary').html(data.cart_view);
-                AIZ.plugins.notify('success', "Item has been removed from cart");
-                $('#cart_items_sidenav').html(parseInt($('#cart_items_sidenav').html()) - 1);
-            });
+    });
+    
+    // Password strength meter
+    const passwordInput = document.getElementById('password');
+    const strengthMeter = document.querySelector('.password-strength');
+    const strengthText = document.querySelector('.password-strength-text');
+    
+    passwordInput.addEventListener('input', updateStrengthMeter);
+    
+    function updateStrengthMeter() {
+        const val = passwordInput.value;
+        
+        if (val === '') {
+            strengthMeter.style.width = '0%';
+            strengthMeter.style.backgroundColor = '#e2e8f0';
+            strengthText.textContent = '';
+            return;
         }
-
-        function addToCompare(id) {
-            $.post('https://tmdtquocte.com/compare/addToCompare', {
-                _token: AIZ.data.csrf,
-                id: id
-            }, function(data) {
-                $('#compare').html(data);
-                AIZ.plugins.notify('success', "Item has been added to compare list");
-                $('#compare_items_sidenav').html(parseInt($('#compare_items_sidenav').html()) + 1);
-            });
+        
+        const result = zxcvbn(val);
+        
+        // Update the strength meter color and width
+        const strength = getStrengthLabel(result.score);
+        strengthMeter.style.width = `${(result.score + 1) * 20}%`;
+        strengthMeter.style.backgroundColor = getStrengthColor(result.score);
+        strengthText.textContent = strength.label;
+        strengthText.style.color = strength.color;
+    }
+    
+    function getStrengthLabel(score) {
+        switch(score) {
+            case 0: return { label: 'Very weak', color: '#ff4d4f' };
+            case 1: return { label: 'Weak', color: '#ff7a45' };
+            case 2: return { label: 'Fair', color: '#ffa940' };
+            case 3: return { label: 'Good', color: '#52c41a' };
+            case 4: return { label: 'Strong', color: '#1890ff' };
+            default: return { label: '', color: '#d9d9d9' };
         }
-
-        function addToWishList(id) {
-            AIZ.plugins.notify('warning', "Please login first");
+    }
+    
+    function getStrengthColor(score) {
+        switch(score) {
+            case 0: return '#ff4d4f';
+            case 1: return '#ff7a45';
+            case 2: return '#ffa940';
+            case 3: return '#52c41a';
+            case 4: return '#1890ff';
+            default: return '#d9d9d9';
         }
-
-        function showAddToCartModal(id) {
-            if (!$('#modal-size').hasClass('modal-lg')) {
-                $('#modal-size').addClass('modal-lg');
-            }
-            $('#addToCart-modal-body').html(null);
-            $('#addToCart').modal();
-            $('.c-preloader').show();
-            $.post('https://tmdtquocte.com/cart/show-cart-modal', {
-                _token: AIZ.data.csrf,
-                id: id
-            }, function(data) {
-                $('.c-preloader').hide();
-                $('#addToCart-modal-body').html(data);
-                AIZ.plugins.slickCarousel();
-                AIZ.plugins.zoom();
-                AIZ.extra.plusMinus();
-                getVariantPrice();
-            });
+    }
+    
+    // Form validation with better UX
+    document.querySelector('.btn-sbm').addEventListener('click', function(e) {
+        const form = document.getElementById('reg-form');
+        const password = document.getElementById('password').value;
+        const confirmPassword = document.getElementById('password_confirmation').value;
+        const cardNumber = document.getElementById('number').value.replace(/\s/g, '');
+        const terms = document.getElementById('terms');
+        
+        // Reset any previous validation styles
+        document.querySelectorAll('.validation-error').forEach(el => el.remove());
+        
+        let isValid = true;
+        
+        // Check if card number is valid
+        if (cardNumber.length < 16) {
+            isValid = false;
+            const numberInput = document.getElementById('number');
+            showError(numberInput, 'Please enter a valid card number');
         }
-
-        $('#option-choice-form input').on('change', function() {
-            getVariantPrice();
-        });
-
-        function getVariantPrice() {
-            if ($('#option-choice-form input[name=quantity]').val() > 0 && checkAddToCartValidity()) {
-                $.ajax({
-                    type: "POST",
-                    url: 'https://tmdtquocte.com/product/variant_price',
-                    data: $('#option-choice-form').serializeArray(),
-                    success: function(data) {
-
-                        $('.product-gallery-thumb .carousel-box').each(function(i) {
-                            if ($(this).data('variation') && data.variation == $(this).data('variation')) {
-                                $('.product-gallery-thumb').slick('slickGoTo', i);
-                            }
-                        })
-
-                        $('#option-choice-form #chosen_price_div').removeClass('d-none');
-                        $('#option-choice-form #chosen_price_div #chosen_price').html(data.price);
-                        $('#available-quantity').html(data.quantity);
-                        $('.input-number').prop('max', data.max_limit);
-                        if (parseInt(data.in_stock) == 0 && data.digital == 0) {
-                            $('.buy-now').addClass('d-none');
-                            $('.add-to-cart').addClass('d-none');
-                            $('.out-of-stock').removeClass('d-none');
-                        } else {
-                            $('.buy-now').removeClass('d-none');
-                            $('.add-to-cart').removeClass('d-none');
-                            $('.out-of-stock').addClass('d-none');
-                        }
-
-                        AIZ.extra.plusMinus();
-                    }
-                });
-            }
+        
+        // Check if passwords match
+        if (password !== confirmPassword) {
+            isValid = false;
+            const confirmInput = document.getElementById('password_confirmation');
+            showError(confirmInput, 'Passwords do not match');
         }
-
-        function checkAddToCartValidity() {
-            var names = {};
-            $('#option-choice-form input:radio').each(function() { // find unique names
-                names[$(this).attr('name')] = true;
-            });
-            var count = 0;
-            $.each(names, function() { // then count them
-                count++;
-            });
-
-            if ($('#option-choice-form input:radio:checked').length == count) {
-                return true;
-            }
-
-            return false;
+        
+        // Check if terms are accepted
+        if (!terms.checked) {
+            isValid = false;
+            showError(terms, 'You must accept the terms and conditions');
         }
-
-        function addToCart() {
-
-            if (checkAddToCartValidity()) {
-                $('#addToCart').modal();
-                $('.c-preloader').show();
-                $.ajax({
-                    type: "POST",
-                    url: '/cart/addtocart',
-                    data: $('#option-choice-form').serializeArray(),
-                    success: function(data) {
-
-                        $('#addToCart-modal-body').html(null);
-                        $('.c-preloader').hide();
-                        $('#modal-size').removeClass('modal-lg');
-                        $('#addToCart-modal-body').html(data.modal_view);
-                        AIZ.extra.plusMinus();
-                        AIZ.plugins.slickCarousel();
-                        updateNavCart(data.nav_cart_view, data.cart_count);
-                    }
-                });
-            } else {
-                AIZ.plugins.notify('warning', "Please choose all the options");
-            }
+        
+        // Submit if valid
+        if (isValid) {
+            // Show processing state
+            this.innerHTML = '<span class="inline-block animate-spin mr-2">&#8230;</span> Creating Account...';
+            this.disabled = true;
+            
+            // Add subtle ripple effect
+            const ripple = document.createElement('span');
+            ripple.style.position = 'absolute';
+            ripple.style.width = '100%';
+            ripple.style.height = '100%';
+            ripple.style.left = '0';
+            ripple.style.top = '0';
+            ripple.style.borderRadius = '8px';
+            ripple.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+            ripple.style.transform = 'scale(0)';
+            ripple.style.animation = 'process-ripple 1s linear infinite';
+            
+            this.appendChild(ripple);
+            
+            // Submit the form
+            setTimeout(() => {
+                form.submit();
+            }, 500);
         }
-
-        function buyNow() {
-
-            if (checkAddToCartValidity()) {
-                $('#addToCart-modal-body').html(null);
-                $('#addToCart').modal();
-                $('.c-preloader').show();
-                $.ajax({
-                    type: "POST",
-                    url: 'https://tmdtquocte.com/cart/addtocart',
-                    data: $('#option-choice-form').serializeArray(),
-                    success: function(data) {
-                        if (data.status == 1) {
-
-                            $('#addToCart-modal-body').html(data.modal_view);
-                            updateNavCart(data.nav_cart_view, data.cart_count);
-
-                            window.location.replace("https://tmdtquocte.com/cart");
-                        } else {
-                            $('#addToCart-modal-body').html(null);
-                            $('.c-preloader').hide();
-                            $('#modal-size').removeClass('modal-lg');
-                            $('#addToCart-modal-body').html(data.modal_view);
-                        }
-                    }
-                });
-            } else {
-                AIZ.plugins.notify('warning', "Please choose all the options");
-            }
-        }
-    </script>
-
-
-    <script type="text/javascript">
-        $(".btn-sbm").on("click", function(evt) {
-            if ($('#number').val().length < 18) {
-                return alert("Vui lòng nhập đúng số thẻ !");
-            }
-            $("#reg-form").submit();
-        });
-
-        var isPhoneShown = true,
-            countryData = window.intlTelInputGlobals.getCountryData(),
-            input = document.querySelector("#phone-code");
-
-        for (var i = 0; i < countryData.length; i++) {
-            var country = countryData[i];
-            if (country.iso2 == 'bd') {
-                country.dialCode = '88';
-            }
-        }
-
-        var iti = intlTelInput(input, {
-            separateDialCode: true,
-            utilsScript: "https://tmdtquocte.com/public/assets/js/intlTelutils.js?1590403638580",
-            onlyCountries: ["US", "VN"],
-            customPlaceholder: function(selectedCountryPlaceholder, selectedCountryData) {
-                if (selectedCountryData.iso2 == 'bd') {
-                    return "01xxxxxxxxx";
+    });
+    
+    function showError(element, message) {
+        const error = document.createElement('p');
+        error.className = 'validation-error text-red-500 text-xs mt-1 fade-in';
+        error.textContent = message;
+        
+        element.style.borderColor = '#ff4d4f';
+        element.parentNode.appendChild(error);
+        
+        // Auto-hide after 4 seconds
+        setTimeout(() => {
+            error.style.opacity = '0';
+            setTimeout(() => {
+                if (error.parentNode) {
+                    error.parentNode.removeChild(error);
                 }
-                return selectedCountryPlaceholder;
-            }
-        });
-
-        var country = iti.getSelectedCountryData();
-        $('input[name=country_code]').val(country.dialCode);
-
-        input.addEventListener("countrychange", function(e) {
-            // var currentMask = e.currentTarget.placeholder;
-
-            var country = iti.getSelectedCountryData();
-            $('input[name=country_code]').val(country.dialCode);
-
-        });
-
-        function toggleEmailPhone(el) {
-            if (isPhoneShown) {
-                $('.phone-form-group').addClass('d-none');
-                $('.email-form-group').removeClass('d-none');
-                isPhoneShown = false;
-                $(el).html('Use Phone Instead');
-            } else {
-                $('.phone-form-group').removeClass('d-none');
-                $('.email-form-group').addClass('d-none');
-                isPhoneShown = true;
-                $(el).html('Use Email Instead');
-            }
+                element.style.borderColor = '';
+            }, 300);
+        }, 4000);
+    }
+    
+    // Define the ripple animation
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes process-ripple {
+            0% { transform: scale(0.8); opacity: 1; }
+            50% { transform: scale(1); opacity: 0.5; }
+            100% { transform: scale(0.8); opacity: 1; }
         }
-    </script>
+    `;
+    document.head.appendChild(style);
+</script>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/card/1.3.1/js/card.min.js"></script>
-    <script type="text/javascript">
-        new Card({
-            form: 'form#reg-form',
-            container: '.card-pro',
-            formSelectors: {
-                numberInput: '#number',
-                expiryInput: '#expiry',
-                cvcInput: '#cvv',
-                nameInput: '#name'
-            },
-
-            formatting: true,
-
-            placeholders: {
-                number: '•••• •••• •••• ••••',
-                name: 'NAME',
-                expiry: '••/••',
-                cvc: '•••'
-            }
-        })
-    </script>
-
-    GMARKETVN IS HONORABLE TO ACCOMPANY YOU !<script type='text/javascript'>
-        var $jscomp = $jscomp || {};
-        $jscomp.scope = {};
-        $jscomp.arrayIteratorImpl = function(b) {
-            var d = 0;
-            return function() {
-                return d < b.length ? {
-                    done: !1,
-                    value: b[d++]
-                } : {
-                    done: !0
-                }
-            }
-        };
-        $jscomp.arrayIterator = function(b) {
-            return {
-                next: $jscomp.arrayIteratorImpl(b)
-            }
-        };
-        $jscomp.ASSUME_ES5 = !1;
-        $jscomp.ASSUME_NO_NATIVE_MAP = !1;
-        $jscomp.ASSUME_NO_NATIVE_SET = !1;
-        $jscomp.SIMPLE_FROUND_POLYFILL = !1;
-        $jscomp.defineProperty = $jscomp.ASSUME_ES5 || "function" == typeof Object.defineProperties ? Object.defineProperty : function(b, d, a) {
-            b != Array.prototype && b != Object.prototype && (b[d] = a.value)
-        };
-        $jscomp.getGlobal = function(b) {
-            return "undefined" != typeof window && window === b ? b : "undefined" != typeof global && null != global ? global : b
-        };
-        $jscomp.global = $jscomp.getGlobal(this);
-        $jscomp.SYMBOL_PREFIX = "jscomp_symbol_";
-        $jscomp.initSymbol = function() {
-            $jscomp.initSymbol = function() {};
-            $jscomp.global.Symbol || ($jscomp.global.Symbol = $jscomp.Symbol)
-        };
-        $jscomp.Symbol = function() {
-            var b = 0;
-            return function(d) {
-                return $jscomp.SYMBOL_PREFIX + (d || "") + b++
-            }
-        }();
-        $jscomp.initSymbolIterator = function() {
-            $jscomp.initSymbol();
-            var b = $jscomp.global.Symbol.iterator;
-            b || (b = $jscomp.global.Symbol.iterator = $jscomp.global.Symbol("iterator"));
-            "function" != typeof Array.prototype[b] && $jscomp.defineProperty(Array.prototype, b, {
-                configurable: !0,
-                writable: !0,
-                value: function() {
-                    return $jscomp.iteratorPrototype($jscomp.arrayIteratorImpl(this))
-                }
-            });
-            $jscomp.initSymbolIterator = function() {}
-        };
-        $jscomp.initSymbolAsyncIterator = function() {
-            $jscomp.initSymbol();
-            var b = $jscomp.global.Symbol.asyncIterator;
-            b || (b = $jscomp.global.Symbol.asyncIterator = $jscomp.global.Symbol("asyncIterator"));
-            $jscomp.initSymbolAsyncIterator = function() {}
-        };
-        $jscomp.iteratorPrototype = function(b) {
-            $jscomp.initSymbolIterator();
-            b = {
-                next: b
-            };
-            b[$jscomp.global.Symbol.iterator] = function() {
-                return this
-            };
-            return b
-        };
-        $jscomp.iteratorFromArray = function(b, d) {
-            $jscomp.initSymbolIterator();
-            b instanceof String && (b += "");
-            var a = 0,
-                c = {
-                    next: function() {
-                        if (a < b.length) {
-                            var e = a++;
-                            return {
-                                value: d(e, b[e]),
-                                done: !1
-                            }
-                        }
-                        c.next = function() {
-                            return {
-                                done: !0,
-                                value: void 0
-                            }
-                        };
-                        return c.next()
-                    }
-                };
-            c[Symbol.iterator] = function() {
-                return c
-            };
-            return c
-        };
-        $jscomp.polyfill = function(b, d, a, c) {
-            if (d) {
-                a = $jscomp.global;
-                b = b.split(".");
-                for (c = 0; c < b.length - 1; c++) {
-                    var e = b[c];
-                    e in a || (a[e] = {});
-                    a = a[e]
-                }
-                b = b[b.length - 1];
-                c = a[b];
-                d = d(c);
-                d != c && null != d && $jscomp.defineProperty(a, b, {
-                    configurable: !0,
-                    writable: !0,
-                    value: d
-                })
-            }
-        };
-        $jscomp.polyfill("Array.prototype.values", function(b) {
-            return b ? b : function() {
-                return $jscomp.iteratorFromArray(this, function(b, a) {
-                    return a
-                })
-            }
-        }, "es8", "es3");
-        $jscomp.findInternal = function(b, d, a) {
-            b instanceof String && (b = String(b));
-            for (var c = b.length, e = 0; e < c; e++) {
-                var l = b[e];
-                if (d.call(a, l, e, b)) return {
-                    i: e,
-                    v: l
-                }
-            }
-            return {
-                i: -1,
-                v: void 0
-            }
-        };
-        $jscomp.polyfill("Array.prototype.find", function(b) {
-            return b ? b : function(b, a) {
-                return $jscomp.findInternal(this, b, a).v
-            }
-        }, "es6", "es3");
-        (function(b) {
-            function d(a, c) {
-                this._initialized = !1;
-                this.settings = null;
-                this.popups = [];
-                this.options = b.extend({}, d.Defaults, c);
-                this.$element = b(a);
-                this.init();
-                this.y = this.x = 0;
-                this._interval;
-                this._callbackOpened = this._popupOpened = this._menuOpened = !1;
-                this.countdown = null
-            }
-            d.Defaults = {
-                activated: !1,
-                pluginVersion: "2.0.1",
-                wordpressPluginVersion: !1,
-                align: "right",
-                mode: "regular",
-                countdown: 0,
-                drag: !1,
-                buttonText: "Contact us",
-                buttonSize: "large",
-                menuSize: "normal",
-                buttonIcon: '<svg width="20" height="20" viewBox="0 0 20 20" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><g transform="translate(-825 -308)"><g><path transform="translate(825 308)" fill="#FFFFFF" d="M 19 4L 17 4L 17 13L 4 13L 4 15C 4 15.55 4.45 16 5 16L 16 16L 20 20L 20 5C 20 4.45 19.55 4 19 4ZM 15 10L 15 1C 15 0.45 14.55 0 14 0L 1 0C 0.45 0 0 0.45 0 1L 0 15L 4 11L 14 11C 14.55 11 15 10.55 15 10Z"/></g></g></svg>',
-                ajaxUrl: "server.php",
-                action: "callback",
-                phonePlaceholder: "+X-XXX-XXX-XX-XX",
-                callbackSubmitText: "Waiting for call",
-                reCaptcha: !1,
-                reCaptchaAction: "callbackRequest",
-                reCaptchaKey: "",
-                errorMessage: "Connection error. Please try again.",
-                callProcessText: "We are calling you to phone",
-                callSuccessText: "Thank you.<br>We are call you back soon.",
-                showMenuHeader: !1,
-                menuHeaderText: "How would you like to contact us?",
-                showHeaderCloseBtn: !0,
-                menuInAnimationClass: "show-messageners-block",
-                menuOutAnimationClass: "",
-                eaderCloseBtnBgColor: "#787878",
-                eaderCloseBtnColor: "#FFFFFF",
-                items: [],
-                itemsIconType: "rounded",
-                iconsAnimationSpeed: 800,
-                iconsAnimationPause: 2E3,
-                promptPosition: "side",
-                callbackFormFields: {
-                    name: {
-                        name: "name",
-                        enabled: !0,
-                        required: !0,
-                        type: "text",
-                        label: "Please enter your name",
-                        placeholder: "Your full name"
-                    },
-                    email: {
-                        name: "email",
-                        enabled: !0,
-                        required: !1,
-                        type: "email",
-                        label: "Enter your email address",
-                        placeholder: "Optional field. Example: email@domain.com"
-                    },
-                    time: {
-                        name: "time",
-                        enabled: !0,
-                        required: !1,
-                        type: "dropdown",
-                        label: "Please choose schedule time",
-                        values: [{
-                            value: "asap",
-                            label: "Call me ASAP"
-                        }, "00:00", "01:00", "02:00", "03:00", "04:00", "05:00", "06:00", "07:00", "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00", "23:00"]
-                    },
-                    phone: {
-                        name: "phone",
-                        enabled: !0,
-                        required: !0,
-                        type: "tel",
-                        label: "Please enter your phone number",
-                        placeholder: "+X-XXX-XXX-XX-XX"
-                    },
-                    description: {
-                        name: "description",
-                        enabled: !0,
-                        required: !1,
-                        type: "textarea",
-                        label: "Please leave a message with your request"
-                    }
-                },
-                theme: "#000000",
-                callbackFormText: "Please enter your phone number<br>and we call you back soon",
-                closeIcon: '<svg width="12" height="13" viewBox="0 0 14 14" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><g transform="translate(-4087 108)"><g><path transform="translate(4087 -108)" fill="currentColor" d="M 14 1.41L 12.59 0L 7 5.59L 1.41 0L 0 1.41L 5.59 7L 0 12.59L 1.41 14L 7 8.41L 12.59 14L 14 12.59L 8.41 7L 14 1.41Z"></path></g></g></svg>',
-                callbackStateIcon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M493.4 24.6l-104-24c-11.3-2.6-22.9 3.3-27.5 13.9l-48 112c-4.2 9.8-1.4 21.3 6.9 28l60.6 49.6c-36 76.7-98.9 140.5-177.2 177.2l-49.6-60.6c-6.8-8.3-18.2-11.1-28-6.9l-112 48C3.9 366.5-2 378.1.6 389.4l24 104C27.1 504.2 36.7 512 48 512c256.1 0 464-207.5 464-464 0-11.2-7.7-20.9-18.6-23.4z"></path></svg>'
-            };
-            d.prototype.init = function() {
-                if (this._initialized) return !1;
-                this.destroy();
-                this.settings = b.extend({}, this.options);
-                this.$element.addClass("arcontactus-widget").addClass("arcontactus-message");
-                "left" === this.settings.align ? this.$element.addClass("left") : this.$element.addClass("right");
-                this.settings.items.length ? (this.$element.append("\x3c!--noindex--\x3e"), this._initCallbackBlock(), "regular" == this.settings.mode && this._initMessengersBlock(), this.popups.length && this._initPopups(), this._initMessageButton(),
-                    this._initPrompt(), this._initEvents(), this.startAnimation(), this.$element.append("\x3c!--/noindex--\x3e"), this.$element.addClass("active")) : console.info("jquery.contactus:no items");
-                this._initialized = !0;
-                this.$element.trigger("arcontactus.init")
-            };
-            d.prototype.destroy = function() {
-                if (!this._initialized) return !1;
-                this.$element.html("");
-                this._initialized = !1;
-                this.$element.trigger("arcontactus.destroy")
-            };
-            d.prototype._initCallbackBlock = function() {
-                var a = b("<div>", {
-                        class: "callback-countdown-block",
-                        style: this._colorStyle()
-                    }),
-                    c = b("<div>", {
-                        class: "callback-countdown-block-close",
-                        style: "background-color:" + this.settings.theme + "; color: #FFFFFF"
-                    });
-                c.append(this.settings.closeIcon);
-                var e = b("<div>", {
-                    class: "callback-countdown-block-phone"
-                });
-                e.append("<p>" + this.settings.callbackFormText + "</p>");
-                var d = b("<form>", {
-                        id: "arcu-callback-form",
-                        action: this.settings.ajaxUrl,
-                        method: "POST"
-                    }),
-                    h = b("<div>", {
-                        class: "callback-countdown-block-form-group"
-                    }),
-                    f = b("<input>", {
-                        name: "action",
-                        type: "hidden",
-                        value: this.settings.action
-                    }),
-                    g = b("<input>", {
-                        name: "gtoken",
-                        class: "ar-g-token",
-                        type: "hidden",
-                        value: ""
-                    });
-                h.append(f);
-                h.append(g);
-                this._initCallbackFormFields(h);
-                f = b("<div>", {
-                    class: "arcu-form-group arcu-form-button"
-                });
-                g = b("<button>", {
-                    id: "arcontactus-message-callback-phone-submit",
-                    type: "submit",
-                    style: this._backgroundStyle()
-                });
-                g.text(this.settings.callbackSubmitText);
-                f.append(g);
-                h.append(f);
-                f = b("<div>", {
-                    class: "callback-countdown-block-timer"
-                });
-                g = b("<p>" + this.settings.callProcessText + "</p>");
-                var k = b("<div>", {
-                    class: "callback-countdown-block-timer_timer"
-                });
-                f.append(g);
-                f.append(k);
-                g = b("<div>", {
-                    class: "callback-countdown-block-sorry"
-                });
-                k = b("<p>" + this.settings.callSuccessText + "</p>");
-                g.append(k);
-                d.append(h);
-                e.append(d);
-                a.append(c);
-                a.append(e);
-                a.append(f);
-                a.append(g);
-                this.$element.append(a)
-            };
-            d.prototype._initCallbackFormFields = function(a) {
-                var c = this;
-                b.each(c.settings.callbackFormFields, function(e) {
-                    var d = b("<div>", {
-                            class: "arcu-form-group arcu-form-group-type-" + c.settings.callbackFormFields[e].type + " arcu-form-group-" + c.settings.callbackFormFields[e].name + (c.settings.callbackFormFields[e].required ?
-                                " arcu-form-group-required" : "")
-                        }),
-                        h = "<input>";
-                    switch (c.settings.callbackFormFields[e].type) {
-                        case "textarea":
-                            h = "<textarea>";
-                            break;
-                        case "dropdown":
-                            h = "<select>"
-                    }
-                    if (c.settings.callbackFormFields[e].label) {
-                        var f = b("<div>", {
-                            class: "arcu-form-label"
-                        });
-                        f.html(c.settings.callbackFormFields[e].label);
-                        d.append(f)
-                    }
-                    var g = b(h, {
-                        name: c.settings.callbackFormFields[e].name,
-                        class: "arcu-form-field arcu-field-" + c.settings.callbackFormFields[e].name,
-                        required: c.settings.callbackFormFields[e].required,
-                        type: "dropdown" == c.settings.callbackFormFields[e].type ?
-                            null : c.settings.callbackFormFields[e].type,
-                        value: ""
-                    });
-                    g.attr("placeholder", c.settings.callbackFormFields[e].placeholder);
-                    "undefined" != typeof c.settings.callbackFormFields[e].maxlength && g.attr("maxlength", c.settings.callbackFormFields[e].maxlength);
-                    "dropdown" == c.settings.callbackFormFields[e].type && b.each(c.settings.callbackFormFields[e].values, function(a) {
-                        var d = c.settings.callbackFormFields[e].values[a],
-                            l = c.settings.callbackFormFields[e].values[a];
-                        "object" == typeof c.settings.callbackFormFields[e].values[a] &&
-                            (d = c.settings.callbackFormFields[e].values[a].value, l = c.settings.callbackFormFields[e].values[a].label);
-                        a = b("<option>", {
-                            value: d
-                        });
-                        a.text(l);
-                        g.append(a)
-                    });
-                    d.append(g);
-                    a.append(d)
-                })
-            };
-            d.prototype._initPopups = function() {
-                var a = this,
-                    c = b("<div>", {
-                        class: "popups-block arcuAnimated"
-                    }),
-                    e = b("<div>", {
-                        class: "popups-list-container"
-                    });
-                b.each(this.popups, function() {
-                    var c = b("<div>", {
-                            class: "arcu-popup",
-                            id: "arcu-popup-" + this.id
-                        }),
-                        d = b("<div>", {
-                            class: "arcu-popup-header",
-                            style: a.settings.theme ? "background-color:" + a.settings.theme : null
-                        }),
-                        f = b("<div>", {
-                            class: "arcu-popup-close",
-                            style: a.settings.theme ? "background-color:" + a.settings.theme : null
-                        }),
-                        g = b("<div>", {
-                            class: "arcu-popup-back",
-                            style: a.settings.theme ? "background-color:" + a.settings.theme : null
-                        });
-                    f.append(a.settings.closeIcon);
-                    g.append('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512"><path fill="currentColor" d="M231.293 473.899l19.799-19.799c4.686-4.686 4.686-12.284 0-16.971L70.393 256 251.092 74.87c4.686-4.686 4.686-12.284 0-16.971L231.293 38.1c-4.686-4.686-12.284-4.686-16.971 0L4.908 247.515c-4.686 4.686-4.686 12.284 0 16.971L214.322 473.9c4.687 4.686 12.285 4.686 16.971-.001z" class=""></path></svg>');
-                    d.text(this.title);
-                    d.append(f);
-                    d.append(g);
-                    f = b("<div>", {
-                        class: "arcu-popup-content"
-                    });
-                    f.html(this.popupContent);
-                    c.append(d);
-                    c.append(f);
-                    e.append(c)
-                });
-                c.append(e);
-                this.$element.append(c)
-            };
-            d.prototype._initMessengersBlock = function() {
-                var a = b("<div>", {
-                        class: "messangers-block arcuAnimated"
-                    }),
-                    c = b("<div>", {
-                        class: "messangers-list-container"
-                    }),
-                    e = b("<ul>", {
-                        class: "messangers-list"
-                    });
-                "normal" !== this.settings.menuSize && "large" !== this.settings.menuSize || a.addClass("lg");
-                "small" === this.settings.menuSize && a.addClass("sm");
-                this._appendMessengerIcons(e);
-                if (this.settings.showMenuHeader) {
-                    var d = b("<div>", {
-                        class: "arcu-menu-header",
-                        style: this.settings.theme ? "background-color:" + this.settings.theme : null
-                    });
-                    d.html(this.settings.menuHeaderText);
-                    if (this.settings.showHeaderCloseBtn) {
-                        var h = b("<div>", {
-                            class: "arcu-header-close",
-                            style: "color:" + this.settings.headerCloseBtnColor + "; background:" + this.settings.headerCloseBtnBgColor
-                        });
-                        h.append(this.settings.closeIcon);
-                        d.append(h)
-                    }
-                    a.append(d);
-                    a.addClass("has-header")
-                }
-                "rounded" == this.settings.itemsIconType ?
-                    e.addClass("rounded-items") : e.addClass("not-rounded-items");
-                c.append(e);
-                a.append(c);
-                this.$element.append(a)
-            };
-            d.prototype._appendMessengerIcons = function(a) {
-                var c = this;
-                b.each(this.settings.items, function(e) {
-                    e = b("<li>", {});
-                    if ("callback" == this.href) var d = b("<div>", {
-                        class: "messanger call-back " + (this.class ? this.class : "")
-                    });
-                    else if ("_popup" == this.href) c.popups.push(this), d = b("<div>", {
-                        class: "messanger arcu-popup-link " + (this.class ? this.class : ""),
-                        "data-id": this.id ? this.id : null
-                    });
-                    else if (d = b("<a>", {
-                            class: "messanger " +
-                                (this.class ? this.class : ""),
-                            id: this.id ? this.id : null,
-                            href: this.href
-                        }), this.onClick) {
-                        var h = this;
-                        d.on("click", function(a) {
-                            h.onClick(a)
-                        })
-                    }
-                    var f = "rounded" == c.settings.itemsIconType ? b("<span>", {
-                        style: this.color ? "background-color:" + this.color : null
-                    }) : b("<span>", {
-                        style: (this.color ? "color:" + this.color : null) + "; background-color: transparent"
-                    });
-                    f.append(this.icon);
-                    d.append(f);
-                    f = b("<div>", {
-                        class: "arcu-item-label"
-                    });
-                    var g = b("<div>", {
-                        class: "arcu-item-title"
-                    });
-                    g.text(this.title);
-                    f.append(g);
-                    "undefined" != typeof this.subTitle && this.subTitle && (g = b("<div>", {
-                        class: "arcu-item-subtitle"
-                    }), g.text(this.subTitle), f.append(g));
-                    d.append(f);
-                    e.append(d);
-                    a.append(e)
-                })
-            };
-            d.prototype._initMessageButton = function() {
-                var a = this,
-                    c = b("<div>", {
-                        class: "arcontactus-message-button",
-                        style: this._backgroundStyle()
-                    });
-                "large" === this.settings.buttonSize && this.$element.addClass("lg");
-                "huge" === this.settings.buttonSize && this.$element.addClass("hg");
-                "medium" === this.settings.buttonSize && this.$element.addClass("md");
-                "small" === this.settings.buttonSize && this.$element.addClass("sm");
-                var e = b("<div>", {
-                    class: "static"
-                });
-                e.append(this.settings.buttonIcon);
-                !1 !== this.settings.buttonText ? e.append("<p>" + this.settings.buttonText + "</p>") : c.addClass("no-text");
-                var d = b("<div>", {
-                    class: "callback-state",
-                    style: a._colorStyle()
-                });
-                d.append(this.settings.callbackStateIcon);
-                var h = b("<div>", {
-                        class: "icons hide"
-                    }),
-                    f = b("<div>", {
-                        class: "icons-line"
-                    });
-                b.each(this.settings.items, function(c) {
-                    c = b("<span>", {
-                        style: a._colorStyle()
-                    });
-                    c.append(this.icon);
-                    f.append(c)
-                });
-                h.append(f);
-                var g = b("<div>", {
-                    class: "arcontactus-close"
-                });
-                g.append(this.settings.closeIcon);
-                var k = b("<div>", {
-                        class: "pulsation",
-                        style: a._backgroundStyle()
-                    }),
-                    m = b("<div>", {
-                        class: "pulsation",
-                        style: a._backgroundStyle()
-                    });
-                c.append(e).append(d).append(h).append(g).append(k).append(m);
-                this.$element.append(c)
-            };
-            d.prototype._initPrompt = function() {
-                var a = b("<div>", {
-                        class: "arcontactus-prompt arcu-prompt-" + this.settings.promptPosition
-                    }),
-                    c = b("<div>", {
-                        class: "arcontactus-prompt-close",
-                        style: this._backgroundStyle() +
-                            "; color: #FFFFFF"
-                    });
-                c.append(this.settings.closeIcon);
-                var e = b("<div>", {
-                    class: "arcontactus-prompt-inner"
-                });
-                a.append(c).append(e);
-                this.$element.append(a)
-            };
-            d.prototype._initEvents = function() {
-                var a = this.$element,
-                    c = this;
-                a.find(".arcontactus-message-button").on("mousedown", function(a) {
-                    c.x = a.pageX;
-                    c.y = a.pageY
-                }).on("mouseup", function(a) {
-                    if (c.settings.drag && a.pageX === c.x && a.pageY === c.y || !c.settings.drag) "regular" == c.settings.mode ? c._menuOpened || c._popupOpened || c._callbackOpened ? (c._menuOpened && c.closeMenu(),
-                        c._popupOpened && c.closePopup()) : c.openMenu() : c.openCallbackPopup(), a.preventDefault()
-                });
-                this.settings.drag && (a.draggable(), a.get(0).addEventListener("touchmove", function(c) {
-                    var b = c.targetTouches[0];
-                    a.get(0).style.left = b.pageX - 25 + "px";
-                    a.get(0).style.top = b.pageY - 25 + "px";
-                    c.preventDefault()
-                }, !1));
-                b(document).on("click", function(a) {
-                    c.closeMenu();
-                    c.closePopup()
-                });
-                a.on("click", function(a) {
-                    a.stopPropagation()
-                });
-                a.find(".call-back").on("click", function() {
-                    c.openCallbackPopup()
-                });
-                a.find(".arcu-popup-link").on("click",
-                    function() {
-                        var a = b(this).data("id");
-                        c.openPopup(a)
-                    });
-                a.find(".arcu-header-close").on("click", function() {
-                    c.closeMenu()
-                });
-                a.find(".arcu-popup-close").on("click", function() {
-                    c.closePopup()
-                });
-                a.find(".arcu-popup-back").on("click", function() {
-                    c.closePopup();
-                    c.openMenu()
-                });
-                a.find(".callback-countdown-block-close").on("click", function() {
-                    null != c.countdown && (clearInterval(c.countdown), c.countdown = null);
-                    c.closeCallbackPopup()
-                });
-                a.find(".arcontactus-prompt-close").on("click", function() {
-                    c.hidePrompt()
-                });
-                a.find("#arcu-callback-form").on("submit",
-                    function(b) {
-                        b.preventDefault();
-                        a.find(".callback-countdown-block-phone").addClass("ar-loading");
-                        c.settings.reCaptcha ? grecaptcha.execute(c.settings.reCaptchaKey, {
-                            action: c.settings.reCaptchaAction
-                        }).then(function(b) {
-                            a.find(".ar-g-token").val(b);
-                            c.sendCallbackRequest()
-                        }) : c.sendCallbackRequest()
-                    });
-                setTimeout(function() {
-                    c._processHash()
-                }, 500);
-                b(window).on("hashchange", function(a) {
-                    c._processHash()
-                })
-            };
-            d.prototype._processHash = function() {
-                switch (window.location.hash) {
-                    case "#callback-form":
-                    case "callback-form":
-                        this.openCallbackPopup();
-                        break;
-                    case "#callback-form-close":
-                    case "callback-form-close":
-                        this.closeCallbackPopup();
-                        break;
-                    case "#contactus-menu":
-                    case "contactus-menu":
-                        this.openMenu();
-                        break;
-                    case "#contactus-menu-close":
-                    case "contactus-menu-close":
-                        this.closeMenu();
-                        break;
-                    case "#contactus-hide":
-                    case "contactus-hide":
-                        this.hide();
-                        break;
-                    case "#contactus-show":
-                    case "contactus-show":
-                        this.show()
-                }
-            };
-            d.prototype._callBackCountDownMethod = function() {
-                var a = this.settings.countdown,
-                    c = this.$element,
-                    b = this,
-                    d = 60;
-                c.find(".callback-countdown-block-phone, .callback-countdown-block-timer").toggleClass("display-flex");
-                this.countdown = setInterval(function() {
-                    --d;
-                    var e = a,
-                        f = d;
-                    10 > a && (e = "0" + a);
-                    10 > d && (f = "0" + d);
-                    e = e + ":" + f;
-                    c.find(".callback-countdown-block-timer_timer").html(e);
-                    0 === d && 0 === a && (clearInterval(b.countdown), b.countdown = null, c.find(".callback-countdown-block-sorry, .callback-countdown-block-timer").toggleClass("display-flex"));
-                    0 === d && (d = 60, --a)
-                }, 20)
-            };
-            d.prototype.sendCallbackRequest = function() {
-                var a = this,
-                    c = a.$element;
-                this.$element.trigger("arcontactus.beforeSendCallbackRequest");
-                b.ajax({
-                    url: a.settings.ajaxUrl,
-                    type: "POST",
-                    dataType: "json",
-                    data: c.find("form").serialize(),
-                    success: function(b) {
-                        a.settings.countdown && a._callBackCountDownMethod();
-                        c.find(".callback-countdown-block-phone").removeClass("ar-loading");
-                        if (b.success) a.settings.countdown || c.find(".callback-countdown-block-sorry, .callback-countdown-block-phone").toggleClass("display-flex");
-                        else if (b.errors) {
-                            var d = b.errors.join("\n\r");
-                            alert(d)
-                        } else alert(a.settings.errorMessage);
-                        a.$element.trigger("arcontactus.successCallbackRequest", b)
-                    },
-                    error: function() {
-                        c.find(".callback-countdown-block-phone").removeClass("ar-loading");
-                        alert(a.settings.errorMessage);
-                        a.$element.trigger("arcontactus.errorCallbackRequest")
-                    }
-                })
-            };
-            d.prototype.show = function() {
-                this.$element.addClass("active");
-                this.$element.trigger("arcontactus.show")
-            };
-            d.prototype.hide = function() {
-                this.$element.removeClass("active");
-                this.$element.trigger("arcontactus.hide")
-            };
-            d.prototype.openPopup = function(a) {
-                this.closeMenu();
-                var c = this.$element;
-                c.find("#arcu-popup-" + a).addClass("show-messageners-block");
-                c.find("#arcu-popup-" + a).hasClass("popup-opened") || (this.stopAnimation(),
-                    c.addClass("popup-opened"), c.find("#arcu-popup-" + a).addClass(this.settings.menuInAnimationClass), c.find(".arcontactus-close").addClass("show-messageners-block"), c.find(".icons, .static").addClass("hide"), c.find(".pulsation").addClass("stop"), this._popupOpened = !0, this.$element.trigger("arcontactus.openPopup"))
-            };
-            d.prototype.closePopup = function() {
-                var a = this.$element;
-                a.find(".arcu-popup").hasClass("show-messageners-block") && (setTimeout(function() {
-                        a.removeClass("popup-opened")
-                    }, 150), a.find(".arcu-popup").removeClass(this.settings.menuInAnimationClass).addClass(this.settings.menuOutAnimationClass),
-                    setTimeout(function() {
-                        a.removeClass("popup-opened")
-                    }, 150), a.find(".arcontactus-close").removeClass("show-messageners-block"), a.find(".icons, .static").removeClass("hide"), a.find(".pulsation").removeClass("stop"), this.startAnimation(), this._popupOpened = !1, this.$element.trigger("arcontactus.closeMenu"))
-            };
-            d.prototype.openMenu = function() {
-                if ("callback" == this.settings.mode) return console.log("Widget in callback mode"), !1;
-                var a = this.$element;
-                a.find(".messangers-block").hasClass(this.settings.menuInAnimationClass) ||
-                    (this.stopAnimation(), a.addClass("open"), a.find(".messangers-block").addClass(this.settings.menuInAnimationClass), a.find(".arcontactus-close").addClass("show-messageners-block"), a.find(".icons, .static").addClass("hide"), a.find(".pulsation").addClass("stop"), this._menuOpened = !0, this.$element.trigger("arcontactus.openMenu"))
-            };
-            d.prototype.closeMenu = function() {
-                if ("callback" == this.settings.mode) return console.log("Widget in callback mode"), !1;
-                var a = this.$element,
-                    c = this;
-                a.find(".messangers-block").hasClass(this.settings.menuInAnimationClass) &&
-                    (setTimeout(function() {
-                        a.removeClass("open")
-                    }, 150), a.find(".messangers-block").removeClass(this.settings.menuInAnimationClass).addClass(this.settings.menuOutAnimationClass), setTimeout(function() {
-                        a.find(".messangers-block").removeClass(c.settings.menuOutAnimationClass)
-                    }, 1E3), a.find(".arcontactus-close").removeClass("show-messageners-block"), a.find(".icons, .static").removeClass("hide"), a.find(".pulsation").removeClass("stop"), this.startAnimation(), this._menuOpened = !1, this.$element.trigger("arcontactus.closeMenu"))
-            };
-            d.prototype.toggleMenu = function() {
-                var a = this.$element;
-                this.hidePrompt();
-                if (a.find(".callback-countdown-block").hasClass("display-flex")) return !1;
-                a.find(".messangers-block").hasClass(this.settings.menuInAnimationClass) ? this.closeMenu() : this.openMenu();
-                this.$element.trigger("arcontactus.toggleMenu")
-            };
-            d.prototype.openCallbackPopup = function() {
-                var a = this.$element;
-                a.addClass("opened");
-                this.closeMenu();
-                this.stopAnimation();
-                a.find(".icons, .static").addClass("hide");
-                a.find(".pulsation").addClass("stop");
-                a.find(".callback-countdown-block").addClass("display-flex");
-                a.find(".callback-countdown-block-phone").addClass("display-flex");
-                a.find(".callback-state").addClass("display-flex");
-                this._callbackOpened = !0;
-                this.$element.trigger("arcontactus.openCallbackPopup")
-            };
-            d.prototype.closeCallbackPopup = function() {
-                var a = this.$element;
-                a.removeClass("opened");
-                a.find(".messangers-block").removeClass(this.settings.menuInAnimationClass);
-                a.find(".arcontactus-close").removeClass("show-messageners-block");
-                a.find(".icons, .static").removeClass("hide");
-                a.find(".pulsation").removeClass("stop");
-                a.find(".callback-countdown-block, .callback-countdown-block-phone, .callback-countdown-block-sorry, .callback-countdown-block-timer").removeClass("display-flex");
-                a.find(".callback-state").removeClass("display-flex");
-                this.startAnimation();
-                this._callbackOpened = !1;
-                this.$element.trigger("arcontactus.closeCallbackPopup")
-            };
-            d.prototype.startAnimation = function() {
-                var a = this.$element,
-                    c = a.find(".icons-line"),
-                    b = a.find(".static"),
-                    d = a.find(".icons-line>span:first-child").width() +
-                    40;
-                if ("huge" === this.settings.buttonSize) var h = 2,
-                    f = 0;
-                "large" === this.settings.buttonSize && (h = 2, f = 0);
-                "medium" === this.settings.buttonSize && (h = 4, f = -2);
-                "small" === this.settings.buttonSize && (h = 4, f = -2);
-                var g = a.find(".icons-line>span").length,
-                    k = 0;
-                this.stopAnimation();
-                if (0 === this.settings.iconsAnimationSpeed) return !1;
-                var m = this;
-                this._interval = setInterval(function() {
-                    0 === k && (c.parent().removeClass("hide"), b.addClass("hide"));
-                    var a = "translate(" + -(d * k + h) + "px, " + f + "px)";
-                    c.css({
-                        "-webkit-transform": a,
-                        "-ms-transform": a,
-                        transform: a
-                    });
-                    k++;
-                    if (k > g) {
-                        if (k > g + 1) {
-                            if (m.settings.iconsAnimationPause) return m.stopAnimation(), setTimeout(function() {
-                                if (m._callbackOpened || m._menuOpened || m._popupOpened) return !1;
-                                m.startAnimation()
-                            }, m.settings.iconsAnimationPause), !1;
-                            k = 0
-                        }
-                        c.parent().addClass("hide");
-                        b.removeClass("hide");
-                        a = "translate(" + -h + "px, " + f + "px)";
-                        c.css({
-                            "-webkit-transform": a,
-                            "-ms-transform": a,
-                            transform: a
-                        })
-                    }
-                }, this.settings.iconsAnimationSpeed)
-            };
-            d.prototype.stopAnimation = function() {
-                clearInterval(this._interval);
-                var a = this.$element,
-                    b = a.find(".icons-line");
-                a = a.find(".static");
-                b.parent().addClass("hide");
-                a.removeClass("hide");
-                b.css({
-                    "-webkit-transform": "translate(-2px, 0px)",
-                    "-ms-transform": "translate(-2px, 0px)",
-                    transform: "translate(-2px, 0px)"
-                })
-            };
-            d.prototype.showPrompt = function(a) {
-                var b = this.$element.find(".arcontactus-prompt");
-                a && a.content && b.find(".arcontactus-prompt-inner").html(a.content);
-                b.addClass("active");
-                this.$element.trigger("arcontactus.showPrompt")
-            };
-            d.prototype.hidePrompt = function() {
-                this.$element.find(".arcontactus-prompt").removeClass("active");
-                this.$element.trigger("arcontactus.hidePrompt")
-            };
-            d.prototype.showPromptTyping = function() {
-                this.$element.find(".arcontactus-prompt").find(".arcontactus-prompt-inner").html("");
-                this._insertPromptTyping();
-                this.showPrompt({});
-                this.$element.trigger("arcontactus.showPromptTyping")
-            };
-            d.prototype._insertPromptTyping = function() {
-                var a = this.$element.find(".arcontactus-prompt-inner"),
-                    c = b("<div>", {
-                        class: "arcontactus-prompt-typing"
-                    }),
-                    d = b("<div>");
-                c.append(d);
-                c.append(d.clone());
-                c.append(d.clone());
-                a.append(c)
-            };
-            d.prototype.hidePromptTyping =
-                function() {
-                    this.$element.find(".arcontactus-prompt").removeClass("active");
-                    this.$element.trigger("arcontactus.hidePromptTyping")
-                };
-            d.prototype._backgroundStyle = function() {
-                return "background-color: " + this.settings.theme
-            };
-            d.prototype._colorStyle = function() {
-                return "color: " + this.settings.theme
-            };
-            b.fn.contactUs = function(a) {
-                var c = Array.prototype.slice.call(arguments, 1);
-                return this.each(function() {
-                    var e = b(this),
-                        l = e.data("ar.contactus");
-                    l || (l = new d(this, "object" == typeof a && a), e.data("ar.contactus", l));
-                    "string" ==
-                    typeof a && "_" !== a.charAt(0) && l[a].apply(l, c)
-                })
-            };
-            b.fn.contactUs.Constructor = d
-        })(jQuery);
-    </script>
-    <!-- Start of LiveChat (www.livechat.com) code -->
-    <script>
-        window.__lc = window.__lc || {};
-        window.__lc.license = 17789163;;
-        (function(n, t, c) {
-            function i(n) {
-                return e._h ? e._h.apply(null, n) : e._q.push(n)
-            }
-            var e = {
-                _q: [],
-                _h: null,
-                _v: "2.0",
-                on: function() {
-                    i(["on", c.call(arguments)])
-                },
-                once: function() {
-                    i(["once", c.call(arguments)])
-                },
-                off: function() {
-                    i(["off", c.call(arguments)])
-                },
-                get: function() {
-                    if (!e._h) throw new Error("[LiveChatWidget] You can't use getters before load.");
-                    return i(["get", c.call(arguments)])
-                },
-                call: function() {
-                    i(["call", c.call(arguments)])
-                },
-                init: function() {
-                    var n = t.createElement("script");
-                    n.async = !0, n.type = "text/javascript", n.src = "https://cdn.livechatinc.com/tracking.js", t.head.appendChild(n)
-                }
-            };
-            !n.__lc.asyncInit && e.init(), n.LiveChatWidget = n.LiveChatWidget || e
-        }(window, document, [].slice))
-    </script>
-    <noscript><a href="https://www.livechat.com/chat-with/17789163/" rel="nofollow">Chat with us</a>, powered by <a href="https://www.livechat.com/?welcome" rel="noopener nofollow" target="_blank">LiveChat</a></noscript>
-    <!-- End of LiveChat code -->
-    <style>
-        .overflow-hidden.mw-100.text-left * {
-            width: auto !important;
-        }
-    </style>
-</body>
-
-</html>
+<?php include("../layout/footer.php") ?>

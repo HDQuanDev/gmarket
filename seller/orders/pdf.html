@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zalando Invoice</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .logo {
+            display: flex;
+            align-items: center;
+        }
+        .logo-icon {
+            width: 30px;
+            height: 30px;
+            background-color: #ff6600;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        .logo-text {
+            font-weight: bold;
+            font-size: 24px;
+        }
+        .invoice-title {
+            font-size: 18px;
+            font-weight: bold;
+            text-align: right;
+        }
+        .company-info, .customer-info {
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        .company-info p, .customer-info p {
+            margin: 5px 0;
+        }
+        .info-container {
+            display: flex;
+            justify-content: space-between;
+        }
+        .invoice-details {
+            text-align: right;
+            font-size: 14px;
+        }
+        .invoice-details p {
+            margin: 5px 0;
+        }
+        .customer-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+            font-size: 14px;
+        }
+        th {
+            background-color: #f9f9f9;
+        }
+        .text-center {
+            text-align: center;
+        }
+        .text-right {
+            text-align: right;
+        }
+        .totals {
+            width: 300px;
+            margin-left: auto;
+            margin-top: 20px;
+        }
+        .totals table {
+            width: 100%;
+        }
+        .totals td {
+            padding: 5px 10px;
+        }
+        .total-row td {
+            font-weight: bold;
+            border-top: 1px solid #000;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">
+            <div class="logo-icon"></div>
+            <div class="logo-text">zalando</div>
+        </div>
+        <div class="invoice-title">HÓA ĐƠN</div>
+    </div>
+
+    <div class="info-container">
+        <div class="company-info">
+            <p><strong>Zalando Asia</strong></p>
+            <p>109 Đường 3, Phường Phước Bình, Quận 9, Thành phố Hồ Chí Minh, Việt Nam</p>
+            <p>Email: zalando.asia@gmail.com</p>
+            <p>Điện thoại: 19009999979</p>
+        </div>
+        <div class="invoice-details">
+            <p>Mã đơn hàng: 20241029-20401677</p>
+            <p>Ngày đặt hàng: 29-10-2024</p>
+            <p>Phương thức: Thanh toán khi giao hàng</p>
+        </div>
+    </div>
+
+    <div class="customer-info">
+        <p class="customer-title">Thông tin khách hàng:</p>
+        <p>Tên: Kim Ji-Hoon</p>
+        <p>Địa chỉ: 1 123231 Jamsil-dong Songpa-gu, Seoul, Korea, 50532</p>
+        <p>Email: kimjihoon475@gmail.com</p>
+        <p>Điện thoại: +82443345358</p>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Tên sản phẩm</th>
+                <th>Loại giao hàng</th>
+                <th class="text-center">Số lượng</th>
+                <th class="text-right">Đơn giá</th>
+                <th class="text-right">Thuế</th>
+                <th class="text-right">TOÀN BỘ</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>essie Peel Off Nail Polish 3 Colors Box 03 B00 Orange Tomato, 012 Champagne Pink, 006 Mimosa</td>
+                <td>Giao hàng tận nhà</td>
+                <td class="text-center">1</td>
+                <td class="text-right">30.00$</td>
+                <td class="text-right">0.00$</td>
+                <td class="text-right">30.00$</td>
+            </tr>
+            <tr>
+                <td>
+                    [Next day delivery] Ready to ship!<br>
+                    Attachment roller set of 100 Naked Nails nail care is all you need! Get shiny nails in 3 easy steps!!! Gentle on your nails and keeps them shiny for 2 weeks! Great q
+                </td>
+                <td>Giao hàng tận nhà</td>
+                <td class="text-center">5</td>
+                <td class="text-right">22.00$</td>
+                <td class="text-right">0.00$</td>
+                <td class="text-right">110.00$</td>
+            </tr>
+            <tr>
+                <td>
+                    Young Nails ManQ Fiber Gel with Keratin Jig (ManQ Fiber with Keratin-Jar Type) Nail Maintenance [ManQ] Get Shiny gel Not easy to lift [ManQ] Leaves one layer Gel nail Long-lasting No need to SKU:
+                </td>
+                <td>Giao hàng tận nhà</td>
+                <td class="text-center">1</td>
+                <td class="text-right">33.10$</td>
+                <td class="text-right">0.00$</td>
+                <td class="text-right">33.10$</td>
+            </tr>
+            <tr>
+                <td>
+                    Young Nails Synergy Nail Hard Gel 15g Gel Nails As a thin base gel, it has strong adhesive properties and holds firmly. It is medium hardness among gel systems, and unevenness disappears nature SKU:
+                </td>
+                <td>Giao hàng tận nhà</td>
+                <td class="text-center">1</td>
+                <td class="text-right">45.50$</td>
+                <td class="text-right">0.00$</td>
+                <td class="text-right">45.50$</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="totals">
+        <table>
+            <tr>
+                <td>Giá bán</td>
+                <td class="text-right">218.60$</td>
+            </tr>
+            <tr>
+                <td>Giá vận chuyển</td>
+                <td class="text-right">0.00$</td>
+            </tr>
+            <tr>
+                <td>Tổng số thuế</td>
+                <td class="text-right">0.00$</td>
+            </tr>
+            <tr>
+                <td>Phiếu giảm giá</td>
+                <td class="text-right">0.00$</td>
+            </tr>
+            <tr class="total-row">
+                <td>Tổng cộng</td>
+                <td class="text-right">218.60$</td>
+            </tr>
+        </table>
+    </div>
+</body>
+</html>

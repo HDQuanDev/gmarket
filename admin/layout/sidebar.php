@@ -1,14 +1,20 @@
-
+<?php
+// Include bootstrap file for dynamic script loading
+// include_once($_SERVER['DOCUMENT_ROOT'] . '/public/bootstrap.php');
+// // Output the notification loader HTML
+// echo getNotificationLoaderHTML();
+?>
 <div class="aiz-sidebar-wrap">
     <div class="aiz-sidebar left c-scrollbar">
         <div class="aiz-side-nav-logo-wrap">
             <a href="/admin" class="d-block text-left">
-                <img class="mw-100" src="/public/uploads/all/ImUXrP5YC9e0hsv4zR6xjoYJCuxmFYkonSInvGtJ.jpg" class="brand-icon" alt="GMARKETVN">
+                <img class="mw-100" src="/public/uploads/final-ver1.svg" class="brand-icon" alt="Takashimaya">
             </a>
         </div>
         <div class="aiz-side-nav-wrap">
             <div class="px-20px mb-3">
-                <input class="form-control bg-soft-secondary border-0 form-control-sm text-white" type="text" name="" placeholder="Search in menu" id="menu-search" onkeyup="menuSearch()">
+                <input class="form-control bg-soft-secondary border-0 form-control-sm text-white" type="text" name=""
+                    placeholder="Search in menu" id="menu-search" onkeyup="menuSearch()">
             </div>
             <ul class="aiz-side-nav-list" id="search-menu">
             </ul>
@@ -18,7 +24,7 @@
                 <li class="aiz-side-nav-item">
                     <a href="/admin" class="aiz-side-nav-link">
                         <i class="las la-home aiz-side-nav-icon"></i>
-                        <span class="aiz-side-nav-text"><?=tran("Dashboard")?></span>
+                        <span class="aiz-side-nav-text"><?= tran("Dashboard") ?></span>
                     </a>
                 </li>
 
@@ -26,18 +32,18 @@
                 <li class="aiz-side-nav-item">
                     <a href="#" class="aiz-side-nav-link">
                         <i class="las la-tasks aiz-side-nav-icon"></i>
-                        <span class="aiz-side-nav-text"><?=tran("POS System")?></span>
+                        <span class="aiz-side-nav-text"><?= tran("POS System") ?></span>
                         <span class="aiz-side-nav-arrow"></span>
                     </a>
                     <ul class="aiz-side-nav-list level-2">
                         <li class="aiz-side-nav-item">
                             <a href="/admin/pos/index.php" class="aiz-side-nav-link ">
-                                <span class="aiz-side-nav-text"><?=tran("POS Manager")?></span>
+                                <span class="aiz-side-nav-text"><?= tran("POS Manager") ?></span>
                             </a>
                         </li>
                         <li class="aiz-side-nav-item">
                             <a href="/admin/pos/pos_active.php" class="aiz-side-nav-link">
-                                <span class="aiz-side-nav-text"><?=tran("POS Configuration")?></span>
+                                <span class="aiz-side-nav-text"><?= tran("POS Configuration") ?></span>
                             </a>
                         </li>
                     </ul>
@@ -47,35 +53,35 @@
                 <li class="aiz-side-nav-item">
                     <a href="#" class="aiz-side-nav-link">
                         <i class="las la-shopping-cart aiz-side-nav-icon"></i>
-                        <span class="aiz-side-nav-text"><?=tran("Products")?></span>
+                        <span class="aiz-side-nav-text"><?= tran("Products") ?></span>
                         <span class="aiz-side-nav-arrow"></span>
                     </a>
                     <!--Submenu-->
                     <ul class="aiz-side-nav-list level-2">
                         <li class="aiz-side-nav-item">
                             <a class="aiz-side-nav-link" href="/admin/products/create.php">
-                                <span class="aiz-side-nav-text"><?=tran("Add New Product")?></span>
+                                <span class="aiz-side-nav-text"><?= tran("Add New Product") ?></span>
                             </a>
                         </li>
                         <li class="aiz-side-nav-item">
                             <a href="/admin/products/all.php" class="aiz-side-nav-link">
-                                <span class="aiz-side-nav-text"><?=tran("All products")?></span>
+                                <span class="aiz-side-nav-text"><?= tran("All products") ?></span>
                             </a>
                         </li>
-                         <li class="aiz-side-nav-item">
-                            <a href="/admin/products/in_house_products.php" class="aiz-side-nav-link ">
-                                <span class="aiz-side-nav-text"><?=tran("In House Products")?></span>
-                            </a>
-                        </li> 
-                        
+                        <!--<li class="aiz-side-nav-item">-->
+                        <!--    <a href="/admin/products/in_house_products.php" class="aiz-side-nav-link ">-->
+                        <!--        <span class="aiz-side-nav-text"><?= tran("In House Products") ?></span>-->
+                        <!--    </a>-->
+                        <!--</li>-->
+
                         <li class="aiz-side-nav-item">
                             <a href="/admin/products/seller_products.php" class="aiz-side-nav-link ">
-                                <span class="aiz-side-nav-text"><?=tran("Seller Products")?></span>
+                                <span class="aiz-side-nav-text"><?= tran("Seller Products") ?></span>
                             </a>
                         </li>
                         <li class="aiz-side-nav-item">
                             <a href="/admin/products/digitalproducts.php" class="aiz-side-nav-link ">
-                                <span class="aiz-side-nav-text"><?=tran("Digital Products")?></span>
+                                <span class="aiz-side-nav-text"><?= tran("Digital Products") ?></span>
                             </a>
                         </li>
                         <li class="aiz-side-nav-item">
@@ -89,34 +95,34 @@
 
                                 <span class="aiz-side-nav-text">Bulk Export</span>
                             </a>
-                        </li> 
+                        </li>
                         <li class="aiz-side-nav-item">
-                            <a href="/admin/categories" class="aiz-side-nav-link ">
-                                <span class="aiz-side-nav-text"><?=tran("Category")?></span>
+                            <a href="/admin/categories/index.php" class="aiz-side-nav-link ">
+                                <span class="aiz-side-nav-text"><?= tran("Category") ?></span>
                             </a>
                         </li>
-                       <li class="aiz-side-nav-item">
-                             <a href="/admin/brands" class="aiz-side-nav-link ">
-                                <span class="aiz-side-nav-text"><?=tran("Brand")?></span>
+                        <li class="aiz-side-nav-item">
+                            <a href="/admin/brands" class="aiz-side-nav-link ">
+                                <span class="aiz-side-nav-text"><?= tran("Brand") ?></span>
                             </a>
                         </li>
-                      
+
                         <li class="aiz-side-nav-item">
                             <a href="/admin/products/attributes.php" class="aiz-side-nav-link ">
-                                <span class="aiz-side-nav-text"><?=tran("Attribute")?></span>
+                                <span class="aiz-side-nav-text"><?= tran("Attribute") ?></span>
                             </a>
                         </li>
                         <li class="aiz-side-nav-item">
                             <a href="/admin/products/colors.php" class="aiz-side-nav-link ">
-                                <span class="aiz-side-nav-text"><?=tran("Colors")?></span>
+                                <span class="aiz-side-nav-text"><?= tran("Colors") ?></span>
                             </a>
-                        </li> 
-                 
+                        </li>
+
                         <li class="aiz-side-nav-item">
                             <a href="/admin/products/reviews.php" class="aiz-side-nav-link">
-                                <span class="aiz-side-nav-text"><?=tran("Product Reviews")?></span>
+                                <span class="aiz-side-nav-text"><?= tran("Product Reviews") ?></span>
                             </a>
-                        </li> 
+                        </li>
                     </ul>
                 </li>
 
@@ -128,16 +134,16 @@
                 <li class="aiz-side-nav-item">
                     <a href="#" class="aiz-side-nav-link">
                         <i class="las la-money-bill aiz-side-nav-icon"></i>
-                        <span class="aiz-side-nav-text"><?=tran("Dashboard")?> </span>
+                        <span class="aiz-side-nav-text"><?= tran("Dashboard") ?> </span>
                         <span class="badge badge-info">228</span> <span class="aiz-side-nav-arrow"></span>
                     </a>
                     <ul class="aiz-side-nav-list level-2">
                         <li class="aiz-side-nav-item">
                             <a href="/admin/sales/all_orders.php" class="aiz-side-nav-link ">
-                                <span class="aiz-side-nav-text"><?=tran("All Orders")?></span>
+                                <span class="aiz-side-nav-text"><?= tran("All Orders") ?></span>
                             </a>
                         </li>
-                         <!-- <li class="aiz-side-nav-item">
+                        <!-- <li class="aiz-side-nav-item">
                             <a href="/admin/sales/inhouse_orders.php" class="aiz-side-nav-link ">
                                 <span class="aiz-side-nav-text">Inhouse orders</span>
                             </a>
@@ -145,7 +151,7 @@
 
                         <li class="aiz-side-nav-item">
                             <a href="/admin/sales/seller_orders.php" class="aiz-side-nav-link ">
-                                <span class="aiz-side-nav-text"><?=tran("Seller Orders")?></span>
+                                <span class="aiz-side-nav-text"><?= tran("Seller Orders") ?></span>
                             </a>
                         </li>
 
@@ -168,13 +174,13 @@
                 <li class="aiz-side-nav-item">
                     <a href="#" class="aiz-side-nav-link">
                         <i class="las la-user-friends aiz-side-nav-icon"></i>
-                        <span class="aiz-side-nav-text"><?=tran("Customers")?></span>
+                        <span class="aiz-side-nav-text"><?= tran("Customers") ?></span>
                         <span class="aiz-side-nav-arrow"></span>
                     </a>
                     <ul class="aiz-side-nav-list level-2">
                         <li class="aiz-side-nav-item">
                             <a href="/admin/customers/index.php" class="aiz-side-nav-link">
-                                <span class="aiz-side-nav-text"><?=tran("Customer list")?></span>
+                                <span class="aiz-side-nav-text"><?= tran("Customer list") ?></span>
                             </a>
                         </li>
                         <!-- <li class="aiz-side-nav-item">
@@ -184,15 +190,15 @@
                         </li> -->
                         <li class="aiz-side-nav-item">
                             <a href="/admin/customers/classified_products.php" class="aiz-side-nav-link">
-                                <span class="aiz-side-nav-text"><?=tran("Classified Products")?></span>
-                            </a>
-                        </li> 
-                        <li class="aiz-side-nav-item">
-                            <a href="/admin/customers/packages.php" class="aiz-side-nav-link ">
-                                <span class="aiz-side-nav-text"><?=tran("Classified Packages")?></span>
+                                <span class="aiz-side-nav-text"><?= tran("Classified Products") ?></span>
                             </a>
                         </li>
-                       
+                        <li class="aiz-side-nav-item">
+                            <a href="/admin/customers/packages.php" class="aiz-side-nav-link ">
+                                <span class="aiz-side-nav-text"><?= tran("Classified Packages") ?></span>
+                            </a>
+                        </li>
+
                     </ul>
                 </li>
 
@@ -202,43 +208,43 @@
                 <li class="aiz-side-nav-item">
                     <a href="#" class="aiz-side-nav-link">
                         <i class="las la-user aiz-side-nav-icon"></i>
-                        <span class="aiz-side-nav-text"><?=tran("Sellers")?></span>
+                        <span class="aiz-side-nav-text"><?= tran("Sellers") ?></span>
                         <span class="aiz-side-nav-arrow"></span>
                     </a>
                     <ul class="aiz-side-nav-list level-2">
                         <li class="aiz-side-nav-item">
                             <a href="/admin/sellers/index.php" class="aiz-side-nav-link ">
-                                <span class="aiz-side-nav-text"><?=tran("All Seller")?></span>
+                                <span class="aiz-side-nav-text"><?= tran("All Seller") ?></span>
                             </a>
                         </li>
                         <li class="aiz-side-nav-item">
                             <a href="/admin/sellers/payments.php" class="aiz-side-nav-link">
-                                <span class="aiz-side-nav-text"><?=tran("Payouts")?></span>
+                                <span class="aiz-side-nav-text"><?= tran("Payouts") ?></span>
                             </a>
                         </li>
                         <li class="aiz-side-nav-item">
                             <a href="/admin/sellers/withdraw_requests_all.php" class="aiz-side-nav-link">
-                                <span class="aiz-side-nav-text"><?=tran("Payout Requests")?></span>
+                                <span class="aiz-side-nav-text"><?= tran("Payout Requests") ?></span>
                             </a>
                         </li>
                         <li class="aiz-side-nav-item">
                             <a href="/admin/sellers/recharge_requests_all.php" class="aiz-side-nav-link">
-                                <span class="aiz-side-nav-text"><?=tran("Recharge Requests")?></span>
+                                <span class="aiz-side-nav-text"><?= tran("Recharge Requests") ?></span>
                             </a>
                         </li>
                         <li class="aiz-side-nav-item">
                             <a href="/admin/sellers/vendor_commission.php" class="aiz-side-nav-link">
-                                <span class="aiz-side-nav-text"><?=tran("Seller Commission")?></span>
+                                <span class="aiz-side-nav-text"><?= tran("Seller Commission") ?></span>
                             </a>
                         </li>
                         <li class="aiz-side-nav-item">
                             <a href="/admin/sellers/seller_packages.php" class="aiz-side-nav-link ">
-                                <span class="aiz-side-nav-text"><?=tran("Seller Packages")?></span>
+                                <span class="aiz-side-nav-text"><?= tran("Seller Packages") ?></span>
                             </a>
                         </li>
                         <li class="aiz-side-nav-item">
                             <a href="/admin/sellers/verification_form.php" class="aiz-side-nav-link">
-                                <span class="aiz-side-nav-text"><?=tran("Seller Verification Form")?></span>
+                                <span class="aiz-side-nav-text"><?= tran("Seller Verification Form") ?></span>
                             </a>
                         </li>
                     </ul>
@@ -249,72 +255,60 @@
                 <li class="aiz-side-nav-item">
                     <a href="#" class="aiz-side-nav-link">
                         <i class="las la-shopping-bag aiz-side-nav-icon"></i>
-                        <span class="aiz-side-nav-text"><?=tran("Through Train")?></span>
+                        <span class="aiz-side-nav-text"><?= tran("Through Train") ?></span>
                         <span class="aiz-side-nav-arrow"></span>
                     </a>
                     <ul class="aiz-side-nav-list level-2">
                         <li class="aiz-side-nav-item">
-                            <a href="/admin/through_train/sellers.php" class="aiz-side-nav-link">
-                                <span class="aiz-side-nav-text"><?=tran("Through Train")?></span>
-                            </a>
-                        </li>
-                        <li class="aiz-side-nav-item">
-                            <a href="/admin/through_train/offline_seller_payment_requests.php" class="aiz-side-nav-link">
-                                <span class="aiz-side-nav-text"><?=tran("Historical Purchases")?></span>
+                            <a href="/admin/through_train/offline_seller_payment_requests.php"
+                                class="aiz-side-nav-link">
+                                <span class="aiz-side-nav-text"><?= tran("Historical Purchases") ?></span>
                             </a>
                         </li>
                     </ul>
-                </li>
-
-
-                <li class="aiz-side-nav-item">
-                    <a href="/admin/uploaded-files" class="aiz-side-nav-link ">
-                        <i class="las la-folder-open aiz-side-nav-icon"></i>
-                        <span class="aiz-side-nav-text"><?=tran("Uploaded Files")?></span>
-                    </a>
                 </li>
 
                 <!-- Reports -->
                 <li class="aiz-side-nav-item">
                     <a href="#" class="aiz-side-nav-link">
                         <i class="las la-file-alt aiz-side-nav-icon"></i>
-                        <span class="aiz-side-nav-text"><?=tran("Reports")?></span>
+                        <span class="aiz-side-nav-text"><?= tran("Reports") ?></span>
                         <span class="aiz-side-nav-arrow"></span>
                     </a>
                     <ul class="aiz-side-nav-list level-2">
                         <li class="aiz-side-nav-item">
                             <a href="/admin/report/in_house_sale_report.php" class="aiz-side-nav-link ">
-                                <span class="aiz-side-nav-text"><?=tran("In House Product Sale")?></span>
+                                <span class="aiz-side-nav-text"><?= tran("In House Product Sale") ?></span>
                             </a>
                         </li>
                         <li class="aiz-side-nav-item">
                             <a href="/admin/report/seller_sale_report.php" class="aiz-side-nav-link ">
-                                <span class="aiz-side-nav-text"><?=tran("Seller Products Sale Reports")?></span>
+                                <span class="aiz-side-nav-text"><?= tran("Seller Products Sale Reports") ?></span>
                             </a>
                         </li>
                         <li class="aiz-side-nav-item">
                             <a href="/admin/report/stock_report.php" class="aiz-side-nav-link ">
-                                <span class="aiz-side-nav-text"><?=tran("Products Stock")?></span>
+                                <span class="aiz-side-nav-text"><?= tran("Products Stock") ?></span>
                             </a>
                         </li>
                         <li class="aiz-side-nav-item">
                             <a href="/admin/report/wish_report.php" class="aiz-side-nav-link ">
-                                <span class="aiz-side-nav-text"><?=tran("Products wishlist")?></span>
+                                <span class="aiz-side-nav-text"><?= tran("Products wishlist") ?></span>
                             </a>
                         </li>
                         <li class="aiz-side-nav-item">
                             <a href="/admin/report/user_search_report.php" class="aiz-side-nav-link ">
-                                <span class="aiz-side-nav-text"><?=tran("User Searches")?></span>
+                                <span class="aiz-side-nav-text"><?= tran("User Searches") ?></span>
                             </a>
                         </li>
                         <li class="aiz-side-nav-item">
                             <a href="/admin/report/commission_log.php" class="aiz-side-nav-link">
-                                <span class="aiz-side-nav-text"><?=tran("Commission History")?></span>
+                                <span class="aiz-side-nav-text"><?= tran("Commission History") ?></span>
                             </a>
                         </li>
                         <li class="aiz-side-nav-item">
                             <a href="/admin/report/wallet_history.php" class="aiz-side-nav-link">
-                                <span class="aiz-side-nav-text"><?=tran("Wallet Recharge History")?></span>
+                                <span class="aiz-side-nav-text"><?= tran("Wallet Recharge History") ?></span>
                             </a>
                         </li>
                     </ul>
@@ -324,18 +318,18 @@
                 <li class="aiz-side-nav-item">
                     <a href="#" class="aiz-side-nav-link">
                         <i class="las la-bullhorn aiz-side-nav-icon"></i>
-                        <span class="aiz-side-nav-text"><?=tran("Blog System")?></span>
+                        <span class="aiz-side-nav-text"><?= tran("Blog System") ?></span>
                         <span class="aiz-side-nav-arrow"></span>
                     </a>
                     <ul class="aiz-side-nav-list level-2">
                         <li class="aiz-side-nav-item">
                             <a href="/admin/blog" class="aiz-side-nav-link ">
-                                <span class="aiz-side-nav-text"><?=tran("All Posts")?></span>
+                                <span class="aiz-side-nav-text"><?= tran("All Posts") ?></span>
                             </a>
                         </li>
                         <li class="aiz-side-nav-item">
                             <a href="/admin/blog/blog_category.php" class="aiz-side-nav-link ">
-                                <span class="aiz-side-nav-text"><?=tran("Categories")?></span>
+                                <span class="aiz-side-nav-text"><?= tran("Categories") ?></span>
                             </a>
                         </li>
                     </ul>
@@ -345,23 +339,23 @@
                 <li class="aiz-side-nav-item">
                     <a href="#" class="aiz-side-nav-link">
                         <i class="las la-bullhorn aiz-side-nav-icon"></i>
-                        <span class="aiz-side-nav-text"><?=tran("Marketing")?></span>
+                        <span class="aiz-side-nav-text"><?= tran("Marketing") ?></span>
                         <span class="aiz-side-nav-arrow"></span>
                     </a>
                     <ul class="aiz-side-nav-list level-2">
                         <li class="aiz-side-nav-item">
                             <a href="/admin/marketing/flash_deals.php" class="aiz-side-nav-link ">
-                                <span class="aiz-side-nav-text"><?=tran("Flash deals")?></span>
+                                <span class="aiz-side-nav-text"><?= tran("Flash deals") ?></span>
                             </a>
                         </li>
                         <li class="aiz-side-nav-item">
                             <a href="/admin/marketing/newsletter.php" class="aiz-side-nav-link">
-                                <span class="aiz-side-nav-text"><?=tran("Newsletters")?></span>
+                                <span class="aiz-side-nav-text"><?= tran("Newsletters") ?></span>
                             </a>
                         </li>
                         <li class="aiz-side-nav-item">
                             <a href="/admin/marketing/subscribers.php" class="aiz-side-nav-link">
-                                <span class="aiz-side-nav-text"><?=tran("Subscribers")?></span>
+                                <span class="aiz-side-nav-text"><?= tran("Subscribers") ?></span>
                             </a>
                         </li>
                     </ul>
@@ -371,28 +365,27 @@
                 <li class="aiz-side-nav-item">
                     <a href="#" class="aiz-side-nav-link">
                         <i class="las la-link aiz-side-nav-icon"></i>
-                        <span class="aiz-side-nav-text"><?=tran("Support")?> </span>
+                        <span class="aiz-side-nav-text"><?= tran("Support") ?> </span>
                         <span class="badge badge-info">7</span> <span class="aiz-side-nav-arrow"></span>
                     </a>
                     <ul class="aiz-side-nav-list level-2">
                         <li class="aiz-side-nav-item">
                             <a href="/admin/support/support_ticket.php" class="aiz-side-nav-link ">
-                                <span class="aiz-side-nav-text"><?=tran("Ticket")?></span>
+                                <span class="aiz-side-nav-text"><?= tran("Ticket") ?></span>
                                 <span class="badge badge-info">3</span> </a>
                         </li>
 
                         <li class="aiz-side-nav-item">
                             <a href="/admin/support/conversations.php" class="aiz-side-nav-link ">
-                                <span class="aiz-side-nav-text"><?=tran("Product Conversations")?></span>
+                                <span class="aiz-side-nav-text"><?= tran("Product Conversations") ?></span>
                                 <span class="badge badge-info">4</span>
                             </a>
                         </li>
                         <li class="aiz-side-nav-item">
-                            <a href="/admin/support/product_queries.php"
-                                class="aiz-side-nav-link ">
-                                <span class="aiz-side-nav-text"><?=tran("Product Queries")?></span>
+                            <a href="/admin/support/product_queries.php" class="aiz-side-nav-link ">
+                                <span class="aiz-side-nav-text"><?= tran("Product Queries") ?></span>
                             </a>
-                        </li> 
+                        </li>
                     </ul>
                 </li>
 
@@ -478,35 +471,43 @@
 
 
                 <!-- Website Setup -->
+
                 <li class="aiz-side-nav-item">
                     <a href="#" class="aiz-side-nav-link ">
                         <i class="las la-desktop aiz-side-nav-icon"></i>
-                        <span class="aiz-side-nav-text"><?=tran("Website Setup")?></span>
+                        <span class="aiz-side-nav-text"><?= tran("Website Setup") ?></span>
                         <span class="aiz-side-nav-arrow"></span>
                     </a>
                     <ul class="aiz-side-nav-list level-2">
                         <li class="aiz-side-nav-item">
                             <a href="/admin/website/header.php" class="aiz-side-nav-link">
-                                <span class="aiz-side-nav-text"><?=tran("Header")?></span>
+                                <span class="aiz-side-nav-text"><?= tran("Header") ?></span>
                             </a>
                         </li>
                         <li class="aiz-side-nav-item">
                             <a href="/admin/website/footer.php" class="aiz-side-nav-link ">
-                                <span class="aiz-side-nav-text"><?=tran("Footer")?></span>
+                                <span class="aiz-side-nav-text"><?= tran("Footer") ?></span>
                             </a>
                         </li>
                         <li class="aiz-side-nav-item">
                             <a href="/admin/website/pages.php" class="aiz-side-nav-link ">
-                                <span class="aiz-side-nav-text"><?=tran("Pages")?></span>
+                                <span class="aiz-side-nav-text"><?= tran("Pages") ?></span>
                             </a>
                         </li>
                         <li class="aiz-side-nav-item">
                             <a href="/admin/website/appearance.php" class="aiz-side-nav-link">
-                                <span class="aiz-side-nav-text"><?=tran("Appearance")?></span>
+                                <span class="aiz-side-nav-text"><?= tran("Appearance") ?></span>
                             </a>
                         </li>
                     </ul>
                 </li>
+                <li class="aiz-side-nav-item">
+                    <a href="/admin/uploads" class="aiz-side-nav-link ">
+                        <i class="las la-dharmachakra aiz-side-nav-icon"></i>
+                        <span class="aiz-side-nav-text"><?= tran("Files Manager") ?></span>
+                    </a>
+                </li>
+               
 
                 <!-- Setup & Configurations -->
                 <!-- <li class="aiz-side-nav-item">
@@ -683,32 +684,37 @@
                 <li class="aiz-side-nav-item">
                     <a href="#" class="aiz-side-nav-link">
                         <i class="las la-user-tie aiz-side-nav-icon"></i>
-                        <span class="aiz-side-nav-text"><?=tran("System")?></span>
+                        <span class="aiz-side-nav-text"><?= tran("System") ?></span>
                         <span class="aiz-side-nav-arrow"></span>
                     </a>
                     <ul class="aiz-side-nav-list level-2">
                         <li class="aiz-side-nav-item">
                             <a href="/admin/system/update.php" class="aiz-side-nav-link">
-                                <span class="aiz-side-nav-text"><?=tran("Update")?></span>
+                                <span class="aiz-side-nav-text"><?= tran("Update") ?></span>
                             </a>
                         </li>
                         <li class="aiz-side-nav-item">
                             <a href="/admin/system/server_status.php" class="aiz-side-nav-link">
-                                <span class="aiz-side-nav-text"><?=tran("Server status")?></span>
+                                <span class="aiz-side-nav-text"><?= tran("Server status") ?></span>
                             </a>
                         </li>
                     </ul>
                 </li>
 
-                <!-- Addon Manager -->
                 <li class="aiz-side-nav-item">
-                    <a href="/admin/addons" class="aiz-side-nav-link ">
-                        <i class="las la-wrench aiz-side-nav-icon"></i>
-                        <span class="aiz-side-nav-text"><?=tran("Addon Manager")?></span>
+                    <a href="/admin/blogs" class="aiz-side-nav-link ">
+                        <i class="las la-bullhorn aiz-side-nav-icon"></i>
+                        <span class="aiz-side-nav-text">Quản lý Blog</span>
+                    </a>
+                </li>
+                <li class="aiz-side-nav-item">
+                    <a href="/admin/chats" class="aiz-side-nav-link ">
+                        <i class="las la-comments aiz-side-nav-icon"></i>
+                        <span class="aiz-side-nav-text">Xem tin nhắn Seller và User</span>
                     </a>
                 </li>
 
-                
+
             </ul><!-- .aiz-side-nav -->
         </div><!-- .aiz-side-nav-wrap -->
     </div><!-- .aiz-sidebar -->

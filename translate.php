@@ -5,7 +5,7 @@ $lang=array(
         "vi"=>"Bảng điều khiển",
     ),
     "Products"=>array(
-        "vi"=>"Các sản phẩm",
+        "vi"=>"Danh sách sản phẩm",
     ),
     "Add New Product"=>array(
         "vi"=>"Thêm sản phẩm",
@@ -70,8 +70,8 @@ $lang=array(
     "Historical Purchases"=>array(
         "vi"=>"Lịch sử thanh toán",
     ),
-    "Uploaded Files"=>array(
-        "vi"=>"Tệp đã tải lên",
+    "Files Manager"=>array(
+        "vi"=>"Quản lý tệp",
     ),
     "Reports"=>array(
         "vi"=>"Báo cáo",
@@ -174,7 +174,9 @@ $lang=array(
     "Sellers Products"=>array(
         "vi"=>"Sản phẩm người bán",
     ),
-
+    "Commission Records"=>array(
+        "vi"=>"Số lượng hồ sơ hoa hồng",
+    ),
 
 
 
@@ -402,7 +404,7 @@ $lang=array(
         "vi"=>"Thông báo tin nhắn",
     ),
     "Support Ticket"=>array(
-        "vi"=>"Thông báo hệ thống",
+        "vi"=>"Bình luận sản phẩm",
     ),
 
     "Create a Ticket"=>array(
@@ -528,8 +530,20 @@ $lang=array(
     "Withdraw Request history"=>array(
         "vi"=>"Lịch sử rút tiền",
     ),
+    "paid"=>array(
+        "vi"=>"Đã thanh toán",
+    ),
     "Paid"=>array(
         "vi"=>"Đã thanh toán",
+    ),
+    "Un-paid"=>array(
+        "vi"=>"Chưa thanh toán",
+    ),
+    "bank_transfer"=>array(
+        "vi"=>"Chuyển khoản ngân hàng",
+    ),
+    "cash_on_delivery"=>array(
+        "vi"=>"Thanh toán khi nhận hàng",
     ),
     "Pending"=>array(
         "vi"=>"Đang chờ",
@@ -833,8 +847,8 @@ $lang=array(
     "Comment"=>array(
         "vi"=>"",
     ),
-    "WELCOME TO GMARKETVN !"=>array(
-        "vi"=>"CHÀO MỪNG TỚI GMARKETVN",
+    "WELCOME TO Takashimaya !"=>array(
+        "vi"=>"CHÀO MỪNG TỚI Takashimaya",
     ),
     "ALl categories"=>array(
         "vi"=>"Tất cả danh mục",
@@ -993,14 +1007,14 @@ $lang=array(
     "Footer custom script - before"=>array(
         "vi"=>"Tập lệnh tùy chỉnh chân trang - trước",
     ),
-    "Products1111111"=>array(
-        "vi"=>"aaaaaaaaaaaaaaa",
+    "Order Amount"=>array(
+        "vi"=>"Số tiền",
     ),
-    "Products1111111"=>array(
-        "vi"=>"aaaaaaaaaaaaaaa",
+    "Balance"=>array(
+        "vi"=>"Số dư cũ",
     ),
-    "Products1111111"=>array(
-        "vi"=>"aaaaaaaaaaaaaaa",
+    "New Balance"=>array(
+        "vi"=>"Số dư mới",
     ),
     "Products1111111"=>array(
         "vi"=>"aaaaaaaaaaaaaaa",

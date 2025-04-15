@@ -1,144 +1,108 @@
 <?php
 include_once($_SERVER['DOCUMENT_ROOT'] . '/layout/translate.php');
 include_once($_SERVER['DOCUMENT_ROOT'] . '/layout/livechat.php');
-
 ?>
 
-
-<div class="aiz-topbar px-15px px-lg-25px d-flex align-items-stretch justify-content-between">
-    <div class="d-flex">
-        <div class="aiz-topbar-nav-toggler d-flex align-items-center justify-content-start mr-2 mr-md-3 ml-0" data-toggle="aiz-mobile-nav">
-            <button class="aiz-mobile-toggler">
-                <span></span>
+<div class="bg-white border-b border-gray-200 shadow-sm py-3 px-4 lg:px-6">
+    <div class="flex items-center justify-between">
+        <!-- Left side with sidebar toggle and logo -->
+        <div class="flex items-center space-x-4">
+            <!-- Sidebar Toggle Button -->
+            <button id="sidebar-toggle-btn" class="lg:hidden w-10 h-10 flex items-center justify-center text-red-700 hover:bg-red-50 rounded-md">
+                <i class="las la-bars text-2xl"></i>
             </button>
+            
+            <!-- Print/POS Button -->
+            <a href="/seller/pos" target="_blank" class="w-10 h-10 flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-full transition-colors" title="POS">
+                <i class="las la-print text-xl"></i>
+            </a>
+        </div>
+        
+        <!-- Right side with user menu and notifications -->
+        <div class="flex items-center space-x-3">
+            <!-- Language Selector -->
+            <div class="relative" x-data="{ open: false }">
+                <button @click="open = !open" class="flex items-center hover:bg-gray-100 rounded-full p-2">
+                    <?php if($_SESSION['country']=='en'){ ?>
+                        <img src="/public/assets/img/flags/en.png" alt="English" class="h-4">
+                    <?php }else if($_SESSION['country']=='vi'){ ?>
+                        <img src="/public/assets/img/flags/vn.png" alt="Vietnamese" class="h-4">
+                    <?php }else if($_SESSION['country']=='ko'){ ?>
+                        <img src="/public/assets/img/flags/kr.png" alt="Korean" class="h-4">
+                    <?php }else if($_SESSION['country']=='ja'){ ?>
+                        <img src="/public/assets/img/flags/jp.png" alt="Japanese" class="h-4">
+                    <?php } ?>
+                    <i class="las la-angle-down ml-1 text-sm text-gray-500"></i>
+                </button>
+                
+                <!-- Language Dropdown -->
+                <div @click.away="open = false" x-show="open" class="absolute right-0 mt-2 w-40 bg-white shadow-lg rounded-md overflow-hidden z-30 border border-gray-200" x-transition>
+                    <a href="javascript:void(0)" data-flag="en" class="flex items-center px-4 py-2 hover:bg-gray-100 <?=$_SESSION['country']=='en'?'bg-gray-50':''?>">
+                        <img src="/public/assets/img/flags/en.png" class="h-4 mr-2">
+                        <span>English</span>
+                    </a>
+                    <a href="javascript:void(0)" data-flag="vn" class="flex items-center px-4 py-2 hover:bg-gray-100 <?=$_SESSION['country']=='vi'?'bg-gray-50':''?>">
+                        <img src="/public/assets/img/flags/vn.png" class="h-4 mr-2">
+                        <span>Vietnam</span>
+                    </a>
+                </div>
+            </div>
+            
+            <!-- User Profile Dropdown -->
+            <div class="relative" x-data="{ open: false }">
+                <button @click="open = !open" class="flex items-center space-x-2 hover:bg-gray-100 rounded-full p-1.5">
+                    <div class="w-8 h-8 bg-gray-200 rounded-full overflow-hidden">
+                        <img src="/public/assets/img/avatar-place.png" alt="<?=$seller_full_name?>" class="w-full h-full object-cover">
+                    </div>
+                    <div class="hidden md:block text-left">
+                        <p class="text-sm font-medium text-gray-700"><?=$seller_full_name?></p>
+                        <p class="text-xs text-gray-500">Người bán hàng</p>
+                    </div>
+                    <i class="las la-angle-down text-gray-500"></i>
+                </button>
+                
+                <!-- User Dropdown Menu -->
+                <div @click.away="open = false" x-show="open" class="absolute right-0 mt-2 w-48 bg-white shadow-lg rounded-md overflow-hidden z-30 border border-gray-200" x-transition>
+                    <a href="/seller/shop/profile.php" class="flex items-center px-4 py-2 hover:bg-gray-100">
+                        <i class="las la-user-circle text-lg text-gray-600 mr-2"></i>
+                        <span><?=tran("Profile")?></span>
+                    </a>
+                    <a href="/logout" class="flex items-center px-4 py-2 hover:bg-gray-100">
+                        <i class="las la-sign-out-alt text-lg text-gray-600 mr-2"></i>
+                        <span><?=tran("Logout")?></span>
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
-    <div class="d-flex justify-content-between align-items-stretch flex-grow-xl-1">
-        <div class="d-flex justify-content-around align-items-center align-items-stretch">
-            <div class="d-flex justify-content-around align-items-center align-items-stretch">
-                <div class="aiz-topbar-item">
-                    <div class="d-flex align-items-center">
-                        <a class="btn btn-icon btn-circle btn-light" href="" target="_blank" title="Browse Website">
-                            <i class="las la-globe"></i>
-                        </a>
-                    </div>
-                </div>
-            </div>
-            <div class="d-flex justify-content-around align-items-center align-items-stretch ml-3">
-                <div class="aiz-topbar-item">
-                    <div class="d-flex align-items-center">
-                        <a class="btn btn-icon btn-circle btn-light" href="/seller/pos" target="_blank" title="POS">
-                            <i class="las la-print"></i>
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="d-flex justify-content-around align-items-center align-items-stretch">
+</div>
 
-            <div class="aiz-topbar-item ml-2" style="display:none">
-                <div class="align-items-stretch d-flex dropdown">
-                    <a class="dropdown-toggle no-arrow" data-toggle="dropdown" href="javascript:void(0);" role="button" aria-haspopup="false" aria-expanded="false">
-                        <span class="btn btn-icon p-0 d-flex justify-content-center align-items-center">
-                            <span class="d-flex align-items-center position-relative">
-                                <i class="las la-bell fs-24"></i>
-                            </span>
-                        </span>
-                    </a>
-                    <div class="dropdown-menu dropdown-menu-right dropdown-menu-animated dropdown-menu-lg py-0">
-                        <div class="p-3 bg-light border-bottom">
-                            <h6 class="mb-0">Notifications</h6>
-                        </div>
-                        <div class="px-3 c-scrollbar-light overflow-auto " style="max-height:300px;">
-                            <ul class="list-group list-group-flush">
-                                <li class="list-group-item">
-                                    <div class="py-4 text-center fs-16">
-                                        No notification found
-                                    </div>
-                                </li>
-                            </ul>
-                        </div>
-                        <div class="text-center border-top">
-                            <a href="https://gmarketagents.com/seller/all-notification" class="text-reset d-block py-2">
-                                View All Notifications
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
+<script>
+// Make sure Alpine.js is available
+if (typeof window.Alpine === 'undefined') {
+    document.write('<script src="https://cdn.jsdelivr.net/gh/alpinejs/alpine@v2.8.2/dist/alpine.min.js" defer><\/script>');
+}
 
-
-            <div class="aiz-topbar-item ml-2">
-                <div class="align-items-stretch d-flex dropdown " id="lang-change">
-                    <a class="dropdown-toggle no-arrow" data-toggle="dropdown" href="javascript:void(0);" role="button" aria-haspopup="false" aria-expanded="false">
-                            <?php if($_SESSION['country']=='en'){?>
-                            <img src="/public/assets/img/flags/en.png" height="11">
-                            <?php }else if($_SESSION['country']=='vi'){?>
-                            <img src="/public/assets/img/flags/vn.png" height="11">
-                            <?php }else if($_SESSION['country']=='ko'){?>
-                            <img src="/public/assets/img/flags/kr.png" height="11">
-                            <?php }else if($_SESSION['country']=='ja'){?>
-                            <img src="/public/assets/img/flags/jp.png" height="11">
-                            <?php }?>
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-right dropdown-menu-animated dropdown-menu-xs">
-
-                        <li>
-                            <a href="javascript:void(0)" data-flag="en" class="dropdown-item  <?=$_SESSION['country']=='en'?"active":""?> ">
-                                <img src="https://gmarketagents.com/public/assets/img/flags/en.png" class="mr-2">
-                                <span class="language">English</span>
-                            </a>
-                        </li>
-                        <!-- <li>
-                            <a href="javascript:void(0)" data-flag="kr" class="dropdown-item <?=$_SESSION['country']=='ko'?"active":""?>">
-                                <img src="https://gmarketagents.com/public/assets/img/flags/kr.png" class="mr-2">
-                                <span class="language">Korea</span>
-                            </a>
-                        </li>
-                        <li>
-                            <a href="javascript:void(0)" data-flag="jp" class="dropdown-item <?=$_SESSION['country']=='ja'?"active":""?>">
-                                <img src="https://gmarketagents.com/public/assets/img/flags/jp.png" class="mr-2">
-                                <span class="language">Japan</span>
-                            </a>
-                        </li> -->
-                        <li>
-                            <a href="javascript:void(0)" data-flag="vn" class="dropdown-item <?=$_SESSION['country']=='vi'?"active":""?>">
-                                <img src="https://gmarketagents.com/public/assets/img/flags/vn.png" class="mr-2">
-                                <span class="language">Vietnam</span>
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-
-            <div class="aiz-topbar-item ml-2">
-                <div class="align-items-stretch d-flex dropdown">
-                    <a class="dropdown-toggle no-arrow text-dark" data-toggle="dropdown" href="javascript:void(0);" role="button" aria-haspopup="false" aria-expanded="false">
-                        <span class="d-flex align-items-center">
-                            <span class="avatar avatar-sm mr-md-2">
-                                <img
-                                    src="https://gmarketagents.com/public/assets/img/placeholder.jpg"
-                                    onerror="this.onerror=null;this.src='https://gmarketagents.com/public/assets/img/avatar-place.png';">
-                            </span>
-                            <span class="d-none d-md-block">
-                                <span class="d-block fw-500"><?=$seller_full_name?></span>
-                                <span class="d-block small opacity-60">seller</span>
-                            </span>
-                        </span>
-                    </a>
-                    <div class="dropdown-menu dropdown-menu-right dropdown-menu-animated dropdown-menu-md">
-                        <a href="/seller/shop/profile.php" class="dropdown-item">
-                            <i class="las la-user-circle"></i>
-                            <span><?=tran("Profile")?></span>
-                        </a>
-
-                        <a href="/logout" class="dropdown-item">
-                            <i class="las la-sign-out-alt"></i>
-                            <span><?=tran("Logout")?></span>
-                        </a>
-                    </div>
-                </div>
-            </div><!-- .aiz-topbar-item -->
-        </div>
-    </div>
-</div><!-- .aiz-topbar -->
+// Add language selector functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const langLinks = document.querySelectorAll('[data-flag]');
+    langLinks.forEach(link => {
+        link.addEventListener('click', function() {
+            const flag = this.getAttribute('data-flag');
+            // Set cookie and redirect
+            document.cookie = "lang=" + flag + "; path=/";
+            window.location.reload();
+        });
+    });
+    
+    // Link the topbar toggle button to the sidebar
+    const topbarToggleBtn = document.getElementById('sidebar-toggle-btn');
+    if (topbarToggleBtn) {
+        topbarToggleBtn.addEventListener('click', function() {
+            // Trigger the sidebar toggle
+            const sidebarToggleEvent = new Event('sidebar-toggle');
+            document.dispatchEvent(sidebarToggleEvent);
+        });
+    }
+});
+</script>

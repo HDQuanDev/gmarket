@@ -75,7 +75,7 @@
     <div class="aiz-main-wrapper">
         <?php include("../layout/sidebar.php")?>
 
-        <div class="aiz-content-wrapper">
+        <div class="py-3 px-4 lg:px-6">
             <?php include("../layout/topbar.php")?>
 
             <div class="aiz-main-content">
@@ -83,8 +83,8 @@
                     <div class="aiz-titlebar mt-2 mb-4">
                         <div class="row align-items-center">
                             <div class="col-md-6">
-                                <h1 class="h3">Shop Verification
-                                    <a href="/shop/<?=md5($seller_id)?>" class="btn btn-link btn-sm" target="_blank">(Visit Shop)<i class="la la-external-link"></i>)</a>
+                                <h1 class="h3">Xác thực cửa hàng
+                                    <a href="/shop/<?=md5($seller_id)?>" class="btn btn-link btn-sm" target="_blank">(Ghé thăm cửa hàng)<i class="la la-external-link"></i>)</a>
                                 </h1>
                             </div>
                         </div>
@@ -99,7 +99,7 @@
                         <input type="hidden" name="_token" value="sY3tzsrJ2efBsz6gfCOaAFhO1F38qubVTunRAMoB">
                         <div class="card">
                             <div class="card-header">
-                                <h4 class="mb-0 h6">Verification Info</h4>
+                                <h4 class="mb-0 h6">Thông tin xác thực</h4>
                             </div>
                             <div class="card-body">
                                 <!-- <div class="row">
@@ -112,10 +112,10 @@
                                 </div> -->
                                 <div class="row">
                                     <div class="col-md-2">
-                                        <label>Shop name <span class="text-danger">*</span></label>
+                                        <label>Tên cửa hàng <span class="text-danger">*</span></label>
                                     </div>
                                     <div class="col-md-10">
-                                        <input type="text" class="form-control mb-3" placeholder="Shop name" name="element_1" required>
+                                        <input type="text" class="form-control mb-3" placeholder="Tên cửa hàng" name="element_1" required>
                                     </div>
                                 </div>
                                 <div class="row">
@@ -128,23 +128,18 @@
                                 </div>
                                 <div class="row">
                                     <div class="col-md-2">
-                                        <label>Address <span class="text-danger">*</span></label>
+                                        <label>Địa chỉ <span class="text-danger">*</span></label>
                                     </div>
                                     <div class="col-md-10">
-                                        <input type="text" class="form-control mb-3" placeholder="Address" name="element_3" required>
+                                        <input type="text" class="form-control mb-3" placeholder="Địa chỉ" name="element_3" required>
                                     </div>
                                 </div>
                                 <div class="row">
                                     <div class="col-md-2">
-                                        <label>Số Điện Thoại</label>
+                                        <label>Số điện thoại</label>
                                     </div>
                                     <div class="col-md-10">
-                                        <div class="custom-file">
-                                            <label class="custom-file-label">
-                                                <input type="file" name="element_4" id="file-4" class="custom-file-input" required>
-                                                <span class="custom-file-name">Choose File</span>
-                                            </label>
-                                        </div>
+                                       <input type="text" class="form-control mb-3" placeholder="Số điện thoại" name="element_4" required>
                                     </div>
                                 </div>
                                 <div class="row">
@@ -155,7 +150,7 @@
                                         <div class="custom-file">
                                             <label class="custom-file-label">
                                                 <input type="file" name="element_5" id="file-5" class="custom-file-input" required>
-                                                <span class="custom-file-name">Choose File</span>
+                                                <span class="custom-file-name">Chọn tệp</span>
                                             </label>
                                         </div>
                                     </div>
@@ -169,14 +164,14 @@
                                     </div>
                                 </div> -->
                                 <div class="text-right mt-4">
-                                    <button type="submit" name="submit" class="btn btn-primary">Apply</button>
+                                    <button type="submit" name="submit" class="btn btn-primary">Lưu</button>
                                 </div>
                             </div>
                         </div>
                     </form>
                 </div>
                 <div class="bg-white text-center py-3 px-15px px-lg-25px mt-auto border-sm-top">
-                    <p class="mb-0">&copy; Gmarket Viet Nam v7.4.0</p>
+                    <p class="mb-0"></p>
                 </div>
             </div><!-- .aiz-main-content -->
         </div><!-- .aiz-content-wrapper -->

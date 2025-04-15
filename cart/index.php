@@ -1,1573 +1,467 @@
-<?php include("../config.php")?>
-<!DOCTYPE html>
-<html lang="en">
+<?php 
+require_once(__DIR__ . "/../layout/header.php");
 
-<head>
+// Redirect to login if not logged in
+if (!$isLogin) {
+    header("Location: /users/login?redirect=/cart");
+    exit;
+}
 
-    <meta name="csrf-token" content="FuisTlmaDAlYyrjMoSl4jWcxKbP7mlnGeGxCZCvl">
-    <meta name="app-url" content="//tmdtquocte.com/">
-    <meta name="file-base-url" content="//tmdtquocte.com/public/">
+// Get cart items from database
+$cart_items = [];
+$subtotal = 0;
+$total_items = 0;
+$shipping_cost = 20000; // Default shipping cost in VND
+$shipping_discount = 20000; // Shipping discount in VND
+$final_shipping_cost = $shipping_cost - $shipping_discount; // Final shipping cost after discount
 
-    <title>GMARKETVN | Buy Korean domestic products at original prices from the manufacturer</title>
+// Query cart items with product details, including seller information
+$cart_query = "SELECT c.*, p.name, p.thumbnail_image, p.quantity as available_quantity,
+              s.id as seller_id, s.full_name as seller_name, s.shop_logo
+              FROM cart c 
+              JOIN products p ON c.product_id = p.id 
+              LEFT JOIN sellers s ON p.seller_id = s.id
+              WHERE c.user_id = ?
+              ORDER BY s.id, c.created_at DESC"; // Group by seller_id first
 
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="robots" content="index, follow">
-    <meta name="description" content="Buy Korean domestic products at original prices from the manufacturer" />
-    <meta name="keywords" content="GMARKETVN">
+$stmt = $conn->prepare($cart_query);
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$result = $stmt->get_result();
 
+// Process cart items and organize by seller
+$sellers = [];
+$seller_subtotals = [];
 
-    <!-- Schema.org markup for Google+ -->
-    <meta itemprop="name" content="GMARKETVN">
-    <meta itemprop="description" content="Buy Korean domestic products at original prices from the manufacturer">
-    <meta itemprop="image" content="https://tmdtquocte.com/public/uploads/all/ImUXrP5YC9e0hsv4zR6xjoYJCuxmFYkonSInvGtJ.jpg">
+// Process cart items
+while ($item = $result->fetch_assoc()) {
+    // Get product image
+    $product_image = fetch_array("SELECT src FROM file WHERE id = '{$item['thumbnail_image']}' LIMIT 1");
+    $img_url = $item['thumbnail_image'] ? "/public/uploads/all/" . $item['thumbnail_image'] : "/public/assets/img/placeholder.jpg";
+    
+    // Calculate item total
+    $item_total = $item['price'] * $item['quantity'];
+    $subtotal += $item_total;
+    $total_items += $item['quantity'];
+    
+    $seller_id = $item['seller_id'] ?? 0;
+    $seller_name = $item['seller_name'] ?? 'Unknown Seller';
+    
+    // Initialize seller data if not exists
+    if (!isset($sellers[$seller_id])) {
+        $sellers[$seller_id] = [
+            'id' => $seller_id,
+            'name' => $seller_name,
+            'logo' => $item['shop_logo'] ?? '',
+            'items' => []
+        ];
+        $seller_subtotals[$seller_id] = 0;
+    }
+    
+    // Add to seller's subtotal
+    $seller_subtotals[$seller_id] += $item_total;
+    
+    // Add to seller's items
+    $sellers[$seller_id]['items'][] = [
+        'id' => $item['id'],
+        'product_id' => $item['product_id'],
+        'name' => $item['name'],
+        'quantity' => $item['quantity'],
+        'price' => $item['price'],
+        'item_total' => $item_total,
+        'img' => $img_url,
+        'available_quantity' => $item['available_quantity']
+    ];
+}
 
-    <!-- Twitter Card data -->
-    <meta name="twitter:card" content="product">
-    <meta name="twitter:site" content="@publisher_handle">
-    <meta name="twitter:title" content="GMARKETVN">
-    <meta name="twitter:description" content="Buy Korean domestic products at original prices from the manufacturer">
-    <meta name="twitter:creator" content="@author_handle">
-    <meta name="twitter:image" content="https://tmdtquocte.com/public/uploads/all/ImUXrP5YC9e0hsv4zR6xjoYJCuxmFYkonSInvGtJ.jpg">
+// Sort sellers by total purchase amount
+uasort($sellers, function($a, $b) use ($seller_subtotals) {
+    return $seller_subtotals[$b['id']] <=> $seller_subtotals[$a['id']];
+});
 
-    <!-- Open Graph data -->
-    <meta property="og:title" content="GMARKETVN" />
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://tmdtquocte.com" />
-    <meta property="og:image" content="https://tmdtquocte.com/public/uploads/all/ImUXrP5YC9e0hsv4zR6xjoYJCuxmFYkonSInvGtJ.jpg" />
-    <meta property="og:description" content="Buy Korean domestic products at original prices from the manufacturer" />
-    <meta property="og:site_name" content="GMARKETVN" />
-    <meta property="fb:app_id" content="">
+// Calculate total price including shipping
+$total = $subtotal + $final_shipping_cost;
 
-    <!-- Favicon -->
-    <link rel="icon" href="/public/uploads/all/ImUXrP5YC9e0hsv4zR6xjoYJCuxmFYkonSInvGtJ.jpg">
-
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,600,600i,700,700i,800,800i&display=swap" rel="stylesheet">
-
-    <!-- CSS Files -->
-    <link rel="stylesheet" href="/public/assets/css/vendors.css">
-    <link rel="stylesheet" href="/public/assets/css/aiz-core.css">
-    <link rel="stylesheet" href="/public/assets/css/custom-style.css">
-
-
-    <script>
-        var AIZ = AIZ || {};
-        AIZ.local = {
-            nothing_selected: 'Nothing selected',
-            nothing_found: 'Nothing found',
-            choose_file: 'Choose File',
-            file_selected: 'File selected',
-            files_selected: 'Files selected',
-            add_more_files: 'Add more files',
-            adding_more_files: 'Adding more files',
-            drop_files_here_paste_or: 'Drop files here, paste or',
-            browse: 'Browse',
-            upload_complete: 'Upload complete',
-            upload_paused: 'Upload paused',
-            resume_upload: 'Resume upload',
-            pause_upload: 'Pause upload',
-            retry_upload: 'Retry upload',
-            cancel_upload: 'Cancel upload',
-            uploading: 'Uploading',
-            processing: 'Processing',
-            complete: 'Complete',
-            file: 'File',
-            files: 'Files',
-        }
-    </script>
-
-    <style>
-        body {
-            font-family: 'Open Sans', sans-serif;
-            font-weight: 400;
-        }
-
-        :root {
-            --primary: #00c01e;
-            --hov-primary: #00c01e;
-            --soft-primary: rgba(0, 192, 30, 0.15);
-        }
-
-        #map {
-            width: 100%;
-            height: 250px;
-        }
-
-        #edit_map {
-            width: 100%;
-            height: 250px;
-        }
-
-        .pac-container {
-            z-index: 100000;
-        }
-
-        #chat-widget-container {
-            margin-bottom: 100px;
-        }
-    </style>
+// Store cart summary in session for checkout
+$_SESSION['cart_summary'] = [
+    'subtotal' => $subtotal,
+    'shipping_cost' => $final_shipping_cost,
+    'total' => $total,
+    'items' => $total_items,
+    'sellers' => array_keys($sellers) // Store seller IDs for checkout processing
+];
+?>
 
 
+<style>
+  .line-clamp-2 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+  .seller-section:not(:last-child) {
+    border-bottom: 1px solid #f0f0f0;
+    margin-bottom: 8px;
+  }
+</style>
 
-    WELCOME TO GMARKETVN !
-</head>
-
-<body>
-    <!-- aiz-main-wrapper -->
-    <div class="aiz-main-wrapper d-flex flex-column">
-
-        <!-- Header -->
+<div class="bg-shopee-gray min-h-screen pb-10">
+  <div class="container mx-auto px-4 py-6 max-w-screen-xl">
+    <!-- Cart Steps -->
+    <div class="flex justify-center mb-8">
+      <div class="w-full max-w-4xl relative">
+        <!-- Progress Bar -->
+        <div class="absolute top-5 left-0 right-0 h-0.5 bg-gray-200">
+          <div class="h-0.5 bg-shopee-shopee-orange" style="width: 0%"></div>
+        </div>
         
-        <?php include("../layout/header.php")?>
-        
-
-
-
-        <section class="pt-5 mb-4">
-            <div class="container">
-                <div class="row">
-                    <div class="col-xl-8 mx-auto">
-                        <div class="row aiz-steps arrow-divider">
-                            <div class="col active">
-                                <div class="text-center text-primary">
-                                    <i class="la-3x mb-2 las la-shopping-cart"></i>
-                                    <h3 class="fs-14 fw-600 d-none d-lg-block">1. My Cart</h3>
-                                </div>
-                            </div>
-                            <div class="col">
-                                <div class="text-center">
-                                    <i class="la-3x mb-2 opacity-50 las la-map"></i>
-                                    <h3 class="fs-14 fw-600 d-none d-lg-block opacity-50">2. Shipping info
-                                    </h3>
-                                </div>
-                            </div>
-                            <div class="col">
-                                <div class="text-center">
-                                    <i class="la-3x mb-2 opacity-50 las la-truck"></i>
-                                    <h3 class="fs-14 fw-600 d-none d-lg-block opacity-50">3. Delivery info
-                                    </h3>
-                                </div>
-                            </div>
-                            <div class="col">
-                                <div class="text-center">
-                                    <i class="la-3x mb-2 opacity-50 las la-credit-card"></i>
-                                    <h3 class="fs-14 fw-600 d-none d-lg-block opacity-50">4. Payment</h3>
-                                </div>
-                            </div>
-                            <div class="col">
-                                <div class="text-center">
-                                    <i class="la-3x mb-2 opacity-50 las la-check-circle"></i>
-                                    <h3 class="fs-14 fw-600 d-none d-lg-block opacity-50">5. Confirmation
-                                    </h3>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+        <!-- Steps -->
+        <div class="flex justify-between relative z-10">
+          <!-- Step 1: Cart -->
+          <div class="flex flex-col items-center">
+            <div class="w-10 h-10 rounded-full bg-shopee-shopee-orange text-white flex items-center justify-center mb-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+              </svg>
             </div>
-        </section>
+            <span class="text-xs font-medium text-shopee-shopee-orange">Cart</span>
+          </div>
 
-        <section class="mb-4" id="cart-summary">
-            <div class="container">
-                <div class="row">
-                    <div class="col-xxl-8 col-xl-10 mx-auto">
-                        <div class="shadow-sm bg-white p-3 p-lg-4 rounded text-left">
-                            <div class="mb-4">
-                                <div class="row gutters-5 d-none d-lg-flex border-bottom mb-3 pb-3">
-                                    <div class="col-md-5 fw-600">Product</div>
-                                    <div class="col fw-600">Price</div>
-                                    <div class="col fw-600">Tax</div>
-                                    <div class="col fw-600">Quantity</div>
-                                    <div class="col fw-600">Total</div>
-                                    <div class="col-auto fw-600">Remove</div>
-                                </div>
-                                <ul class="list-group list-group-flush">
-                                    <?php
-                                    
-                                    $i=0;
-                                    foreach($_SESSION['cart'] as $cart ){
-                                        $i++;
-                                    ?>
-                                    <li class="list-group-item px-0 px-lg-3">
-                                        <div class="row gutters-5">
-                                            <div class="col-lg-5 d-flex">
-                                                <span class="mr-2 ml-0">
-                                                    <img src="<?=$cart['img']?>"
-                                                        class="img-fit size-60px rounded"
-                                                        alt="<?=$cart['name']?>">
-                                                </span>
-                                                <span class="fs-14 opacity-60"><?=$cart['name']?></span>
-                                            </div>
-
-                                            <div class="col-lg col-4 order-1 order-lg-0 my-3 my-lg-0">
-                                                <span
-                                                    class="opacity-60 fs-12 d-block d-lg-none">Price</span>
-                                                <span
-                                                    class="fw-600 fs-16"><?=$cart['price']?>$</span>
-                                            </div>
-                                            <div class="col-lg col-4 order-2 order-lg-0 my-3 my-lg-0">
-                                                <span
-                                                    class="opacity-60 fs-12 d-block d-lg-none">Tax</span>
-                                                <span
-                                                    class="fw-600 fs-16">0.00$</span>
-                                            </div>
-
-                                            <div class="col-lg col-6 order-4 order-lg-0">
-                                                <div
-                                                    class="row no-gutters align-items-center aiz-plus-minus mr-2 ml-0">
-                                                    <button
-                                                        class="btn col-auto btn-icon btn-sm btn-circle btn-light"
-                                                        type="button" data-type="minus"
-                                                        data-field="quantity[<?=$i?>]">
-                                                        <i class="las la-minus"></i>
-                                                    </button>
-                                                    <input type="number" name="quantity[<?=$i?>]"
-                                                        class="col border-0 text-center flex-grow-1 fs-16 input-number"
-                                                        placeholder="1" value="<?=$cart['quantity']?>"
-                                                        min="1"
-                                                        max="100"
-                                                        onchange="updateQuantity(<?=$i?>, this)">
-                                                    <button
-                                                        class="btn col-auto btn-icon btn-sm btn-circle btn-light"
-                                                        type="button" data-type="plus"
-                                                        data-field="quantity[<?=$i?>]">
-                                                        <i class="las la-plus"></i>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                            <div class="col-lg col-4 order-3 order-lg-0 my-3 my-lg-0">
-                                                <span
-                                                    class="opacity-60 fs-12 d-block d-lg-none">Total</span>
-                                                <span
-                                                    class="fw-600 fs-16 text-primary"><?=$cart['price']*$cart['quantity']?>$</span>
-                                            </div>
-                                            <div class="col-lg-auto col-6 order-5 order-lg-0 text-right">
-                                                <a href="javascript:void(0)"
-                                                    onclick="removeFromCartView(event, <?=$i?>)"
-                                                    class="btn btn-icon btn-sm btn-soft-primary btn-circle">
-                                                    <i class="las la-trash"></i>
-                                                </a>
-                                            </div>
-                                        </div>
-                                    </li>
-                                    <?php }?>
-                                </ul>
-                            </div>
-
-                            <div class="px-3 py-2 mb-4 border-top d-flex justify-content-between">
-                                <span class="opacity-60 fs-15">Subtotal</span>
-                                <span class="fw-600 fs-17"><?=$total_cart?>$</span>
-                            </div>
-                            <div class="row align-items-center">
-                                <div class="col-md-6 text-center text-md-left order-1 order-md-0">
-                                    <a href="https://tmdtquocte.com" class="btn btn-link">
-                                        <i class="las la-arrow-left"></i>
-                                        Return to shop
-                                    </a>
-                                </div>
-                                <div class="col-md-6 text-center text-md-right">
-                                    <button class="btn btn-primary fw-600"
-                                        onclick="showCheckoutModal()">Continue to Shipping</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+          <!-- Step 2: Address -->
+          <div class="flex flex-col items-center">
+            <div class="w-10 h-10 rounded-full bg-gray-200 text-gray-400 flex items-center justify-center mb-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
             </div>
-        </section>
+            <span class="text-xs text-gray-500">Address</span>
+          </div>
 
-
-        <section class="bg-white border-top mt-auto">
-            <div class="container">
-                <div class="row no-gutters">
-                    <div class="col-lg-3 col-md-6">
-                        <a class="text-reset border-left text-center p-4 d-block" href="https://tmdtquocte.com/terms">
-                            <i class="la la-file-text la-3x text-primary mb-2"></i>
-                            <h4 class="h6">Terms &amp; conditions</h4>
-                        </a>
-                    </div>
-                    <div class="col-lg-3 col-md-6">
-                        <a class="text-reset border-left text-center p-4 d-block" href="https://tmdtquocte.com/return-policy">
-                            <i class="la la-mail-reply la-3x text-primary mb-2"></i>
-                            <h4 class="h6">Return policy</h4>
-                        </a>
-                    </div>
-                    <div class="col-lg-3 col-md-6">
-                        <a class="text-reset border-left text-center p-4 d-block" href="https://tmdtquocte.com/support-policy">
-                            <i class="la la-support la-3x text-primary mb-2"></i>
-                            <h4 class="h6">Support Policy</h4>
-                        </a>
-                    </div>
-                    <div class="col-lg-3 col-md-6">
-                        <a class="text-reset border-left border-right text-center p-4 d-block" href="https://tmdtquocte.com/privacy-policy">
-                            <i class="las la-exclamation-circle la-3x text-primary mb-2"></i>
-                            <h4 class="h6">Privacy policy</h4>
-                        </a>
-                    </div>
-                </div>
+          <!-- Step 3: Payment -->
+          <div class="flex flex-col items-center">
+            <div class="w-10 h-10 rounded-full bg-gray-200 text-gray-400 flex items-center justify-center mb-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
             </div>
-        </section>
+            <span class="text-xs text-gray-500">Payment</span>
+          </div>
 
-        <?php include("../layout/footer.php")?>
+          <!-- Step 4: Complete -->
+          <div class="flex flex-col items-center">
+            <div class="w-10 h-10 rounded-full bg-gray-200 text-gray-400 flex items-center justify-center mb-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <span class="text-xs text-gray-500">Complete</span>
+          </div>
+        </div>
+      </div>
+    </div>
 
-    <!-- SCRIPTS -->
-    <script src="/public/assets/js/vendors.js"></script>
-    <script src="/public/assets/js/aiz-core.js"></script>
+    <!-- Cart Content -->
+    <?php if (count($sellers) > 0): ?>
+      <!-- Cart Header -->
+      <div class="flex items-center justify-between mb-3">
+        <h1 class="text-xl font-medium">Shopping Cart</h1>
+        <span class="text-gray-500 text-sm"><?= $total_items ?> item(s)</span>
+      </div>
+      
+      <!-- Seller Sections -->
+      <?php foreach ($sellers as $seller): ?>
+        <div class="bg-white rounded-sm shadow-sm mb-3">
+          <!-- Seller Header -->
+          <div class="px-6 py-3 border-b border-gray-100 bg-gray-50">
+            <div class="flex items-center">
+              <?php if (!empty($seller['logo'])): ?>
+                <img src="<?= '/public/uploads/' . $seller['logo'] ?>" alt="<?= $seller['name'] ?>" class="w-6 h-6 rounded-full">
+              <?php else: ?>
+                <div class="w-6 h-6 bg-gray-300 rounded-full flex items-center justify-center text-white text-xs">
+                  <?= strtoupper(substr($seller['name'], 0, 1)) ?>
+                </div>
+              <?php endif; ?>
+              <span class="ml-2 font-medium"><?= $seller['name'] ?></span>
+              <span class="ml-auto text-shopee-orange text-sm">$<?= number_format($seller_subtotals[$seller['id']], 0, ',', '.') ?></span>
+            </div>
+          </div>
+          
+          <!-- Item Headers -->
+          <div class="grid grid-cols-12 gap-4 px-6 py-3 border-b border-gray-100 text-sm font-medium text-gray-500 hidden md:grid">
+            <div class="col-span-6">Product</div>
+            <div class="col-span-2 text-center">Unit Price</div>
+            <div class="col-span-2 text-center">Quantity</div>
+            <div class="col-span-1 text-center">Total</div>
+            <div class="col-span-1 text-center">Actions</div>
+          </div>
 
+          <!-- Cart Items for this seller -->
+          <?php foreach ($seller['items'] as $item): ?>
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-4 px-4 md:px-6 py-4 border-b border-gray-100 items-center" id="cart-item-<?= $item['id'] ?>">
+              <!-- Product info (mobile) -->
+              <div class="md:hidden flex items-start space-x-3 mb-3">
+                <div class="w-16 h-16 flex-shrink-0">
+                  <img src="<?= $item['img'] ?>" alt="<?= $item['name'] ?>" class="w-full h-full object-contain">
+                </div>
+                <div>
+                  <a href="/product/<?= $item['product_id'] ?>" class="line-clamp-2 text-gray-800 font-medium">
+                    <?= $item['name'] ?>
+                  </a>
+                </div>
+              </div>
+              
+              <!-- Desktop layout -->
+              <div class="md:col-span-6 hidden md:block">
+                <div class="flex items-center">
+                  <div class="w-16 h-16 flex-shrink-0">
+                    <img src="<?= $item['img'] ?>" alt="<?= $item['name'] ?>" class="w-full h-full object-contain">
+                  </div>
+                  <div class="ml-4">
+                    <a href="/product/<?= $item['product_id'] ?>" class="text-sm font-medium line-clamp-2 hover:text-shopee-orange">
+                      <?= $item['name'] ?>
+                    </a>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Price -->
+              <div class="md:col-span-2 md:text-center flex justify-between md:block">
+                <div class="text-gray-500 md:hidden">Price:</div>
+                <div class="text-sm text-shopee-orange">$<?= number_format($item['price'], 0, ',', '.') ?></div>
+              </div>
+              
+              <!-- Quantity -->
+              <div class="md:col-span-2 flex justify-between items-center md:justify-center">
+                <div class="text-gray-500 md:hidden">Quantity:</div>
+                <div class="flex border border-gray-300 rounded-sm">
+                  <button type="button" class="w-8 h-8 flex items-center justify-center hover:bg-gray-100 text-gray-600 btn-update-quantity" 
+                          data-cart-id="<?= $item['id'] ?>" data-action="decrease">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
+                    </svg>
+                  </button>
+                  <input type="number" class="w-10 text-center border-x border-gray-300 focus:outline-none text-sm" 
+                         value="<?= $item['quantity'] ?>" 
+                         min="1" 
+                         max="<?= $item['available_quantity'] ?>" 
+                         data-cart-id="<?= $item['id'] ?>" 
+                         onchange="updateCartQuantity(<?= $item['id'] ?>, this.value)">
+                  <button type="button" class="w-8 h-8 flex items-center justify-center hover:bg-gray-100 text-gray-600 btn-update-quantity" 
+                          data-cart-id="<?= $item['id'] ?>" data-action="increase">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              
+              <!-- Total -->
+              <div class="md:col-span-1 md:text-center flex justify-between md:block">
+                <div class="text-gray-500 md:hidden">Total:</div>
+                <span class="text-sm text-shopee-orange font-medium">$<?= number_format($item['item_total'], 0, ',', '.') ?></span>
+              </div>
+              
+              <!-- Actions -->
+              <div class="md:col-span-1 flex md:justify-center">
+                <button class="text-gray-500 hover:text-red-500" onclick="removeCartItem(<?= $item['id'] ?>)">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          <?php endforeach; ?>
+          
+          <!-- Seller Footer -->
+          <div class="px-6 py-3 bg-gray-50 text-right">
+            <span class="text-gray-700">Subtotal from this seller: </span>
+            <span class="text-shopee-orange font-medium">$<?= number_format($seller_subtotals[$seller['id']], 0, ',', '.') ?></span>
+          </div>
+        </div>
+      <?php endforeach; ?>
+      
+      <!-- Cart Footer -->
+      <div class="bg-white rounded-sm shadow-sm p-6">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+          <div class="flex items-center mb-4 md:mb-0">
+            <a href="/" class="text-shopee-orange hover:underline flex items-center text-sm">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Continue Shopping
+            </a>
+          </div>
+          
+          <div class="w-full md:w-auto">
+            <div class="flex flex-col">
+              <div class="flex justify-between items-center mb-2">
+                <span class="text-gray-500">Subtotal (<?= $total_items ?> items):</span>
+                <span class="text-lg font-medium">$<?= number_format($subtotal, 0, ',', '.') ?></span>
+              </div>
+              
+              <div class="flex justify-between items-center mb-2">
+                <span class="text-gray-500">Shipping Fee:</span>
+                <div class="flex items-center">
+                  <span class="text-gray-400 line-through mr-2">₫<?= number_format($shipping_cost, 0, ',', '.') ?></span>
+                  <span class="text-shopee-orange">$<?= number_format($final_shipping_cost, 0, ',', '.') ?></span>
+                </div>
+              </div>
+              
+              <div class="flex justify-between items-center pt-3 border-t border-gray-100">
+                <span class="text-gray-800 font-medium">Total:</span>
+                <span class="text-xl text-shopee-orange font-medium">$<?= number_format($total, 0, ',', '.') ?></span>
+              </div>
+              
+              <button class="mt-4 bg-shopee-orange text-white py-3 px-6 rounded-sm hover:bg-opacity-90 transition-all" onclick="proceedToCheckout()">
+                Proceed to Checkout (<?= $total_items ?>)
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Shipping Discount Banner -->
+      <div class="bg-shopee-light border border-shopee-orange border-opacity-20 rounded-sm shadow-sm p-4 mt-4 flex items-center">
+        <div class="w-10 h-10 rounded-full bg-shopee-orange bg-opacity-10 flex items-center justify-center mr-4">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-shopee-orange" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+        <div>
+          <h4 class="font-medium text-shopee-orange">Free Shipping Applied!</h4>
+          <p class="text-sm text-gray-600">You've received a shipping discount of ₫<?= number_format($shipping_discount, 0, ',', '.') ?>.</p>
+        </div>
+      </div>
+      
+    <?php else: ?>
+      <!-- Empty Cart -->
+      <div class="bg-white rounded-sm shadow-sm p-10 text-center">
+        <div class="w-32 h-32 mx-auto mb-6 text-gray-300">
+          <svg viewBox="0 0 24 24" class="h-full w-full" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
+          </svg>
+        </div>
+        <h2 class="text-xl font-medium mb-2">Your Shopping Cart is Empty</h2>
+        <p class="text-gray-500 mb-6">Looks like you haven't added any products to your cart yet.</p>
+        <div class="space-y-4">
+          <a href="/" class="bg-shopee-orange text-white py-2 px-6 rounded inline-block hover:bg-opacity-90 transition-all">
+            Start Shopping
+          </a>
+          <?php if ($isLogin): ?>
+          <div>
+            <a href="/user/wishlist" class="text-shopee-orange underline text-sm">Check your wishlist</a>
+          </div>
+          <?php else: ?>
+          <div>
+            <a href="/users/login" class="text-shopee-orange underline text-sm">Log in</a> to see your saved items
+          </div>
+          <?php endif; ?>
+        </div>
+      </div>
+      
+      <!-- Recommended Products for Empty Cart -->
+      <div class="mt-8">
+        <h3 class="text-lg font-medium mb-4">Recommended For You</h3>
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+          <!-- This would be populated with recommended products -->
+          <div class="text-center text-gray-500 col-span-full py-8">
+            <p>Featured products will be shown here</p>
+          </div>
+        </div>
+      </div>
+    <?php endif; ?>
+  </div>
+</div>
 
+<script>
+  // Update cart item quantity
+  function updateCartQuantity(cartId, newQuantity) {
+    fetch('/update-cart-quantity.php', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: `cart_item_id=${cartId}&quantity=${newQuantity}`
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        // Reload page to reflect changes
+        window.location.reload();
+      } else {
+        alert(data.message || 'Failed to update cart.');
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('An error occurred while updating the cart.');
+    });
+  }
 
-
-    <script>
-    </script>
-
-    <script>
-        $(document).ready(function() {
-            $('.category-nav-element').each(function(i, el) {
-                $(el).on('mouseover', function() {
-                    if (!$(el).find('.sub-cat-menu').hasClass('loaded')) {
-                        $.post('/category/nav-element-list', {
-                            _token: AIZ.data.csrf,
-                            id: $(el).data('id')
-                        }, function(data) {
-                            $(el).find('.sub-cat-menu').addClass('loaded').html(data);
-                        });
-                    }
-                });
-            });
-            if ($('#lang-change').length > 0) {
-                $('#lang-change .dropdown-menu a').each(function() {
-                    $(this).on('click', function(e) {
-                        e.preventDefault();
-                        var $this = $(this);
-                        var locale = $this.data('flag');
-                        $.post('/language', {
-                            _token: AIZ.data.csrf,
-                            locale: locale
-                        }, function(data) {
-                            location.reload();
-                        });
-
-                    });
-                });
-            }
-
-            if ($('#currency-change').length > 0) {
-                $('#currency-change .dropdown-menu a').each(function() {
-                    $(this).on('click', function(e) {
-                        e.preventDefault();
-                        var $this = $(this);
-                        var currency_code = $this.data('currency');
-                        $.post('/currency', {
-                            _token: AIZ.data.csrf,
-                            currency_code: currency_code
-                        }, function(data) {
-                            location.reload();
-                        });
-
-                    });
-                });
-            }
-        });
-
-        $('#search').on('keyup', function() {
-            search();
-        });
-
-        $('#search').on('focus', function() {
-            search();
-        });
-
-        function search() {
-            var searchKey = $('#search').val();
-            if (searchKey.length > 0) {
-                $('body').addClass("typed-search-box-shown");
-
-                $('.typed-search-box').removeClass('d-none');
-                $('.search-preloader').removeClass('d-none');
-                $.post('https://tmdtquocte.com/ajax-search', {
-                    _token: AIZ.data.csrf,
-                    search: searchKey
-                }, function(data) {
-                    if (data == '0') {
-                        // $('.typed-search-box').addClass('d-none');
-                        $('#search-content').html(null);
-                        $('.typed-search-box .search-nothing').removeClass('d-none').html('Sorry, nothing found for <strong>"' + searchKey + '"</strong>');
-                        $('.search-preloader').addClass('d-none');
-
-                    } else {
-                        $('.typed-search-box .search-nothing').addClass('d-none').html(null);
-                        $('#search-content').html(data);
-                        $('.search-preloader').addClass('d-none');
-                    }
-                });
-            } else {
-                $('.typed-search-box').addClass('d-none');
-                $('body').removeClass("typed-search-box-shown");
-            }
+  // Remove cart item
+  function removeCartItem(cartId) {
+    if (confirm('Are you sure you want to remove this item from your cart?')) {
+      fetch('/remove-from-cart.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `cart_item_id=${cartId}`
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Update cart count in header
+          if (document.querySelector('.cart-count')) {
+            document.querySelector('.cart-count').textContent = data.cartCount;
+          }
+          
+          // Remove item from DOM
+          document.getElementById(`cart-item-${cartId}`).remove();
+          
+          // If cart is empty or needs recalculation, reload the page
+          window.location.reload();
+        } else {
+          alert(data.message || 'Failed to remove item from cart.');
         }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while removing the item from cart.');
+      });
+    }
+  }
 
-        function updateNavCart(view, count) {
-            $('.cart-count').html(count);
-            $('#cart_items').html(view);
-        }
+  // Quantity buttons functionality
+  document.querySelectorAll('.btn-update-quantity').forEach(button => {
+    button.addEventListener('click', function() {
+      const cartId = this.getAttribute('data-cart-id');
+      const action = this.getAttribute('data-action');
+      const inputElement = document.querySelector(`input[data-cart-id="${cartId}"]`);
+      
+      let currentValue = parseInt(inputElement.value);
+      const minValue = parseInt(inputElement.getAttribute('min'));
+      const maxValue = parseInt(inputElement.getAttribute('max'));
+      
+      if (action === 'decrease' && currentValue > minValue) {
+        currentValue -= 1;
+      } else if (action === 'increase' && currentValue < maxValue) {
+        currentValue += 1;
+      }
+      
+      inputElement.value = currentValue;
+      updateCartQuantity(cartId, currentValue);
+    });
+  });
 
-        function removeFromCart(key) {
-            $.post('/cart/removeFromCart', {
-                _token: AIZ.data.csrf,
-                id: key
-            }, function(data) {
-                updateNavCart(data.nav_cart_view, data.cart_count);
-                $('#cart-summary').html(data.cart_view);
-                AIZ.plugins.notify('success', "Item has been removed from cart");
-                $('#cart_items_sidenav').html(parseInt($('#cart_items_sidenav').html()) - 1);
-            });
-        }
+  // Proceed to checkout
+  function proceedToCheckout() {
+    window.location.href = '/checkout';
+  }
+</script>
 
-        function addToCompare(id) {
-            $.post('/compare/addToCompare', {
-                _token: AIZ.data.csrf,
-                id: id
-            }, function(data) {
-                $('#compare').html(data);
-                AIZ.plugins.notify('success', "Item has been added to compare list");
-                $('#compare_items_sidenav').html(parseInt($('#compare_items_sidenav').html()) + 1);
-            });
-        }
-
-        function addToWishList(id) {
-            AIZ.plugins.notify('warning', "Please login first");
-        }
-
-        function showAddToCartModal(id) {
-            if (!$('#modal-size').hasClass('modal-lg')) {
-                $('#modal-size').addClass('modal-lg');
-            }
-            $('#addToCart-modal-body').html(null);
-            $('#addToCart').modal();
-            $('.c-preloader').show();
-            $.post('https://tmdtquocte.com/cart/show-cart-modal', {
-                _token: AIZ.data.csrf,
-                id: id
-            }, function(data) {
-                $('.c-preloader').hide();
-                $('#addToCart-modal-body').html(data);
-                AIZ.plugins.slickCarousel();
-                AIZ.plugins.zoom();
-                AIZ.extra.plusMinus();
-                getVariantPrice();
-            });
-        }
-
-        $('#option-choice-form input').on('change', function() {
-            getVariantPrice();
-        });
-
-        function getVariantPrice() {
-            if ($('#option-choice-form input[name=quantity]').val() > 0 && checkAddToCartValidity()) {
-                $.ajax({
-                    type: "POST",
-                    url: 'https://tmdtquocte.com/product/variant_price',
-                    data: $('#option-choice-form').serializeArray(),
-                    success: function(data) {
-
-                        $('.product-gallery-thumb .carousel-box').each(function(i) {
-                            if ($(this).data('variation') && data.variation == $(this).data('variation')) {
-                                $('.product-gallery-thumb').slick('slickGoTo', i);
-                            }
-                        })
-
-                        $('#option-choice-form #chosen_price_div').removeClass('d-none');
-                        $('#option-choice-form #chosen_price_div #chosen_price').html(data.price);
-                        $('#available-quantity').html(data.quantity);
-                        $('.input-number').prop('max', data.max_limit);
-                        if (parseInt(data.in_stock) == 0 && data.digital == 0) {
-                            $('.buy-now').addClass('d-none');
-                            $('.add-to-cart').addClass('d-none');
-                            $('.out-of-stock').removeClass('d-none');
-                        } else {
-                            $('.buy-now').removeClass('d-none');
-                            $('.add-to-cart').removeClass('d-none');
-                            $('.out-of-stock').addClass('d-none');
-                        }
-
-                        AIZ.extra.plusMinus();
-                    }
-                });
-            }
-        }
-
-        function checkAddToCartValidity() {
-            var names = {};
-            $('#option-choice-form input:radio').each(function() { // find unique names
-                names[$(this).attr('name')] = true;
-            });
-            var count = 0;
-            $.each(names, function() { // then count them
-                count++;
-            });
-
-            if ($('#option-choice-form input:radio:checked').length == count) {
-                return true;
-            }
-
-            return false;
-        }
-
-        function addToCart() {
-
-            if (checkAddToCartValidity()) {
-                $('#addToCart').modal();
-                $('.c-preloader').show();
-                $.ajax({
-                    type: "POST",
-                    url: 'https://tmdtquocte.com/cart/addtocart',
-                    data: $('#option-choice-form').serializeArray(),
-                    success: function(data) {
-
-                        $('#addToCart-modal-body').html(null);
-                        $('.c-preloader').hide();
-                        $('#modal-size').removeClass('modal-lg');
-                        $('#addToCart-modal-body').html(data.modal_view);
-                        AIZ.extra.plusMinus();
-                        AIZ.plugins.slickCarousel();
-                        updateNavCart(data.nav_cart_view, data.cart_count);
-                    }
-                });
-            } else {
-                AIZ.plugins.notify('warning', "Please choose all the options");
-            }
-        }
-
-        function buyNow() {
-
-            if (checkAddToCartValidity()) {
-                $('#addToCart-modal-body').html(null);
-                $('#addToCart').modal();
-                $('.c-preloader').show();
-                $.ajax({
-                    type: "POST",
-                    url: 'https://tmdtquocte.com/cart/addtocart',
-                    data: $('#option-choice-form').serializeArray(),
-                    success: function(data) {
-                        if (data.status == 1) {
-
-                            $('#addToCart-modal-body').html(data.modal_view);
-                            updateNavCart(data.nav_cart_view, data.cart_count);
-
-                            window.location.replace("https://tmdtquocte.com/cart");
-                        } else {
-                            $('#addToCart-modal-body').html(null);
-                            $('.c-preloader').hide();
-                            $('#modal-size').removeClass('modal-lg');
-                            $('#addToCart-modal-body').html(data.modal_view);
-                        }
-                    }
-                });
-            } else {
-                AIZ.plugins.notify('warning', "Please choose all the options");
-            }
-        }
-    </script>
-
-    <script type="text/javascript">
-        function removeFromCartView(e, key) {
-            e.preventDefault();
-            removeFromCart(key);
-        }
-
-        function updateQuantity(key, element) {
-            $.post('/cart/updateQuantity', {
-                _token: AIZ.data.csrf,
-                id: key,
-                quantity: element.value
-            }, function(data) {
-                updateNavCart(data.nav_cart_view, data.cart_count);
-                $('#cart-summary').html(data.cart_view);
-            });
-        }
-
-        function showCheckoutModal() {
-            <?php if(!$isLogin){?>
-            $('#login-modal').modal();
-            <?php }else{?>
-                window.location.href='/checkout'
-
-            <?php }?>
-        }
-
-        // Country Code
-        var isPhoneShown = true,
-            countryData = window.intlTelInputGlobals.getCountryData(),
-            input = document.querySelector("#phone-code");
-
-        for (var i = 0; i < countryData.length; i++) {
-            var country = countryData[i];
-            if (country.iso2 == 'bd') {
-                country.dialCode = '88';
-            }
-        }
-
-        var iti = intlTelInput(input, {
-            separateDialCode: true,
-            utilsScript: "https://tmdtquocte.com/public/assets/js/intlTelutils.js?1590403638580",
-            onlyCountries: ["US", "VN"],
-            customPlaceholder: function(selectedCountryPlaceholder, selectedCountryData) {
-                if (selectedCountryData.iso2 == 'bd') {
-                    return "01xxxxxxxxx";
-                }
-                return selectedCountryPlaceholder;
-            }
-        });
-
-        var country = iti.getSelectedCountryData();
-        $('input[name=country_code]').val(country.dialCode);
-
-        input.addEventListener("countrychange", function(e) {
-            // var currentMask = e.currentTarget.placeholder;
-
-            var country = iti.getSelectedCountryData();
-            $('input[name=country_code]').val(country.dialCode);
-
-        });
-
-        function toggleEmailPhone(el) {
-            if (isPhoneShown) {
-                $('.phone-form-group').addClass('d-none');
-                $('.email-form-group').removeClass('d-none');
-                $('input[name=phone]').val(null);
-                isPhoneShown = false;
-                $(el).html('Use Phone Instead');
-            } else {
-                $('.phone-form-group').removeClass('d-none');
-                $('.email-form-group').addClass('d-none');
-                $('input[name=email]').val(null);
-                isPhoneShown = true;
-                $(el).html('Use Email Instead');
-            }
-        }
-    </script>
-
-    GMARKETVN IS HONORABLE TO ACCOMPANY YOU !<script type='text/javascript'>
-        var $jscomp = $jscomp || {};
-        $jscomp.scope = {};
-        $jscomp.arrayIteratorImpl = function(b) {
-            var d = 0;
-            return function() {
-                return d < b.length ? {
-                    done: !1,
-                    value: b[d++]
-                } : {
-                    done: !0
-                }
-            }
-        };
-        $jscomp.arrayIterator = function(b) {
-            return {
-                next: $jscomp.arrayIteratorImpl(b)
-            }
-        };
-        $jscomp.ASSUME_ES5 = !1;
-        $jscomp.ASSUME_NO_NATIVE_MAP = !1;
-        $jscomp.ASSUME_NO_NATIVE_SET = !1;
-        $jscomp.SIMPLE_FROUND_POLYFILL = !1;
-        $jscomp.defineProperty = $jscomp.ASSUME_ES5 || "function" == typeof Object.defineProperties ? Object.defineProperty : function(b, d, a) {
-            b != Array.prototype && b != Object.prototype && (b[d] = a.value)
-        };
-        $jscomp.getGlobal = function(b) {
-            return "undefined" != typeof window && window === b ? b : "undefined" != typeof global && null != global ? global : b
-        };
-        $jscomp.global = $jscomp.getGlobal(this);
-        $jscomp.SYMBOL_PREFIX = "jscomp_symbol_";
-        $jscomp.initSymbol = function() {
-            $jscomp.initSymbol = function() {};
-            $jscomp.global.Symbol || ($jscomp.global.Symbol = $jscomp.Symbol)
-        };
-        $jscomp.Symbol = function() {
-            var b = 0;
-            return function(d) {
-                return $jscomp.SYMBOL_PREFIX + (d || "") + b++
-            }
-        }();
-        $jscomp.initSymbolIterator = function() {
-            $jscomp.initSymbol();
-            var b = $jscomp.global.Symbol.iterator;
-            b || (b = $jscomp.global.Symbol.iterator = $jscomp.global.Symbol("iterator"));
-            "function" != typeof Array.prototype[b] && $jscomp.defineProperty(Array.prototype, b, {
-                configurable: !0,
-                writable: !0,
-                value: function() {
-                    return $jscomp.iteratorPrototype($jscomp.arrayIteratorImpl(this))
-                }
-            });
-            $jscomp.initSymbolIterator = function() {}
-        };
-        $jscomp.initSymbolAsyncIterator = function() {
-            $jscomp.initSymbol();
-            var b = $jscomp.global.Symbol.asyncIterator;
-            b || (b = $jscomp.global.Symbol.asyncIterator = $jscomp.global.Symbol("asyncIterator"));
-            $jscomp.initSymbolAsyncIterator = function() {}
-        };
-        $jscomp.iteratorPrototype = function(b) {
-            $jscomp.initSymbolIterator();
-            b = {
-                next: b
-            };
-            b[$jscomp.global.Symbol.iterator] = function() {
-                return this
-            };
-            return b
-        };
-        $jscomp.iteratorFromArray = function(b, d) {
-            $jscomp.initSymbolIterator();
-            b instanceof String && (b += "");
-            var a = 0,
-                c = {
-                    next: function() {
-                        if (a < b.length) {
-                            var e = a++;
-                            return {
-                                value: d(e, b[e]),
-                                done: !1
-                            }
-                        }
-                        c.next = function() {
-                            return {
-                                done: !0,
-                                value: void 0
-                            }
-                        };
-                        return c.next()
-                    }
-                };
-            c[Symbol.iterator] = function() {
-                return c
-            };
-            return c
-        };
-        $jscomp.polyfill = function(b, d, a, c) {
-            if (d) {
-                a = $jscomp.global;
-                b = b.split(".");
-                for (c = 0; c < b.length - 1; c++) {
-                    var e = b[c];
-                    e in a || (a[e] = {});
-                    a = a[e]
-                }
-                b = b[b.length - 1];
-                c = a[b];
-                d = d(c);
-                d != c && null != d && $jscomp.defineProperty(a, b, {
-                    configurable: !0,
-                    writable: !0,
-                    value: d
-                })
-            }
-        };
-        $jscomp.polyfill("Array.prototype.values", function(b) {
-            return b ? b : function() {
-                return $jscomp.iteratorFromArray(this, function(b, a) {
-                    return a
-                })
-            }
-        }, "es8", "es3");
-        $jscomp.findInternal = function(b, d, a) {
-            b instanceof String && (b = String(b));
-            for (var c = b.length, e = 0; e < c; e++) {
-                var l = b[e];
-                if (d.call(a, l, e, b)) return {
-                    i: e,
-                    v: l
-                }
-            }
-            return {
-                i: -1,
-                v: void 0
-            }
-        };
-        $jscomp.polyfill("Array.prototype.find", function(b) {
-            return b ? b : function(b, a) {
-                return $jscomp.findInternal(this, b, a).v
-            }
-        }, "es6", "es3");
-        (function(b) {
-            function d(a, c) {
-                this._initialized = !1;
-                this.settings = null;
-                this.popups = [];
-                this.options = b.extend({}, d.Defaults, c);
-                this.$element = b(a);
-                this.init();
-                this.y = this.x = 0;
-                this._interval;
-                this._callbackOpened = this._popupOpened = this._menuOpened = !1;
-                this.countdown = null
-            }
-            d.Defaults = {
-                activated: !1,
-                pluginVersion: "2.0.1",
-                wordpressPluginVersion: !1,
-                align: "right",
-                mode: "regular",
-                countdown: 0,
-                drag: !1,
-                buttonText: "Contact us",
-                buttonSize: "large",
-                menuSize: "normal",
-                buttonIcon: '<svg width="20" height="20" viewBox="0 0 20 20" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><g transform="translate(-825 -308)"><g><path transform="translate(825 308)" fill="#FFFFFF" d="M 19 4L 17 4L 17 13L 4 13L 4 15C 4 15.55 4.45 16 5 16L 16 16L 20 20L 20 5C 20 4.45 19.55 4 19 4ZM 15 10L 15 1C 15 0.45 14.55 0 14 0L 1 0C 0.45 0 0 0.45 0 1L 0 15L 4 11L 14 11C 14.55 11 15 10.55 15 10Z"/></g></g></svg>',
-                ajaxUrl: "server.php",
-                action: "callback",
-                phonePlaceholder: "+X-XXX-XXX-XX-XX",
-                callbackSubmitText: "Waiting for call",
-                reCaptcha: !1,
-                reCaptchaAction: "callbackRequest",
-                reCaptchaKey: "",
-                errorMessage: "Connection error. Please try again.",
-                callProcessText: "We are calling you to phone",
-                callSuccessText: "Thank you.<br>We are call you back soon.",
-                showMenuHeader: !1,
-                menuHeaderText: "How would you like to contact us?",
-                showHeaderCloseBtn: !0,
-                menuInAnimationClass: "show-messageners-block",
-                menuOutAnimationClass: "",
-                eaderCloseBtnBgColor: "#787878",
-                eaderCloseBtnColor: "#FFFFFF",
-                items: [],
-                itemsIconType: "rounded",
-                iconsAnimationSpeed: 800,
-                iconsAnimationPause: 2E3,
-                promptPosition: "side",
-                callbackFormFields: {
-                    name: {
-                        name: "name",
-                        enabled: !0,
-                        required: !0,
-                        type: "text",
-                        label: "Please enter your name",
-                        placeholder: "Your full name"
-                    },
-                    email: {
-                        name: "email",
-                        enabled: !0,
-                        required: !1,
-                        type: "email",
-                        label: "Enter your email address",
-                        placeholder: "Optional field. Example: email@domain.com"
-                    },
-                    time: {
-                        name: "time",
-                        enabled: !0,
-                        required: !1,
-                        type: "dropdown",
-                        label: "Please choose schedule time",
-                        values: [{
-                            value: "asap",
-                            label: "Call me ASAP"
-                        }, "00:00", "01:00", "02:00", "03:00", "04:00", "05:00", "06:00", "07:00", "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00", "23:00"]
-                    },
-                    phone: {
-                        name: "phone",
-                        enabled: !0,
-                        required: !0,
-                        type: "tel",
-                        label: "Please enter your phone number",
-                        placeholder: "+X-XXX-XXX-XX-XX"
-                    },
-                    description: {
-                        name: "description",
-                        enabled: !0,
-                        required: !1,
-                        type: "textarea",
-                        label: "Please leave a message with your request"
-                    }
-                },
-                theme: "#000000",
-                callbackFormText: "Please enter your phone number<br>and we call you back soon",
-                closeIcon: '<svg width="12" height="13" viewBox="0 0 14 14" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><g transform="translate(-4087 108)"><g><path transform="translate(4087 -108)" fill="currentColor" d="M 14 1.41L 12.59 0L 7 5.59L 1.41 0L 0 1.41L 5.59 7L 0 12.59L 1.41 14L 7 8.41L 12.59 14L 14 12.59L 8.41 7L 14 1.41Z"></path></g></g></svg>',
-                callbackStateIcon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M493.4 24.6l-104-24c-11.3-2.6-22.9 3.3-27.5 13.9l-48 112c-4.2 9.8-1.4 21.3 6.9 28l60.6 49.6c-36 76.7-98.9 140.5-177.2 177.2l-49.6-60.6c-6.8-8.3-18.2-11.1-28-6.9l-112 48C3.9 366.5-2 378.1.6 389.4l24 104C27.1 504.2 36.7 512 48 512c256.1 0 464-207.5 464-464 0-11.2-7.7-20.9-18.6-23.4z"></path></svg>'
-            };
-            d.prototype.init = function() {
-                if (this._initialized) return !1;
-                this.destroy();
-                this.settings = b.extend({}, this.options);
-                this.$element.addClass("arcontactus-widget").addClass("arcontactus-message");
-                "left" === this.settings.align ? this.$element.addClass("left") : this.$element.addClass("right");
-                this.settings.items.length ? (this.$element.append("\x3c!--noindex--\x3e"), this._initCallbackBlock(), "regular" == this.settings.mode && this._initMessengersBlock(), this.popups.length && this._initPopups(), this._initMessageButton(),
-                    this._initPrompt(), this._initEvents(), this.startAnimation(), this.$element.append("\x3c!--/noindex--\x3e"), this.$element.addClass("active")) : console.info("jquery.contactus:no items");
-                this._initialized = !0;
-                this.$element.trigger("arcontactus.init")
-            };
-            d.prototype.destroy = function() {
-                if (!this._initialized) return !1;
-                this.$element.html("");
-                this._initialized = !1;
-                this.$element.trigger("arcontactus.destroy")
-            };
-            d.prototype._initCallbackBlock = function() {
-                var a = b("<div>", {
-                        class: "callback-countdown-block",
-                        style: this._colorStyle()
-                    }),
-                    c = b("<div>", {
-                        class: "callback-countdown-block-close",
-                        style: "background-color:" + this.settings.theme + "; color: #FFFFFF"
-                    });
-                c.append(this.settings.closeIcon);
-                var e = b("<div>", {
-                    class: "callback-countdown-block-phone"
-                });
-                e.append("<p>" + this.settings.callbackFormText + "</p>");
-                var d = b("<form>", {
-                        id: "arcu-callback-form",
-                        action: this.settings.ajaxUrl,
-                        method: "POST"
-                    }),
-                    h = b("<div>", {
-                        class: "callback-countdown-block-form-group"
-                    }),
-                    f = b("<input>", {
-                        name: "action",
-                        type: "hidden",
-                        value: this.settings.action
-                    }),
-                    g = b("<input>", {
-                        name: "gtoken",
-                        class: "ar-g-token",
-                        type: "hidden",
-                        value: ""
-                    });
-                h.append(f);
-                h.append(g);
-                this._initCallbackFormFields(h);
-                f = b("<div>", {
-                    class: "arcu-form-group arcu-form-button"
-                });
-                g = b("<button>", {
-                    id: "arcontactus-message-callback-phone-submit",
-                    type: "submit",
-                    style: this._backgroundStyle()
-                });
-                g.text(this.settings.callbackSubmitText);
-                f.append(g);
-                h.append(f);
-                f = b("<div>", {
-                    class: "callback-countdown-block-timer"
-                });
-                g = b("<p>" + this.settings.callProcessText + "</p>");
-                var k = b("<div>", {
-                    class: "callback-countdown-block-timer_timer"
-                });
-                f.append(g);
-                f.append(k);
-                g = b("<div>", {
-                    class: "callback-countdown-block-sorry"
-                });
-                k = b("<p>" + this.settings.callSuccessText + "</p>");
-                g.append(k);
-                d.append(h);
-                e.append(d);
-                a.append(c);
-                a.append(e);
-                a.append(f);
-                a.append(g);
-                this.$element.append(a)
-            };
-            d.prototype._initCallbackFormFields = function(a) {
-                var c = this;
-                b.each(c.settings.callbackFormFields, function(e) {
-                    var d = b("<div>", {
-                            class: "arcu-form-group arcu-form-group-type-" + c.settings.callbackFormFields[e].type + " arcu-form-group-" + c.settings.callbackFormFields[e].name + (c.settings.callbackFormFields[e].required ?
-                                " arcu-form-group-required" : "")
-                        }),
-                        h = "<input>";
-                    switch (c.settings.callbackFormFields[e].type) {
-                        case "textarea":
-                            h = "<textarea>";
-                            break;
-                        case "dropdown":
-                            h = "<select>"
-                    }
-                    if (c.settings.callbackFormFields[e].label) {
-                        var f = b("<div>", {
-                            class: "arcu-form-label"
-                        });
-                        f.html(c.settings.callbackFormFields[e].label);
-                        d.append(f)
-                    }
-                    var g = b(h, {
-                        name: c.settings.callbackFormFields[e].name,
-                        class: "arcu-form-field arcu-field-" + c.settings.callbackFormFields[e].name,
-                        required: c.settings.callbackFormFields[e].required,
-                        type: "dropdown" == c.settings.callbackFormFields[e].type ?
-                            null : c.settings.callbackFormFields[e].type,
-                        value: ""
-                    });
-                    g.attr("placeholder", c.settings.callbackFormFields[e].placeholder);
-                    "undefined" != typeof c.settings.callbackFormFields[e].maxlength && g.attr("maxlength", c.settings.callbackFormFields[e].maxlength);
-                    "dropdown" == c.settings.callbackFormFields[e].type && b.each(c.settings.callbackFormFields[e].values, function(a) {
-                        var d = c.settings.callbackFormFields[e].values[a],
-                            l = c.settings.callbackFormFields[e].values[a];
-                        "object" == typeof c.settings.callbackFormFields[e].values[a] &&
-                            (d = c.settings.callbackFormFields[e].values[a].value, l = c.settings.callbackFormFields[e].values[a].label);
-                        a = b("<option>", {
-                            value: d
-                        });
-                        a.text(l);
-                        g.append(a)
-                    });
-                    d.append(g);
-                    a.append(d)
-                })
-            };
-            d.prototype._initPopups = function() {
-                var a = this,
-                    c = b("<div>", {
-                        class: "popups-block arcuAnimated"
-                    }),
-                    e = b("<div>", {
-                        class: "popups-list-container"
-                    });
-                b.each(this.popups, function() {
-                    var c = b("<div>", {
-                            class: "arcu-popup",
-                            id: "arcu-popup-" + this.id
-                        }),
-                        d = b("<div>", {
-                            class: "arcu-popup-header",
-                            style: a.settings.theme ? "background-color:" + a.settings.theme : null
-                        }),
-                        f = b("<div>", {
-                            class: "arcu-popup-close",
-                            style: a.settings.theme ? "background-color:" + a.settings.theme : null
-                        }),
-                        g = b("<div>", {
-                            class: "arcu-popup-back",
-                            style: a.settings.theme ? "background-color:" + a.settings.theme : null
-                        });
-                    f.append(a.settings.closeIcon);
-                    g.append('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512"><path fill="currentColor" d="M231.293 473.899l19.799-19.799c4.686-4.686 4.686-12.284 0-16.971L70.393 256 251.092 74.87c4.686-4.686 4.686-12.284 0-16.971L231.293 38.1c-4.686-4.686-12.284-4.686-16.971 0L4.908 247.515c-4.686 4.686-4.686 12.284 0 16.971L214.322 473.9c4.687 4.686 12.285 4.686 16.971-.001z" class=""></path></svg>');
-                    d.text(this.title);
-                    d.append(f);
-                    d.append(g);
-                    f = b("<div>", {
-                        class: "arcu-popup-content"
-                    });
-                    f.html(this.popupContent);
-                    c.append(d);
-                    c.append(f);
-                    e.append(c)
-                });
-                c.append(e);
-                this.$element.append(c)
-            };
-            d.prototype._initMessengersBlock = function() {
-                var a = b("<div>", {
-                        class: "messangers-block arcuAnimated"
-                    }),
-                    c = b("<div>", {
-                        class: "messangers-list-container"
-                    }),
-                    e = b("<ul>", {
-                        class: "messangers-list"
-                    });
-                "normal" !== this.settings.menuSize && "large" !== this.settings.menuSize || a.addClass("lg");
-                "small" === this.settings.menuSize && a.addClass("sm");
-                this._appendMessengerIcons(e);
-                if (this.settings.showMenuHeader) {
-                    var d = b("<div>", {
-                        class: "arcu-menu-header",
-                        style: this.settings.theme ? "background-color:" + this.settings.theme : null
-                    });
-                    d.html(this.settings.menuHeaderText);
-                    if (this.settings.showHeaderCloseBtn) {
-                        var h = b("<div>", {
-                            class: "arcu-header-close",
-                            style: "color:" + this.settings.headerCloseBtnColor + "; background:" + this.settings.headerCloseBtnBgColor
-                        });
-                        h.append(this.settings.closeIcon);
-                        d.append(h)
-                    }
-                    a.append(d);
-                    a.addClass("has-header")
-                }
-                "rounded" == this.settings.itemsIconType ?
-                    e.addClass("rounded-items") : e.addClass("not-rounded-items");
-                c.append(e);
-                a.append(c);
-                this.$element.append(a)
-            };
-            d.prototype._appendMessengerIcons = function(a) {
-                var c = this;
-                b.each(this.settings.items, function(e) {
-                    e = b("<li>", {});
-                    if ("callback" == this.href) var d = b("<div>", {
-                        class: "messanger call-back " + (this.class ? this.class : "")
-                    });
-                    else if ("_popup" == this.href) c.popups.push(this), d = b("<div>", {
-                        class: "messanger arcu-popup-link " + (this.class ? this.class : ""),
-                        "data-id": this.id ? this.id : null
-                    });
-                    else if (d = b("<a>", {
-                            class: "messanger " +
-                                (this.class ? this.class : ""),
-                            id: this.id ? this.id : null,
-                            href: this.href
-                        }), this.onClick) {
-                        var h = this;
-                        d.on("click", function(a) {
-                            h.onClick(a)
-                        })
-                    }
-                    var f = "rounded" == c.settings.itemsIconType ? b("<span>", {
-                        style: this.color ? "background-color:" + this.color : null
-                    }) : b("<span>", {
-                        style: (this.color ? "color:" + this.color : null) + "; background-color: transparent"
-                    });
-                    f.append(this.icon);
-                    d.append(f);
-                    f = b("<div>", {
-                        class: "arcu-item-label"
-                    });
-                    var g = b("<div>", {
-                        class: "arcu-item-title"
-                    });
-                    g.text(this.title);
-                    f.append(g);
-                    "undefined" != typeof this.subTitle && this.subTitle && (g = b("<div>", {
-                        class: "arcu-item-subtitle"
-                    }), g.text(this.subTitle), f.append(g));
-                    d.append(f);
-                    e.append(d);
-                    a.append(e)
-                })
-            };
-            d.prototype._initMessageButton = function() {
-                var a = this,
-                    c = b("<div>", {
-                        class: "arcontactus-message-button",
-                        style: this._backgroundStyle()
-                    });
-                "large" === this.settings.buttonSize && this.$element.addClass("lg");
-                "huge" === this.settings.buttonSize && this.$element.addClass("hg");
-                "medium" === this.settings.buttonSize && this.$element.addClass("md");
-                "small" === this.settings.buttonSize && this.$element.addClass("sm");
-                var e = b("<div>", {
-                    class: "static"
-                });
-                e.append(this.settings.buttonIcon);
-                !1 !== this.settings.buttonText ? e.append("<p>" + this.settings.buttonText + "</p>") : c.addClass("no-text");
-                var d = b("<div>", {
-                    class: "callback-state",
-                    style: a._colorStyle()
-                });
-                d.append(this.settings.callbackStateIcon);
-                var h = b("<div>", {
-                        class: "icons hide"
-                    }),
-                    f = b("<div>", {
-                        class: "icons-line"
-                    });
-                b.each(this.settings.items, function(c) {
-                    c = b("<span>", {
-                        style: a._colorStyle()
-                    });
-                    c.append(this.icon);
-                    f.append(c)
-                });
-                h.append(f);
-                var g = b("<div>", {
-                    class: "arcontactus-close"
-                });
-                g.append(this.settings.closeIcon);
-                var k = b("<div>", {
-                        class: "pulsation",
-                        style: a._backgroundStyle()
-                    }),
-                    m = b("<div>", {
-                        class: "pulsation",
-                        style: a._backgroundStyle()
-                    });
-                c.append(e).append(d).append(h).append(g).append(k).append(m);
-                this.$element.append(c)
-            };
-            d.prototype._initPrompt = function() {
-                var a = b("<div>", {
-                        class: "arcontactus-prompt arcu-prompt-" + this.settings.promptPosition
-                    }),
-                    c = b("<div>", {
-                        class: "arcontactus-prompt-close",
-                        style: this._backgroundStyle() +
-                            "; color: #FFFFFF"
-                    });
-                c.append(this.settings.closeIcon);
-                var e = b("<div>", {
-                    class: "arcontactus-prompt-inner"
-                });
-                a.append(c).append(e);
-                this.$element.append(a)
-            };
-            d.prototype._initEvents = function() {
-                var a = this.$element,
-                    c = this;
-                a.find(".arcontactus-message-button").on("mousedown", function(a) {
-                    c.x = a.pageX;
-                    c.y = a.pageY
-                }).on("mouseup", function(a) {
-                    if (c.settings.drag && a.pageX === c.x && a.pageY === c.y || !c.settings.drag) "regular" == c.settings.mode ? c._menuOpened || c._popupOpened || c._callbackOpened ? (c._menuOpened && c.closeMenu(),
-                        c._popupOpened && c.closePopup()) : c.openMenu() : c.openCallbackPopup(), a.preventDefault()
-                });
-                this.settings.drag && (a.draggable(), a.get(0).addEventListener("touchmove", function(c) {
-                    var b = c.targetTouches[0];
-                    a.get(0).style.left = b.pageX - 25 + "px";
-                    a.get(0).style.top = b.pageY - 25 + "px";
-                    c.preventDefault()
-                }, !1));
-                b(document).on("click", function(a) {
-                    c.closeMenu();
-                    c.closePopup()
-                });
-                a.on("click", function(a) {
-                    a.stopPropagation()
-                });
-                a.find(".call-back").on("click", function() {
-                    c.openCallbackPopup()
-                });
-                a.find(".arcu-popup-link").on("click",
-                    function() {
-                        var a = b(this).data("id");
-                        c.openPopup(a)
-                    });
-                a.find(".arcu-header-close").on("click", function() {
-                    c.closeMenu()
-                });
-                a.find(".arcu-popup-close").on("click", function() {
-                    c.closePopup()
-                });
-                a.find(".arcu-popup-back").on("click", function() {
-                    c.closePopup();
-                    c.openMenu()
-                });
-                a.find(".callback-countdown-block-close").on("click", function() {
-                    null != c.countdown && (clearInterval(c.countdown), c.countdown = null);
-                    c.closeCallbackPopup()
-                });
-                a.find(".arcontactus-prompt-close").on("click", function() {
-                    c.hidePrompt()
-                });
-                a.find("#arcu-callback-form").on("submit",
-                    function(b) {
-                        b.preventDefault();
-                        a.find(".callback-countdown-block-phone").addClass("ar-loading");
-                        c.settings.reCaptcha ? grecaptcha.execute(c.settings.reCaptchaKey, {
-                            action: c.settings.reCaptchaAction
-                        }).then(function(b) {
-                            a.find(".ar-g-token").val(b);
-                            c.sendCallbackRequest()
-                        }) : c.sendCallbackRequest()
-                    });
-                setTimeout(function() {
-                    c._processHash()
-                }, 500);
-                b(window).on("hashchange", function(a) {
-                    c._processHash()
-                })
-            };
-            d.prototype._processHash = function() {
-                switch (window.location.hash) {
-                    case "#callback-form":
-                    case "callback-form":
-                        this.openCallbackPopup();
-                        break;
-                    case "#callback-form-close":
-                    case "callback-form-close":
-                        this.closeCallbackPopup();
-                        break;
-                    case "#contactus-menu":
-                    case "contactus-menu":
-                        this.openMenu();
-                        break;
-                    case "#contactus-menu-close":
-                    case "contactus-menu-close":
-                        this.closeMenu();
-                        break;
-                    case "#contactus-hide":
-                    case "contactus-hide":
-                        this.hide();
-                        break;
-                    case "#contactus-show":
-                    case "contactus-show":
-                        this.show()
-                }
-            };
-            d.prototype._callBackCountDownMethod = function() {
-                var a = this.settings.countdown,
-                    c = this.$element,
-                    b = this,
-                    d = 60;
-                c.find(".callback-countdown-block-phone, .callback-countdown-block-timer").toggleClass("display-flex");
-                this.countdown = setInterval(function() {
-                    --d;
-                    var e = a,
-                        f = d;
-                    10 > a && (e = "0" + a);
-                    10 > d && (f = "0" + d);
-                    e = e + ":" + f;
-                    c.find(".callback-countdown-block-timer_timer").html(e);
-                    0 === d && 0 === a && (clearInterval(b.countdown), b.countdown = null, c.find(".callback-countdown-block-sorry, .callback-countdown-block-timer").toggleClass("display-flex"));
-                    0 === d && (d = 60, --a)
-                }, 20)
-            };
-            d.prototype.sendCallbackRequest = function() {
-                var a = this,
-                    c = a.$element;
-                this.$element.trigger("arcontactus.beforeSendCallbackRequest");
-                b.ajax({
-                    url: a.settings.ajaxUrl,
-                    type: "POST",
-                    dataType: "json",
-                    data: c.find("form").serialize(),
-                    success: function(b) {
-                        a.settings.countdown && a._callBackCountDownMethod();
-                        c.find(".callback-countdown-block-phone").removeClass("ar-loading");
-                        if (b.success) a.settings.countdown || c.find(".callback-countdown-block-sorry, .callback-countdown-block-phone").toggleClass("display-flex");
-                        else if (b.errors) {
-                            var d = b.errors.join("\n\r");
-                            alert(d)
-                        } else alert(a.settings.errorMessage);
-                        a.$element.trigger("arcontactus.successCallbackRequest", b)
-                    },
-                    error: function() {
-                        c.find(".callback-countdown-block-phone").removeClass("ar-loading");
-                        alert(a.settings.errorMessage);
-                        a.$element.trigger("arcontactus.errorCallbackRequest")
-                    }
-                })
-            };
-            d.prototype.show = function() {
-                this.$element.addClass("active");
-                this.$element.trigger("arcontactus.show")
-            };
-            d.prototype.hide = function() {
-                this.$element.removeClass("active");
-                this.$element.trigger("arcontactus.hide")
-            };
-            d.prototype.openPopup = function(a) {
-                this.closeMenu();
-                var c = this.$element;
-                c.find("#arcu-popup-" + a).addClass("show-messageners-block");
-                c.find("#arcu-popup-" + a).hasClass("popup-opened") || (this.stopAnimation(),
-                    c.addClass("popup-opened"), c.find("#arcu-popup-" + a).addClass(this.settings.menuInAnimationClass), c.find(".arcontactus-close").addClass("show-messageners-block"), c.find(".icons, .static").addClass("hide"), c.find(".pulsation").addClass("stop"), this._popupOpened = !0, this.$element.trigger("arcontactus.openPopup"))
-            };
-            d.prototype.closePopup = function() {
-                var a = this.$element;
-                a.find(".arcu-popup").hasClass("show-messageners-block") && (setTimeout(function() {
-                        a.removeClass("popup-opened")
-                    }, 150), a.find(".arcu-popup").removeClass(this.settings.menuInAnimationClass).addClass(this.settings.menuOutAnimationClass),
-                    setTimeout(function() {
-                        a.removeClass("popup-opened")
-                    }, 150), a.find(".arcontactus-close").removeClass("show-messageners-block"), a.find(".icons, .static").removeClass("hide"), a.find(".pulsation").removeClass("stop"), this.startAnimation(), this._popupOpened = !1, this.$element.trigger("arcontactus.closeMenu"))
-            };
-            d.prototype.openMenu = function() {
-                if ("callback" == this.settings.mode) return console.log("Widget in callback mode"), !1;
-                var a = this.$element;
-                a.find(".messangers-block").hasClass(this.settings.menuInAnimationClass) ||
-                    (this.stopAnimation(), a.addClass("open"), a.find(".messangers-block").addClass(this.settings.menuInAnimationClass), a.find(".arcontactus-close").addClass("show-messageners-block"), a.find(".icons, .static").addClass("hide"), a.find(".pulsation").addClass("stop"), this._menuOpened = !0, this.$element.trigger("arcontactus.openMenu"))
-            };
-            d.prototype.closeMenu = function() {
-                if ("callback" == this.settings.mode) return console.log("Widget in callback mode"), !1;
-                var a = this.$element,
-                    c = this;
-                a.find(".messangers-block").hasClass(this.settings.menuInAnimationClass) &&
-                    (setTimeout(function() {
-                        a.removeClass("open")
-                    }, 150), a.find(".messangers-block").removeClass(this.settings.menuInAnimationClass).addClass(this.settings.menuOutAnimationClass), setTimeout(function() {
-                        a.find(".messangers-block").removeClass(c.settings.menuOutAnimationClass)
-                    }, 1E3), a.find(".arcontactus-close").removeClass("show-messageners-block"), a.find(".icons, .static").removeClass("hide"), a.find(".pulsation").removeClass("stop"), this.startAnimation(), this._menuOpened = !1, this.$element.trigger("arcontactus.closeMenu"))
-            };
-            d.prototype.toggleMenu = function() {
-                var a = this.$element;
-                this.hidePrompt();
-                if (a.find(".callback-countdown-block").hasClass("display-flex")) return !1;
-                a.find(".messangers-block").hasClass(this.settings.menuInAnimationClass) ? this.closeMenu() : this.openMenu();
-                this.$element.trigger("arcontactus.toggleMenu")
-            };
-            d.prototype.openCallbackPopup = function() {
-                var a = this.$element;
-                a.addClass("opened");
-                this.closeMenu();
-                this.stopAnimation();
-                a.find(".icons, .static").addClass("hide");
-                a.find(".pulsation").addClass("stop");
-                a.find(".callback-countdown-block").addClass("display-flex");
-                a.find(".callback-countdown-block-phone").addClass("display-flex");
-                a.find(".callback-state").addClass("display-flex");
-                this._callbackOpened = !0;
-                this.$element.trigger("arcontactus.openCallbackPopup")
-            };
-            d.prototype.closeCallbackPopup = function() {
-                var a = this.$element;
-                a.removeClass("opened");
-                a.find(".messangers-block").removeClass(this.settings.menuInAnimationClass);
-                a.find(".arcontactus-close").removeClass("show-messageners-block");
-                a.find(".icons, .static").removeClass("hide");
-                a.find(".pulsation").removeClass("stop");
-                a.find(".callback-countdown-block, .callback-countdown-block-phone, .callback-countdown-block-sorry, .callback-countdown-block-timer").removeClass("display-flex");
-                a.find(".callback-state").removeClass("display-flex");
-                this.startAnimation();
-                this._callbackOpened = !1;
-                this.$element.trigger("arcontactus.closeCallbackPopup")
-            };
-            d.prototype.startAnimation = function() {
-                var a = this.$element,
-                    c = a.find(".icons-line"),
-                    b = a.find(".static"),
-                    d = a.find(".icons-line>span:first-child").width() +
-                    40;
-                if ("huge" === this.settings.buttonSize) var h = 2,
-                    f = 0;
-                "large" === this.settings.buttonSize && (h = 2, f = 0);
-                "medium" === this.settings.buttonSize && (h = 4, f = -2);
-                "small" === this.settings.buttonSize && (h = 4, f = -2);
-                var g = a.find(".icons-line>span").length,
-                    k = 0;
-                this.stopAnimation();
-                if (0 === this.settings.iconsAnimationSpeed) return !1;
-                var m = this;
-                this._interval = setInterval(function() {
-                    0 === k && (c.parent().removeClass("hide"), b.addClass("hide"));
-                    var a = "translate(" + -(d * k + h) + "px, " + f + "px)";
-                    c.css({
-                        "-webkit-transform": a,
-                        "-ms-transform": a,
-                        transform: a
-                    });
-                    k++;
-                    if (k > g) {
-                        if (k > g + 1) {
-                            if (m.settings.iconsAnimationPause) return m.stopAnimation(), setTimeout(function() {
-                                if (m._callbackOpened || m._menuOpened || m._popupOpened) return !1;
-                                m.startAnimation()
-                            }, m.settings.iconsAnimationPause), !1;
-                            k = 0
-                        }
-                        c.parent().addClass("hide");
-                        b.removeClass("hide");
-                        a = "translate(" + -h + "px, " + f + "px)";
-                        c.css({
-                            "-webkit-transform": a,
-                            "-ms-transform": a,
-                            transform: a
-                        })
-                    }
-                }, this.settings.iconsAnimationSpeed)
-            };
-            d.prototype.stopAnimation = function() {
-                clearInterval(this._interval);
-                var a = this.$element,
-                    b = a.find(".icons-line");
-                a = a.find(".static");
-                b.parent().addClass("hide");
-                a.removeClass("hide");
-                b.css({
-                    "-webkit-transform": "translate(-2px, 0px)",
-                    "-ms-transform": "translate(-2px, 0px)",
-                    transform: "translate(-2px, 0px)"
-                })
-            };
-            d.prototype.showPrompt = function(a) {
-                var b = this.$element.find(".arcontactus-prompt");
-                a && a.content && b.find(".arcontactus-prompt-inner").html(a.content);
-                b.addClass("active");
-                this.$element.trigger("arcontactus.showPrompt")
-            };
-            d.prototype.hidePrompt = function() {
-                this.$element.find(".arcontactus-prompt").removeClass("active");
-                this.$element.trigger("arcontactus.hidePrompt")
-            };
-            d.prototype.showPromptTyping = function() {
-                this.$element.find(".arcontactus-prompt").find(".arcontactus-prompt-inner").html("");
-                this._insertPromptTyping();
-                this.showPrompt({});
-                this.$element.trigger("arcontactus.showPromptTyping")
-            };
-            d.prototype._insertPromptTyping = function() {
-                var a = this.$element.find(".arcontactus-prompt-inner"),
-                    c = b("<div>", {
-                        class: "arcontactus-prompt-typing"
-                    }),
-                    d = b("<div>");
-                c.append(d);
-                c.append(d.clone());
-                c.append(d.clone());
-                a.append(c)
-            };
-            d.prototype.hidePromptTyping =
-                function() {
-                    this.$element.find(".arcontactus-prompt").removeClass("active");
-                    this.$element.trigger("arcontactus.hidePromptTyping")
-                };
-            d.prototype._backgroundStyle = function() {
-                return "background-color: " + this.settings.theme
-            };
-            d.prototype._colorStyle = function() {
-                return "color: " + this.settings.theme
-            };
-            b.fn.contactUs = function(a) {
-                var c = Array.prototype.slice.call(arguments, 1);
-                return this.each(function() {
-                    var e = b(this),
-                        l = e.data("ar.contactus");
-                    l || (l = new d(this, "object" == typeof a && a), e.data("ar.contactus", l));
-                    "string" ==
-                    typeof a && "_" !== a.charAt(0) && l[a].apply(l, c)
-                })
-            };
-            b.fn.contactUs.Constructor = d
-        })(jQuery);
-    </script>
-    <!-- Start of LiveChat (www.livechat.com) code -->
-    <script>
-        window.__lc = window.__lc || {};
-        window.__lc.license = 17789163;;
-        (function(n, t, c) {
-            function i(n) {
-                return e._h ? e._h.apply(null, n) : e._q.push(n)
-            }
-            var e = {
-                _q: [],
-                _h: null,
-                _v: "2.0",
-                on: function() {
-                    i(["on", c.call(arguments)])
-                },
-                once: function() {
-                    i(["once", c.call(arguments)])
-                },
-                off: function() {
-                    i(["off", c.call(arguments)])
-                },
-                get: function() {
-                    if (!e._h) throw new Error("[LiveChatWidget] You can't use getters before load.");
-                    return i(["get", c.call(arguments)])
-                },
-                call: function() {
-                    i(["call", c.call(arguments)])
-                },
-                init: function() {
-                    var n = t.createElement("script");
-                    n.async = !0, n.type = "text/javascript", n.src = "https://cdn.livechatinc.com/tracking.js", t.head.appendChild(n)
-                }
-            };
-            !n.__lc.asyncInit && e.init(), n.LiveChatWidget = n.LiveChatWidget || e
-        }(window, document, [].slice))
-    </script>
-    <noscript><a href="https://www.livechat.com/chat-with/17789163/" rel="nofollow">Chat with us</a>, powered by <a href="https://www.livechat.com/?welcome" rel="noopener nofollow" target="_blank">LiveChat</a></noscript>
-    <!-- End of LiveChat code -->
-    <style>
-        .overflow-hidden.mw-100.text-left * {
-            width: auto !important;
-        }
-    </style>
-</body>
-
-</html>
+<?php 
+require_once("../layout/footer.php");
+?>

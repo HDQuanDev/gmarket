@@ -1,29 +1,28 @@
-<?php include("../../config.php");if(!$isLogin || !$isAdmin)header("Location: /");
+<?php include("../../config.php");
+if (!$isLogin || !$isAdmin) header("Location: /");
 
 
-if(isset($_POST['accept'])){
-    $shop_id=intval($_POST['shop_id']);
-    $payment_method=$_POST['payment_method'];
+if (isset($_POST['accept'])) {
+    $shop_id = intval($_POST['shop_id']);
+    $payment_method = $_POST['payment_method'];
 
-    
-    $recharge_request_id=$_POST['request_id'];
-    $amount=$_POST['amount'];
-    $status=$_POST['status'];
-    $reply=$_POST['reply'];
-    if($payment_method=="Recharge"){
-        
-        @mysqli_query($conn,"UPDATE history_payment SET status='$status',reply='$reply' WHERE id='$request_id' LIMIT 1");
-        if($status=='Success')@mysqli_query($conn,"UPDATE sellers SET money=money+$amount WHERE id=$shop_id LIMIT 1");
+
+    $recharge_request_id = $_POST['request_id'];
+    $amount = $_POST['amount'];
+    $status = $_POST['status'];
+    $reply = $_POST['reply'];
+    if ($payment_method == "Recharge") {
+
+        @mysqli_query($conn, "UPDATE history_payment SET status='$status',reply='$reply' WHERE id='$recharge_request_id' LIMIT 1");
+        if ($status == 'Success') @mysqli_query($conn, "UPDATE sellers SET money=money+$amount WHERE id=$shop_id LIMIT 1");
+        else if ($status == 'Cancel') @mysqli_query($conn, "UPDATE sellers SET money=money-$amount WHERE id=$shop_id LIMIT 1");
         echo "<script>window.location.href=''</script>";
-    }
-    else if($payment_method=="Withdraw"){
-        @mysqli_query($conn,"UPDATE history_payment SET status='$status',reply='$reply' WHERE id='$request_id' LIMIT 1");
+    } else if ($payment_method == "Withdraw") {
+        @mysqli_query($conn, "UPDATE history_payment SET status='$status',reply='$reply' WHERE id='$recharge_request_id' LIMIT 1");
         // if($status=='Cancel')@mysqli_query($conn,"UPDATE sellers SET money=money+$amount WHERE id=$shop_id LIMIT 1");
 
         echo "<script>window.location.href=''</script>";
     }
-
-
 }
 ?>
 
@@ -88,10 +87,10 @@ if(isset($_POST['accept'])){
 <body class="">
 
     <div class="aiz-main-wrapper">
-        <?php include("../layout/sidebar.php")?>
+        <?php include("../layout/sidebar.php") ?>
 
         <div class="aiz-content-wrapper">
-            <?php include("../layout/topbar.php")?>
+            <?php include("../layout/topbar.php") ?>
 
             <div class="aiz-main-content">
                 <div class="px-15px px-lg-25px">
@@ -115,81 +114,81 @@ if(isset($_POST['accept'])){
                                 </thead>
                                 <tbody>
                                     <?php
-                                     $page=isset($_GET['page'])?$_GET['page']:1;
-                                     $i=0;
+                                    $page = isset($_GET['page']) ? $_GET['page'] : 1;
+                                    $i = 0;
 
-                                    $sql=mysqli_query($conn,"SELECT * FROM history_payment WHERE seller_id is not null and type='Recharge' and id>($page-1)*10 and id<=$page*10 ");
-                                    while($row=fetch_assoc($sql)){
-                                        $seller=fetch_array("SELECT id,full_name,shop_name FROM sellers WHERE id='{$row['seller_id']}' LIMIT 1");
+                                    $sql = mysqli_query($conn, "SELECT * FROM history_payment WHERE seller_id is not null and type='Recharge' and id>($page-1)*10 and id<=$page*10 ");
+                                    while ($row = fetch_assoc($sql)) {
+                                        $seller = fetch_array("SELECT id,full_name,shop_name FROM sellers WHERE id='{$row['seller_id']}' LIMIT 1");
                                     ?>
-                                    <tr>
-                                        <td>1</td>
-                                        <td><?=$row['create_date']?></td>
-                                        <td><?=$seller['full_name']?>  <strong style="color:red">(<?=$seller['shop_name']?>) </strong></td>
-                                        <td><?=currency($row['amount'])?>$</td>
-                                        <td>
+                                        <tr>
+                                            <td>1</td>
+                                            <td><?= $row['create_date'] ?></td>
+                                            <td><?= $seller['full_name'] ?> <strong style="color:red">(<?= $seller['shop_name'] ?>) </strong></td>
+                                            <td><?= currency($row['amount']) ?>$</td>
+                                            <td>
 
-                                        </td>
-                                        <td>
-                                            <?php
-                                            if($row['status']=='Success'){
-                                            ?>
-                                            <span class="badge badge-inline badge-success">Paid</span>
-                                            <?php }else if($row['status']=='Pending'){?>
-                                            <span class="badge badge-inline badge-info">Pending</span>
-                                            <?php }else{?>
-                                            <span class="badge badge-inline badge-danger">Cancel</span>
-                                            <?php }?>
+                                            </td>
+                                            <td>
+                                                <?php
+                                                if ($row['status'] == 'Success') {
+                                                ?>
+                                                    <span class="badge badge-inline badge-success">Paid</span>
+                                                <?php } else if ($row['status'] == 'Pending') { ?>
+                                                    <span class="badge badge-inline badge-info">Pending</span>
+                                                <?php } else { ?>
+                                                    <span class="badge badge-inline badge-danger">Cancel</span>
+                                                <?php } ?>
 
 
-                                        </td>
-                                        <td class="text-right">
-                                            <?php  if($row['status']=='Pending'){?>
-                                            <a onclick="show_seller_payment_modal('<?=$row['id']?>','<?=$seller['id']?>');" class="btn btn-soft-warning btn-icon btn-circle btn-sm" href="javascript:void(0);" title="Pay Now">
-                                                <i class="las la-money-bill"></i>
-                                            </a>
-                                            <?php }?>
-                                            <a onclick="show_message_modal('<?=$row['id']?>');" class="btn btn-soft-success btn-icon btn-circle btn-sm" href="javascript:void(0);" title="Message View">
-                                                <i class="las la-eye"></i>
-                                            </a>
-                                            <a href="/admin/sellers/payments_show.php?id=<?=$row['id']?>" class="btn btn-soft-primary btn-icon btn-circle btn-sm" title="Payment History">
-                                                <i class="las la-history"></i>
-                                            </a>
-                                        </td>
-                                    </tr>
+                                            </td>
+                                            <td class="text-right">
+                                                <?php if ($row['status'] == 'Pending') { ?>
+                                                    <a onclick="show_seller_payment_modal('<?= $row['id'] ?>','<?= $seller['id'] ?>');" class="btn btn-soft-warning btn-icon btn-circle btn-sm" href="javascript:void(0);" title="Pay Now">
+                                                        <i class="las la-money-bill"></i>
+                                                    </a>
+                                                <?php } ?>
+                                                <a onclick="show_message_modal('<?= $row['id'] ?>');" class="btn btn-soft-success btn-icon btn-circle btn-sm" href="javascript:void(0);" title="Message View">
+                                                    <i class="las la-eye"></i>
+                                                </a>
+                                                <a href="/admin/sellers/payments_show.php?id=<?= $row['id'] ?>" class="btn btn-soft-primary btn-icon btn-circle btn-sm" title="Payment History">
+                                                    <i class="las la-history"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
                                     <?php } ?>
-                                    
+
                                 </tbody>
                             </table>
                             <div class="aiz-pagination">
-                                        <nav>
-                                            <ul class="pagination">
+                                <nav>
+                                    <ul class="pagination">
 
-                                                <li class="page-item"  aria-label="« Previous">
-                                                    <?php if($page==1){?><span class="page-link" aria-hidden="true">&lsaquo;</span>
-                                                    <?php }else{ ?>
-                                                    <a class="page-link" href="/admin/sellers/recharge_requests_all.php?page=<?=$page-1?>" rel="next" aria-label="« Previous">&lsaquo;</a>
-                                                    <?php }?>
+                                        <li class="page-item" aria-label="« Previous">
+                                            <?php if ($page == 1) { ?><span class="page-link" aria-hidden="true">&lsaquo;</span>
+                                            <?php } else { ?>
+                                                <a class="page-link" href="/admin/sellers/recharge_requests_all.php?page=<?= $page - 1 ?>" rel="next" aria-label="« Previous">&lsaquo;</a>
+                                            <?php } ?>
 
-                                                </li>
-
-
-
-
-                                                <?php if($page>1){?><li class="page-item  "><a class="page-link" href="/admin/sellers/recharge_requests_all.php?page=<?=$page-1?>"><?=$page-1?></a></li><?php }?>
-                                                <?php if($page>2){?><li class="page-item  "><a class="page-link" href="/admin/sellers/recharge_requests_all.php?page=<?=$page-2?>"><?=$page-2?></a></li><?php }?>
-
-                                                <li class="page-item active " aria-current="page"><span class="page-link"><?=$page?></span></li>
-                                                <?php if($page+1<=intval($i/15)){?><li class="page-item  "><a class="page-link" href="/admin/sellers/recharge_requests_all.php?page=<?=$page+1?>"><?=$page+1?></a></li><?php }?>
-                                                <?php if($page+2<=intval($i/15)){?><li class="page-item  "><a class="page-link" href="/admin/sellers/recharge_requests_all.php?page=<?=$page+2?>"><?=$page+2?></a></li><?php }?>
+                                        </li>
 
 
 
-                                                <li class="page-item">
-                                                    <a class="page-link" href="/admin/sellers/recharge_requests_all.php?page=<?=$page+1?>" rel="next" aria-label="Next »">&rsaquo;</a>
-                                                </li>
-                                            </ul>
-                                        </nav>
+
+                                        <?php if ($page > 1) { ?><li class="page-item  "><a class="page-link" href="/admin/sellers/recharge_requests_all.php?page=<?= $page - 1 ?>"><?= $page - 1 ?></a></li><?php } ?>
+                                        <?php if ($page > 2) { ?><li class="page-item  "><a class="page-link" href="/admin/sellers/recharge_requests_all.php?page=<?= $page - 2 ?>"><?= $page - 2 ?></a></li><?php } ?>
+
+                                        <li class="page-item active " aria-current="page"><span class="page-link"><?= $page ?></span></li>
+                                        <?php if ($page + 1 <= intval($i / 15)) { ?><li class="page-item  "><a class="page-link" href="/admin/sellers/recharge_requests_all.php?page=<?= $page + 1 ?>"><?= $page + 1 ?></a></li><?php } ?>
+                                        <?php if ($page + 2 <= intval($i / 15)) { ?><li class="page-item  "><a class="page-link" href="/admin/sellers/recharge_requests_all.php?page=<?= $page + 2 ?>"><?= $page + 2 ?></a></li><?php } ?>
+
+
+
+                                        <li class="page-item">
+                                            <a class="page-link" href="/admin/sellers/recharge_requests_all.php?page=<?= $page + 1 ?>" rel="next" aria-label="Next »">&rsaquo;</a>
+                                        </li>
+                                    </ul>
+                                </nav>
 
                             </div>
                         </div>
@@ -197,7 +196,7 @@ if(isset($_POST['accept'])){
 
                 </div>
                 <div class="bg-white text-center py-3 px-15px px-lg-25px mt-auto">
-                    <p class="mb-0">&copy; Gmarket Viet Nam v7.4.0</p>
+                    <p class="mb-0"></p>
                 </div>
             </div><!-- .aiz-main-content -->
         </div><!-- .aiz-content-wrapper -->

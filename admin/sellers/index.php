@@ -82,23 +82,6 @@
                                 <div class="col">
                                     <h5 class="mb-md-0 h6"><?=tran("Sellers")?></h5>
                                 </div>
-
-                                <!-- <div class="dropdown mb-2 mb-md-0">
-                                    <button class="btn border dropdown-toggle" type="button" data-toggle="dropdown">
-                                        Bulk Action
-                                    </button>
-                                    <div class="dropdown-menu dropdown-menu-right">
-                                        <a class="dropdown-item" href="#" onclick="bulk_delete()">Delete selection</a>
-                                    </div>
-                                </div>
-
-                                <div class="col-md-3 ml-auto">
-                                    <select class="form-control aiz-selectpicker" name="approved_status" id="approved_status" onchange="sort_sellers()">
-                                        <option value="">Filter by Approval</option>
-                                        <option value="1">Approved</option>
-                                        <option value="0">Non-Approved</option>
-                                    </select>
-                                </div> -->
                                 <div class="col-md-3">
                                     <div class="form-group mb-0">
                                         <input type="text" class="form-control" id="search" name="search" placeholder="Type name or email & Enter">
@@ -137,8 +120,8 @@
                                         <?php
                                         $page=isset($_GET['page'])?$_GET['page']:1;
                                         $i=0;
-                                        $sql=mysqli_query($conn,"SELECT  * FROM sellers WHERE id>($page-1)*10 and id<=$page*10 ORDER by id desc");
-                                        if(isset($_GET['search']) && $_GET['search']!=""){$search=$_GET['search'];$sql=mysqli_query($conn,"SELECT  * FROM sellers WHERE (full_name like '%$search%' or email like '%$search%') and id>($page-1)*10 and id<=$page*10 ORDER by id desc");}
+                                        $sql=mysqli_query($conn,"SELECT  * FROM sellers ORDER by id desc");
+                                        // if(isset($_GET['search']) && $_GET['search']!=""){$search=$_GET['search'];$sql=mysqli_query($conn,"SELECT  * FROM sellers WHERE (full_name like '%$search%' or email like '%$search%') ORDER by id desc");}
                                         while($row=fetch_assoc($sql)){
                                             $i++;
                                             if($i<=$page*10 && $i>($page-1)*10){}
@@ -166,7 +149,7 @@
                                                 <label class="aiz-switch aiz-switch-success mb-0">
                                                     <input
                                                         onchange="update_approved(this)" value="<?=$row['id']?>" type="checkbox"
-                                                        checked>
+                                                        <?php if($row['status'] == 'active') echo 'checked'; ?>>
                                                     <span class="slider round"></span>
                                                 </label>
                                             </td>
@@ -187,12 +170,6 @@
                                                         <a href="/admin/sellers/login.php?seller_id=<?=$row['id']?>" class="dropdown-item">
                                                             Log in as this Seller
                                                         </a>
-                                                        <!-- <a href="#" onclick="show_seller_payment_modal('<?=$row['id']?>');" class="dropdown-item">
-                                                            Go to Payment
-                                                        </a> -->
-                                                        <!-- <a href="/admin/seller/payments/show/eyJpdiI6Im9xeEozNk9LcWFhNHNiQWtvK0hxSHc9PSIsInZhbHVlIjoieUo0Z1hwaWs5Q3pQUmJKSHJOdmE4Zz09IiwibWFjIjoiNzRiNzAwNGI0YTUxOTY5Yjg5NzNjZjA3MTJlMTNlMWQ2ZGQ2ODRmZjVlNGM0YTcxOTc4MWNkMzMyNTBkOGE4YyIsInRhZyI6IiJ9" class="dropdown-item">
-                                                            Payment History
-                                                        </a> -->
                                                         <a href="/admin/sellers/seller_edit.php?id=<?=$row['id']?>" class="dropdown-item">
                                                             Edit Profile
                                                         </a>
@@ -211,38 +188,38 @@
                                         
                                     </tbody>
                                 </table>
-                                <div class="aiz-pagination">
-                                    <nav>
-                                        <ul class="pagination">
-                                            <li class="page-item"  aria-label="« Previous">
-                                                <?php if($page==1){?><span class="page-link" aria-hidden="true">&lsaquo;</span>
-                                                <?php }else{ ?>
-                                                <a class="page-link" href="/admin/sellers/index.php?page=<?=$page-1?>" rel="next" aria-label="« Previous">&lsaquo;</a>
-                                                <?php }?>
-                                            </li>
+                                <!--<div class="aiz-pagination">-->
+                                <!--    <nav>-->
+                                <!--        <ul class="pagination">-->
+                                <!--            <li class="page-item"  aria-label="« Previous">-->
+                                <!--                <?php if($page==1){?><span class="page-link" aria-hidden="true">&lsaquo;</span>-->
+                                <!--                <?php }else{ ?>-->
+                                <!--                <a class="page-link" href="/admin/sellers/index.php?page=<?=$page-1?>" rel="next" aria-label="« Previous">&lsaquo;</a>-->
+                                <!--                <?php }?>-->
+                                <!--            </li>-->
 
 
-                                            <?php if($page>1){?><li class="page-item  "><a class="page-link" href="/admin/sellers/index.php?page=<?=$page-1?>"><?=$page-1?></a></li><?php }?>
-                                            <?php if($page>2){?><li class="page-item  "><a class="page-link" href="/admin/sellers/index.php?page=<?=$page-2?>"><?=$page-2?></a></li><?php }?>
-                                            <li class="page-item active " aria-current="page"><span class="page-link"><?=$page?></span></li>
-                                            <?php if($page+1<=intval($i/15)){?><li class="page-item  "><a class="page-link" href="/admin/sellers/index.php?page=<?=$page+1?>"><?=$page+1?></a></li><?php }?>
-                                            <?php if($page+2<=intval($i/15)){?><li class="page-item  "><a class="page-link" href="/admin/sellers/index.php?page=<?=$page+2?>"><?=$page+2?></a></li><?php }?>
+                                <!--            <?php if($page>1){?><li class="page-item  "><a class="page-link" href="/admin/sellers/index.php?page=<?=$page-1?>"><?=$page-1?></a></li><?php }?>-->
+                                <!--            <?php if($page>2){?><li class="page-item  "><a class="page-link" href="/admin/sellers/index.php?page=<?=$page-2?>"><?=$page-2?></a></li><?php }?>-->
+                                <!--            <li class="page-item active " aria-current="page"><span class="page-link"><?=$page?></span></li>-->
+                                <!--            <?php if($page+1<=intval($i/15)){?><li class="page-item  "><a class="page-link" href="/admin/sellers/index.php?page=<?=$page+1?>"><?=$page+1?></a></li><?php }?>-->
+                                <!--            <?php if($page+2<=intval($i/15)){?><li class="page-item  "><a class="page-link" href="/admin/sellers/index.php?page=<?=$page+2?>"><?=$page+2?></a></li><?php }?>-->
 
 
-                                            <li class="page-item">
-                                                <a class="page-link" href="/admin/sellers/index.php?page=<?=$page+1?>" rel="next" aria-label="Next »">&rsaquo;</a>
-                                            </li>
-                                        </ul>
-                                    </nav>
+                                <!--            <li class="page-item">-->
+                                <!--                <a class="page-link" href="/admin/sellers/index.php?page=<?=$page+1?>" rel="next" aria-label="Next »">&rsaquo;</a>-->
+                                <!--            </li>-->
+                                <!--        </ul>-->
+                                <!--    </nav>-->
 
-                                </div>
+                                <!--</div>-->
                             </div>
                         </form>
                     </div>
 
                 </div>
                 <div class="bg-white text-center py-3 px-15px px-lg-25px mt-auto">
-                    <p class="mb-0">&copy; Gmarket Viet Nam v7.4.0</p>
+                    <p class="mb-0"></p>
                 </div>
             </div><!-- .aiz-main-content -->
         </div><!-- .aiz-content-wrapper -->
@@ -394,9 +371,9 @@
 
         function update_approved(el) {
             if (el.checked) {
-                var status = 1;
+                var status = 'active';
             } else {
-                var status = 0;
+                var status = 'lock';
             }
             $.post('/admin/sellers/approved.php', {
                 _token: 'ipFnQztuiy1MNweUaMWxj2Zehpt9XnKJaoHzWGuT',
@@ -404,7 +381,7 @@
                 status: status
             }, function(data) {
                 if (data == 1) {
-                    AIZ.plugins.notify('success', 'Approved sellers updated successfully');
+                    AIZ.plugins.notify('success', 'Seller status updated successfully');
                 } else {
                     AIZ.plugins.notify('danger', 'Something went wrong!');
                 }
@@ -447,54 +424,6 @@
                     }
                 }
             });
-        }
-    </script>
-
-
-    <script type="text/javascript">
-        if ($('#lang-change').length > 0) {
-            $('#lang-change .dropdown-menu a').each(function() {
-                $(this).on('click', function(e) {
-                    e.preventDefault();
-                    var $this = $(this);
-                    var locale = $this.data('flag');
-                    $.post('/language', {
-                        _token: 'ipFnQztuiy1MNweUaMWxj2Zehpt9XnKJaoHzWGuT',
-                        locale: locale
-                    }, function(data) {
-                        location.reload();
-                    });
-
-                });
-            });
-        }
-
-        function menuSearch() {
-            var filter, item;
-            filter = $("#menu-search").val().toUpperCase();
-            items = $("#main-menu").find("a");
-            items = items.filter(function(i, item) {
-                if ($(item).find(".aiz-side-nav-text")[0].innerText.toUpperCase().indexOf(filter) > -1 && $(item).attr('href') !== '#') {
-                    return item;
-                }
-            });
-
-            if (filter !== '') {
-                $("#main-menu").addClass('d-none');
-                $("#search-menu").html('')
-                if (items.length > 0) {
-                    for (i = 0; i < items.length; i++) {
-                        const text = $(items[i]).find(".aiz-side-nav-text")[0].innerText;
-                        const link = $(items[i]).attr('href');
-                        $("#search-menu").append(`<li class="aiz-side-nav-item"><a href="${link}" class="aiz-side-nav-link"><i class="las la-ellipsis-h aiz-side-nav-icon"></i><span>${text}</span></a></li`);
-                    }
-                } else {
-                    $("#search-menu").html(`<li class="aiz-side-nav-item"><span	class="text-center text-muted d-block">Nothing found</span></li>`);
-                }
-            } else {
-                $("#main-menu").removeClass('d-none');
-                $("#search-menu").html('')
-            }
         }
     </script>
 

@@ -1,4 +1,3 @@
-
 <?php include("../../config.php");if (!$isLogin || !$isAdmin) header("Location: /");
 $website=fetch_array("SELECT * FROM website_appearance LIMIT 1");
 ?>
@@ -17,7 +16,7 @@ $website=fetch_array("SELECT * FROM website_appearance LIMIT 1");
 
     <!-- Favicon -->
     <link rel="icon" href="/public/uploads/all/ImUXrP5YC9e0hsv4zR6xjoYJCuxmFYkonSInvGtJ.jpg">
-    <title>GMARKETVN | Buy Korean domestic products at original prices from the manufacturer</title>
+    <title>Takashimaya | Buy Korean domestic products at original prices from the manufacturer</title>
 
     <!-- google font -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Poppins:300,400,500,600,700">
@@ -107,9 +106,10 @@ $website=fetch_array("SELECT * FROM website_appearance LIMIT 1");
                                             </div>
                                         </div>
                                         <div class="form-group row">
-                                            <label class="col-md-3 col-from-label"><?=tran("INVITE CODE")?></label>
+                                            <label class="col-md-3 col-from-label"><?=tran("INVITE CODES")?></label>
                                             <div class="col-md-8">
-                                                <input type="text" name="referal_code" class="form-control" placeholder="Website Name" value="<?=$website['referal_code']?>">
+                                                <input type="text" name="referal_code" class="form-control" placeholder="<?=tran("Add multiple codes separated by comma")?>" value="<?=$website['referal_code']?>">
+                                                <small class="text-muted"><?=tran("Enter multiple referral codes separated by commas (e.g., CODE1,CODE2,CODE3)")?></small>
                                             </div>
                                         </div>
                                         <div class="form-group row">
@@ -357,7 +357,7 @@ $website=fetch_array("SELECT * FROM website_appearance LIMIT 1");
 
                 </div>
                 <div class="bg-white text-center py-3 px-15px px-lg-25px mt-auto">
-                    <p class="mb-0">&copy; GMARKETVN v7.4.0</p>
+                    <p class="mb-0">&copy; Takashimaya v7.4.0</p>
                 </div>
             </div><!-- .aiz-main-content -->
         </div><!-- .aiz-content-wrapper -->

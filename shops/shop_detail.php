@@ -8,7 +8,6 @@ if(!$shop)die();
 
 $shop_logo=fetch_array("SELECT * FROM file WHERE id='{$shop['shop_logo']}' LIMIT 1");
 
-
 ?>
 
 <!DOCTYPE html>
@@ -113,6 +112,29 @@ $shop_logo=fetch_array("SELECT * FROM file WHERE id='{$shop['shop_logo']}' LIMIT
         .pac-container {
             z-index: 100000;
         }
+        .avatar-custom {
+            width: 300px;
+            height: 300px;
+            border-radius: 50%; /* làm tròn hình */
+            object-fit: cover;  /* cắt ảnh cho đều, không bị méo */
+        }
+        
+        /* Mobile: nhỏ hơn hoặc bằng 767px */
+        @media (max-width: 767px) {
+            .avatar-custom {
+                width: 100px; /* hoặc tuỳ ý cậu */
+                height: 100px;
+            }
+        }
+        
+        /* Tablet nhỏ: từ 768px đến 991px */
+        @media (min-width: 768px) and (max-width: 991px) {
+            .avatar-custom {
+                width: 150px; /* hoặc tuỳ chỉnh nữa nha */
+                height: 150px;
+            }
+        }
+
 
         #chat-widget-container {
             margin-bottom: 100px;
@@ -141,8 +163,8 @@ $shop_logo=fetch_array("SELECT * FROM file WHERE id='{$shop['shop_logo']}' LIMIT
                         <div class="d-flex justify-content-center">
                            
                             <img
-                                height="70"
-                                class="lazyload"
+                                
+                                class="lazyload avatar-custom"
                                 src="/public/assets/img/placeholder.jpg"
                                 data-src=" /public/uploads/all/<?=$shop_logo?$shop_logo['src']:""?> "
                                 alt="<?=$shop['shop_name']?>">
@@ -159,11 +181,11 @@ $shop_logo=fetch_array("SELECT * FROM file WHERE id='{$shop['shop_logo']}' LIMIT
                     </div>
                 </div>
                 <div class="border-bottom mt-5"></div>
-                <div class="row align-items-center">
+                <div class="row align-items-center justify-content-center">
                     <div class="col-lg-6 order-2 order-lg-0">
-                        <ul class="list-inline mb-0 text-center text-lg-left">
+                        <ul class="list-inline mb-0 text-center text-lg-left d-flex justify-content-center">
                             <li class="list-inline-item ">
-                                <a class="text-reset d-inline-block fw-600 fs-15 p-3  border-bottom border-primary border-width-2 " href="/shop/<?=$_GET['id']?>">Store Home</a>
+                                <a class="text-reset d-inline-block fw-600 fs-15 p-3  border-bottom " href="/shop/<?=$_GET['id']?>">Store Home</a>
                             </li>
                             <li class="list-inline-item ">
                                 <a class="text-reset d-inline-block fw-600 fs-15 p-3 " href="/shop/top_selling/<?=$_GET['id']?>">Top Selling</a>
@@ -173,10 +195,10 @@ $shop_logo=fetch_array("SELECT * FROM file WHERE id='{$shop['shop_logo']}' LIMIT
                             </li>
                         </ul>
                     </div>
-                    <div class="col-lg-6 order-1 order-lg-0">
-                        <ul class="text-center text-lg-right mt-4 mt-lg-0 social colored list-inline mb-0">
-                        </ul>
-                    </div>
+                    <!--<div class="col-lg-6 order-1 order-lg-0">-->
+                    <!--    <ul class="text-center text-lg-right mt-4 mt-lg-0 social colored list-inline mb-0">-->
+                    <!--    </ul>-->
+                    <!--</div>-->
                 </div>
             </div>
         </section>
@@ -185,7 +207,7 @@ $shop_logo=fetch_array("SELECT * FROM file WHERE id='{$shop['shop_logo']}' LIMIT
             <div class="container">
                 <div class="aiz-carousel dots-inside-bottom mobile-img-auto-height" data-arrows="true" data-dots="true" data-autoplay="true">
                     <div class="carousel-box">
-                        <img class="d-block w-100 lazyload rounded h-200px h-lg-380px img-fit" src="/public/assets/img/placeholder-rect.jpg" data-src="/public/uploads/all/HtJwfk6pqMJsJ9l5WStj2JdZASwTUD2xNupIhERQ.jpg" alt="0 offer">
+                        <img class="d-block w-100 lazyload rounded h-200px h-lg-380px img-fit" src="<?=get_image($conn,$shop['banners'])?>" data-src="<?=get_image($conn,$shop['banners'])?>" alt="0 offer">
                     </div>
                 </div>
             </div>
@@ -194,7 +216,7 @@ $shop_logo=fetch_array("SELECT * FROM file WHERE id='{$shop['shop_logo']}' LIMIT
             <div class="container">
                 <div class="text-center mb-4">
                     <h3 class="h3 fw-600 border-bottom">
-                        <span class="border-bottom border-primary border-width-2 pb-3 d-inline-block">Featured Products</span>
+                        <span class="border-bottom  pb-3 d-inline-block">Featured Products</span>
                     </h3>
                 </div>
                 <div class="row">
@@ -210,7 +232,7 @@ $shop_logo=fetch_array("SELECT * FROM file WHERE id='{$shop['shop_logo']}' LIMIT
             <div class="container">
                 <div class="mb-4">
                     <h3 class="h3 fw-600 border-bottom">
-                        <span class="border-bottom border-primary border-width-2 pb-3 d-inline-block">
+                        <span class="border-bottom  pb-3 d-inline-block">
                             New Arrival Products
                         </span>
                     </h3>
@@ -220,7 +242,16 @@ $shop_logo=fetch_array("SELECT * FROM file WHERE id='{$shop['shop_logo']}' LIMIT
                     <?php
                     $sql=mysqli_query($conn,"SELECT * FROM products WHERE seller_id='{$shop['id']}' ORDER by id desc");
                     while($row=fetch_assoc($sql)){
-                        $p_logo=fetch_array("SELECT * FROM file WHERE id='{$row['files']}'")['src'];
+                            if (!empty($row['thumbnail_image'])) {
+                                if (isJSON($row['thumbnail_image'])) {
+                                    $images = json_decode($row['thumbnail_image'], true);
+                                    if (is_array($images) && !empty($images)) {
+                                        $row['thumbnail_image'] = "/public/uploads/all/" . $images[0];
+                                    }
+                                } else {
+                                    $row['thumbnail_image'] = "/public/uploads/all/" . $row['thumbnail_image'];
+                                }
+                            }
                     ?>
                     <div class="col mb-3">
                         <div class="aiz-card-box border border-light rounded hov-shadow-md mt-1 mb-2 has-transition bg-white">
@@ -230,7 +261,7 @@ $shop_logo=fetch_array("SELECT * FROM file WHERE id='{$shop['shop_logo']}' LIMIT
                                     <img
                                         class="img-fit lazyload mx-auto h-140px h-md-210px"
                                         src="/public/assets/img/placeholder.jpg"
-                                        data-src="/public/uploads/all/<?=$p_logo?>"
+                                        data-src="<?= $row['thumbnail_image']?>"
                                         alt="<?=$row['name']?>"
                                         onerror="this.onerror=null;this.src='/public/assets/img/placeholder.jpg';">
                                 </a>
@@ -389,37 +420,7 @@ $shop_logo=fetch_array("SELECT * FROM file WHERE id='{$shop['shop_logo']}' LIMIT
 
 
 
-        <section class="bg-white border-top mt-auto">
-            <div class="container">
-                <div class="row no-gutters">
-                    <div class="col-lg-3 col-md-6">
-                        <a class="text-reset border-left text-center p-4 d-block" href="https://gmarketagents.com/terms">
-                            <i class="la la-file-text la-3x text-primary mb-2"></i>
-                            <h4 class="h6">Terms &amp; conditions</h4>
-                        </a>
-                    </div>
-                    <div class="col-lg-3 col-md-6">
-                        <a class="text-reset border-left text-center p-4 d-block" href="https://gmarketagents.com/return-policy">
-                            <i class="la la-mail-reply la-3x text-primary mb-2"></i>
-                            <h4 class="h6">Return policy</h4>
-                        </a>
-                    </div>
-                    <div class="col-lg-3 col-md-6">
-                        <a class="text-reset border-left text-center p-4 d-block" href="https://gmarketagents.com/support-policy">
-                            <i class="la la-support la-3x text-primary mb-2"></i>
-                            <h4 class="h6">Support Policy</h4>
-                        </a>
-                    </div>
-                    <div class="col-lg-3 col-md-6">
-                        <a class="text-reset border-left border-right text-center p-4 d-block" href="https://gmarketagents.com/privacy-policy">
-                            <i class="las la-exclamation-circle la-3x text-primary mb-2"></i>
-                            <h4 class="h6">Privacy policy</h4>
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </section>
-
+     
         <?php include("../layout/footer.php") ?>
 
 

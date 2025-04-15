@@ -14,7 +14,7 @@
 
     <!-- Favicon -->
     <link rel="icon" href="/public/uploads/all/ImUXrP5YC9e0hsv4zR6xjoYJCuxmFYkonSInvGtJ.jpg">
-    <title>GMARKETVN | Buy Korean domestic products at original prices from the manufacturer</title>
+    <title>Takashimaya | Buy Korean domestic products at original prices from the manufacturer</title>
 
     <!-- google font -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Poppins:300,400,500,600,700">
@@ -92,6 +92,20 @@
                                                     <input type="text" class="form-control" name="name" placeholder="Product Name" onchange="update_sku()" required>
                                                 </div>
                                             </div>
+                                            <div class="form-group row">
+                                                <label class="col-md-3 col-form-label"><?=tran("Thumbnail Image")?> <span class="text-danger">*</span></label>
+                                                <div class="col-md-8">
+                                                    <input type="file" name="thumbnail_image" class="form-control" accept="image/*" required>
+                                                    <small class="text-muted"><?=tran("Select one image for the thumbnail.")?></small>
+                                                </div>
+                                            </div>
+                                            <div class="form-group row">
+                                                <label class="col-md-3 col-form-label"><?=tran("Gallery Images")?></label>
+                                                <div class="col-md-8">
+                                                    <input type="file" name="gallery_images[]" class="form-control" accept="image/*" multiple>
+                                                    <small class="text-muted"><?=tran("Select multiple images for the gallery.")?></small>
+                                                </div>
+                                            </div>
                                             <div class="form-group row" id="category">
                                                 <label class="col-md-3 col-from-label"><?=tran("Category")?> <span class="text-danger">*</span></label>
                                                 <div class="col-md-8">
@@ -154,43 +168,6 @@
                                                 </div>
                                             </div>
 
-                                        </div>
-                                    </div>
-                                    <div class="card">
-                                        <div class="card-header">
-                                            <h5 class="mb-0 h6"><?=tran("Product Images")?></h5>
-                                        </div>
-                                        <div class="card-body">
-                                            <div class="form-group row">
-                                                <label class="col-md-3 col-form-label" for="signinSrEmail"><?=tran("Gallery Images")?> <small>(600x600)</small></label>
-                                                <div class="col-md-8">
-                                                    <div class="input-group" data-toggle="aizuploader" data-type="image" data-multiple="true">
-                                                        <div class="input-group-prepend">
-                                                            <div class="input-group-text bg-soft-secondary font-weight-medium"><?=tran("Browse")?></div>
-                                                        </div>
-                                                        <div class="form-control file-amount"><?=tran("Choose File")?></div>
-                                                        <input type="hidden" name="photos" class="selected-files">
-                                                    </div>
-                                                    <div class="file-preview box sm">
-                                                    </div>
-                                                    <small class="text-muted"><?=tran("These images are visible in product details page gallery. Use 600x600 sizes images.")?></small>
-                                                </div>
-                                            </div>
-                                            <div class="form-group row">
-                                                <label class="col-md-3 col-form-label" for="signinSrEmail"><?=tran("Thumbnail Image")?> <small>(300x300)</small></label>
-                                                <div class="col-md-8">
-                                                    <div class="input-group" data-toggle="aizuploader" data-type="image">
-                                                        <div class="input-group-prepend">
-                                                            <div class="input-group-text bg-soft-secondary font-weight-medium"><?=tran("Browse")?></div>
-                                                        </div>
-                                                        <div class="form-control file-amount"><?=tran("Choose File")?></div>
-                                                        <input type="hidden" name="thumbnail_img" class="selected-files">
-                                                    </div>
-                                                    <div class="file-preview box sm">
-                                                    </div>
-                                                    <small class="text-muted"><?=tran("This image is visible in all product box. Use 300x300 sizes image. Keep some blank space around main object of your image as we had to crop some edge in different devices to make it responsive.")?></small>
-                                                </div>
-                                            </div>
                                         </div>
                                     </div>
                                     <div class="card">
@@ -797,7 +774,7 @@
 
                 </div>
                 <div class="bg-white text-center py-3 px-15px px-lg-25px mt-auto">
-                    <p class="mb-0">&copy; GMARKETVN v7.4.0</p>
+                    <p class="mb-0">&copy; Takashimaya v7.4.0</p>
                 </div>
             </div><!-- .aiz-main-content -->
         </div><!-- .aiz-content-wrapper -->

@@ -1,2258 +1,1339 @@
-
 <?php
+require_once(__DIR__ . "/../layout/header.php");
 
-$product_file=fetch_array("SELECT * FROM file WHERE id='{$p['thumbnail_image']}' LIMIT 1");
-$price=$p['purchase_price']+$p['rose']+$p['profit'];
-?>
-<!DOCTYPE html>
-<html lang="en">
+// Get product details with all necessary information - important to get unit_price directly
+$product_query = "SELECT p.*,  
+                  c.name as category_name,
+                  c.path as category_path,
+                  b.name as brand_name,
+                  s.full_name as seller_name, 
+                  s.id as seller_id,
+                  s.shop_logo,
+                  p.unit_price, -- Get unit_price directly, not as a calculation
+                  (SELECT COALESCE(SUM(quantity), 0) FROM detail_orders WHERE name = p.name) as sold_count
+           FROM products p
+           LEFT JOIN sellers s ON p.seller_id = s.id
+           LEFT JOIN categories c ON p.category_id = c.id
+           LEFT JOIN brands b ON p.brand_id = b.id
+           WHERE p.id = '{$p['id']}'";
 
-<head>
+$product_result = mysqli_query($conn, $product_query);
+if ($product_result && mysqli_num_rows($product_result) > 0) {
+    $product = mysqli_fetch_assoc($product_result);
+} else {
+    $product = $p; // Fallback to original data if query fails
+}
 
-    <meta name="csrf-token" content="wvMgOUXtuodYgokIYXfGrTbnAqyB6TKhLSqS5Lop">
-    <meta name="app-url" content="//gmarketagents.com/">
-    <meta name="file-base-url" content="//gmarketagents.com/public/">
+// Calculate discount and final price - Make sure to convert to integers explicitly
+$discount_percent = 0;
+$original_price = (int)($product['unit_price'] ?? 0);
+$final_price = $original_price;
 
-    <title><?=$p['name']?></title>
+if (!empty($product['discount']) && $product['discount'] > 0) {
+    $discount_percent = (int)($product['discount']);
+    // Calculate final price by subtracting the discount amount from the original price
+    $final_price = $original_price - $discount_percent;
+}
 
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="robots" content="index, follow">
-    <meta name="description" content="" />
-    <meta name="keywords" content="Valentino,Perfume,Uomo Intense">
+// Get seller information
+$seller = null;
+if ($product['seller_id']) {
+    $seller_query = "SELECT id, full_name, shop_logo, create_date, rating,
+                    (SELECT COUNT(*) FROM products WHERE seller_id = s.id AND published = 1) as product_count
+                    FROM sellers s 
+                    WHERE id = '{$product['seller_id']}'";
+    $seller = fetch_array($seller_query);
+}
 
-    <!-- Schema.org markup for Google+ -->
-    <meta itemprop="name" content="<?=$p['meta_description']?>" >
-    <meta itemprop="description" content="<?=$p['meta_description']?>" >
-    <meta itemprop="image" content="/public/uploads/all/<?=$product_file?$product_file['src']:"RVnwoUjyuvKbgDvRBHfnM33czugqcqLPFPnKkmDA.jpg"?>"
+// Get gallery images - now using the new JSON field structure
+$gallery_images = [];
+if (!empty($product['gallery_images'])) {
+    // Try to decode the JSON
+    $gallery_array = json_decode($product['gallery_images'], true);
 
-    <!-- Twitter Card data -->
-    <meta name="twitter:card" content="product">
-    <meta name="twitter:site" content="@publisher_handle">
-    <meta name="twitter:title" content="<?=$p['meta_description']?>">
-    <meta name="twitter:description" content="">
-    <meta name="twitter:creator" content="@author_handle">
-    <meta name="twitter:image" content="/public/uploads/all/<?=$product_file?$product_file['src']:"RVnwoUjyuvKbgDvRBHfnM33czugqcqLPFPnKkmDA.jpg"?> 
-    <meta name="twitter:data1" content="<?=$price?>$" >
-    <meta name="twitter:label1" content="Price">
+    if (is_array($gallery_array)) {
+        foreach ($gallery_array as $img_name) {
+            if (!empty($img_name)) {
+                $gallery_images[] = ['src' => $img_name];
+            }
+        }
+    }
+    // If not JSON (legacy support), try comma separated
+    else if (is_string($product['gallery_images'])) {
+        $gallery_ids = explode(',', $product['gallery_images']);
+        foreach ($gallery_ids as $img_name) {
+            if (!empty($img_name)) {
+                $gallery_images[] = ['src' => $img_name];
+            }
+        }
+    }
+}
 
-    <!-- Open Graph data -->
-    <meta property="og:title" content="<?=$p['meta_description']?>" />
-    <meta property="og:type" content="og:product" />
-    <meta property="og:url" content="/product/valentino-uomo-intense-edp-100ml-8oQ9f-qpqY7" />
-    <meta property="og:image" content="/public/uploads/all/<?=$product_file?$product_file['src']:"RVnwoUjyuvKbgDvRBHfnM33czugqcqLPFPnKkmDA.jpg"?>" 
-    <meta property="og:description" content="" />
-    <meta property="og:site_name" content="Gmarket Viet Nam" >
-    <meta property="og:price:amount" content="<?=$price?>$" />
-    <meta property="product:price:currency"content="USD" />
-    <meta property="fb:app_id" content="">
+// If no gallery images, use thumbnail
+if (empty($gallery_images) && !empty($product['thumbnail_image'])) {
+    $gallery_images[] = ['src' => $product['thumbnail_image']];
+}
 
+// Default image if no images available
+$default_img = "/public/assets/img/placeholder.jpg";
+$thumbnail_img = !empty($product['thumbnail_image']) ? "/public/uploads/all/" . $product['thumbnail_image'] : $default_img;
 
-    <!-- Favicon -->
-    <link rel="icon" href="/public/uploads/all/gTpdv1822yoHhDKtwGLenMSNg19P86n99DzgA91a.jpg">
+// Check if product is in stock
+$in_stock = isset($product['quantity']) && $product['quantity'] > 0;
 
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,600,600i,700,700i,800,800i&display=swap" rel="stylesheet">
+// Check if user is logged in
+$isLogged = isset($user_id) && $user_id > 0;
 
-    <!-- CSS Files -->
-    <link rel="stylesheet" href="/public/assets/css/vendors.css">
-    <link rel="stylesheet" href="/public/assets/css/aiz-core.css">
-    <link rel="stylesheet" href="/public/assets/css/custom-style.css">
+// Get product reviews
+// Escape product name to prevent SQL injection and syntax errors
+$escaped_product_name = mysqli_real_escape_string($conn, $product['name']);
+$escaped_product_id = mysqli_real_escape_string($conn, $product['id']);
+
+$reviews_query = "SELECT r.*, u.full_name as user_name,
+                    CONCAT(SUBSTRING(u.full_name, 1, 1), '.jpg') as avatar,
+                    COUNT(d.id) as purchase_count
+                  FROM product_reviews r
+                  LEFT JOIN users u ON r.user_id = u.id
+                  LEFT JOIN detail_orders d ON d.user_id = r.user_id AND d.name = '{$escaped_product_name}'
+                  WHERE r.product_id = '{$escaped_product_id}' AND r.status = 'approved'
+                  GROUP BY r.id
+                  ORDER BY r.created_at DESC
+                  LIMIT 5";
+
+$reviews_result = mysqli_query($conn, $reviews_query);
+$reviews = [];
+
+if ($reviews_result) {
+    while ($review = mysqli_fetch_assoc($reviews_result)) {
+        $reviews[] = $review;
+    }
+}
+
+// Get review statistics
+$review_stats_query = "SELECT 
+                        COUNT(*) as total_reviews,
+                        AVG(rating) as avg_rating,
+                        SUM(CASE WHEN rating = 5 THEN 1 ELSE 0 END) as five_star,
+                        SUM(CASE WHEN rating = 4 THEN 1 ELSE 0 END) as four_star,
+                        SUM(CASE WHEN rating = 3 THEN 1 ELSE 0 END) as three_star,
+                        SUM(CASE WHEN rating = 2 THEN 1 ELSE 0 END) as two_star,
+                        SUM(CASE WHEN rating = 1 THEN 1 ELSE 0 END) as one_star
+                      FROM product_reviews 
+                      WHERE product_id = '{$product['id']}' AND status = 'approved'";
+
+$review_stats_result = mysqli_query($conn, $review_stats_query);
+$review_stats = mysqli_fetch_assoc($review_stats_result) ?? [
+    'total_reviews' => 0,
+    'avg_rating' => 0,
+    'five_star' => 0,
+    'four_star' => 0,
+    'three_star' => 0,
+    'two_star' => 0,
+    'one_star' => 0
+];
+
+// Fix for number_format - ensure that avg_rating is not null
+$avg_rating = number_format($review_stats['avg_rating'] ?? 0, 1);
+$total_reviews = $review_stats['total_reviews'] ?? 0;
+
+// Check if user has purchased this product
+$can_review = false;
+$has_reviewed = false;
+$unreviewedOrders = [];
+$pendingOrders = [];
+
+if ($isLogged) {
+    // Escape the product name to prevent SQL injection
+    $escaped_product_name = mysqli_real_escape_string($conn, $product['name']);
     
+    // Get all orders that include this product - using product name
+    $purchases_query = "SELECT d.id as detail_id, d.order_id, o.code as order_code,
+                           d.quantity as purchase_quantity, d.price, o.delivery_status, o.create_date,
+                           (SELECT COUNT(*) FROM product_reviews WHERE detail_order_id = d.id) as review_count
+                        FROM detail_orders d 
+                        JOIN orders o ON d.order_id = o.id
+                        WHERE d.user_id = $user_id 
+                        AND d.name = '{$escaped_product_name}'
+                        ORDER BY o.create_date DESC";
+    
+    $purchases_result = mysqli_query($conn, $purchases_query);
 
-
-    <script>
-        var AIZ = AIZ || {};
-        AIZ.local = {
-            nothing_selected: 'Nothing selected',
-            nothing_found: 'Nothing found',
-            choose_file: 'Choose File',
-            file_selected: 'File selected',
-            files_selected: 'Files selected',
-            add_more_files: 'Add more files',
-            adding_more_files: 'Adding more files',
-            drop_files_here_paste_or: 'Drop files here, paste or',
-            browse: 'Browse',
-            upload_complete: 'Upload complete',
-            upload_paused: 'Upload paused',
-            resume_upload: 'Resume upload',
-            pause_upload: 'Pause upload',
-            retry_upload: 'Retry upload',
-            cancel_upload: 'Cancel upload',
-            uploading: 'Uploading',
-            processing: 'Processing',
-            complete: 'Complete',
-            file: 'File',
-            files: 'Files',
-        }
-    </script>
-
-    <style>
-        body {
-            font-family: 'Open Sans', sans-serif;
-            font-weight: 400;
-        }
-
-        :root {
-            --primary: #00c01e;
-            --hov-primary: #00c01e;
-            --soft-primary: rgba(0, 192, 30, 0.15);
-        }
-
-        #map {
-            width: 100%;
-            height: 250px;
-        }
-
-        #edit_map {
-            width: 100%;
-            height: 250px;
-        }
-
-        .pac-container {
-            z-index: 100000;
-        }
-
-        #chat-widget-container {
-            margin-bottom: 100px;
-        }
-    </style>
-
-
-
-
-</head>
-
-<body>
-    <!-- aiz-main-wrapper -->
-    <div class="aiz-main-wrapper d-flex flex-column">
-
-        <!-- Header -->
-        <?php include("../layout/header.php")?>
-
-
-
-        <section class="mb-4 pt-3">
-            <div class="container">
-                <div class="bg-white shadow-sm rounded p-3">
-                    <div class="row">
-                        <div class="col-xl-5 col-lg-6 mb-4">
-                            <div class="sticky-top z-3 row gutters-10">
-                                <div class="col order-1 order-md-2">
-                                    <div class="aiz-carousel product-gallery" data-nav-for='.product-gallery-thumb'
-                                        data-fade='true' data-auto-height='true'>
-                                        <div class="carousel-box img-zoom rounded">
-                                            <img class="img-fluid lazyload"
-                                                src="/public/assets/img/placeholder.jpg"
-                                                data-src="/public/uploads/all/<?=$product_file['src']?>"
-                                                onerror="this.onerror=null;this.src='/public/assets/img/placeholder.jpg';">
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-12 col-md-auto w-md-80px order-2 order-md-1 mt-3 mt-md-0">
-                                    <div class="aiz-carousel product-gallery-thumb" data-items='5'
-                                        data-nav-for='.product-gallery' data-vertical='true' data-vertical-sm='false'
-                                        data-focus-select='true' data-arrows='true'>
-                                        <div class="carousel-box c-pointer border p-1 rounded">
-                                            <img class="lazyload mw-100 size-50px mx-auto"
-                                                src="/public/assets/img/placeholder.jpg"
-                                                data-src="/public/uploads/all/<?=$product_file['src']?>"
-                                                onerror="this.onerror=null;this.src='/public/assets/img/placeholder.jpg';">
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="col-xl-7 col-lg-6">
-                            <div class="text-left">
-                                <h1 class="mb-2 fs-20 fw-600" translate="no">
-                                    <?=$p['name']?>
-                                </h1>
-
-                                <div class="row align-items-center">
-                                    <div class="col-12">
-                                        <span class="rating">
-                                            <i class='las la-star'></i><i class='las la-star'></i><i class='las la-star'></i><i class='las la-star'></i><i class='las la-star'></i>
-                                        </span>
-                                        <span class="ml-1 opacity-50">(0
-                                            reviews)</span>
-                                    </div>
-                                </div>
-
-                                <hr>
-
-                                <div class="row align-items-center">
-                                    <div class="col-auto">
-                                        <small class="mr-2 opacity-50">Sold by: </small><br>
-                                        Inhouse product
-                                    </div>
-                                    <div class="col-auto">
-                                        <button class="btn btn-sm btn-soft-primary"
-                                            onclick="show_chat_modal()">Message Seller</button>
-                                    </div>
-
-                                    <div class="col-auto">
-                                        <a href="/brand/Valentino-sB20E">
-                                            <img src="/public/uploads/all/<?=$product_file?$product_file['src']:""?>"
-                                                alt="Valentino"
-                                                height="30">
-                                        </a>
-                                    </div>
-                                </div>
-
-                                <hr>
-
-                                <div class="row no-gutters mt-3">
-                                    <div class="col-sm-2">
-                                        <div class="opacity-50 my-2">Price:</div>
-                                    </div>
-                                    <div class="col-sm-10">
-                                        <div class="">
-                                            <strong class="h2 fw-600 text-primary">
-                                                <?=$price?>$
-                                            </strong>
-                                            <span
-                                                class="opacity-70">/Pc</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-
-                                <hr>
-
-                                <form id="option-choice-form">
-                                    <input type="hidden" name="_token" value="wvMgOUXtuodYgokIYXfGrTbnAqyB6TKhLSqS5Lop"> <input type="hidden" name="id" value="<?=$p['id']?>">
-                                    <input type="hidden" name="seller" value="<?=$p['id']?>">
-
-
-
-                                    <!-- Quantity + Add to cart -->
-                                    <div class="row no-gutters">
-                                        <div class="col-sm-2">
-                                            <div class="opacity-50 my-2">Quantity:</div>
-                                        </div>
-                                        <div class="col-sm-10">
-                                            <div class="product-quantity d-flex align-items-center">
-                                                <div class="row no-gutters align-items-center aiz-plus-minus mr-3"
-                                                    style="width: 130px;">
-                                                    <button class="btn col-auto btn-icon btn-sm btn-circle btn-light"
-                                                        type="button" data-type="minus" data-field="quantity"
-                                                        disabled="">
-                                                        <i class="las la-minus"></i>
-                                                    </button>
-                                                    <input type="number" name="quantity"
-                                                        class="col border-0 text-center flex-grow-1 fs-16 input-number"
-                                                        placeholder="1" value="1"
-                                                        min="1" max="10"
-                                                        lang="en">
-                                                    <button class="btn  col-auto btn-icon btn-sm btn-circle btn-light"
-                                                        type="button" data-type="plus" data-field="quantity">
-                                                        <i class="las la-plus"></i>
-                                                    </button>
-                                                </div>
-                                                <div class="avialable-amount opacity-60">
-                                                    (<span id="available-quantity">482845</span>
-                                                    available)
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <hr>
-
-                                    <div class="row no-gutters pb-3 d-none" id="chosen_price_div">
-                                        <div class="col-sm-2">
-                                            <div class="opacity-50 my-2">Total Price:</div>
-                                        </div>
-                                        <div class="col-sm-10">
-                                            <div class="product-price">
-                                                <strong id="chosen_price" class="h4 fw-600 text-primary">
-
-                                                </strong>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                </form>
-
-                                <div class="mt-3">
-                                    <button type="button" class="btn btn-soft-primary mr-2 add-to-cart fw-600"
-                                        onclick="addToCart()">
-                                        <i class="las la-shopping-bag"></i>
-                                        <span class="d-none d-md-inline-block"> Add to cart</span>
-                                    </button>
-                                    <button type="button" class="btn btn-primary buy-now fw-600" onclick="buyNow()">
-                                        <i class="la la-shopping-cart"></i> Buy Now
-                                    </button>
-                                    <button type="button" class="btn btn-secondary out-of-stock fw-600 d-none" disabled>
-                                        <i class="la la-cart-arrow-down"></i> Out of Stock
-                                    </button>
-                                </div>
-
-
-
-                                <div class="d-table width-100 mt-3">
-                                    <div class="d-table-cell">
-                                        <!-- Add to wishlist button -->
-                                        <button type="button" class="btn pl-0 btn-link fw-600"
-                                            onclick="addToWishList(28101)">
-                                            Add to wishlist
-                                        </button>
-                                        <!-- Add to compare button -->
-                                        <button type="button" class="btn btn-link btn-icon-left fw-600"
-                                            onclick="addToCompare(28101)">
-                                            Add to compare
-                                        </button>
-                                    </div>
-                                </div>
-
-
-                                <div class="row no-gutters mt-4">
-                                    <div class="col-sm-2">
-                                        <div class="opacity-50 my-2">Share:</div>
-                                    </div>
-                                    <div class="col-sm-10">
-                                        <div class="aiz-share"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section class="mb-4">
-            <div class="container">
-                <div class="row gutters-10">
-                    <div class="col-xl-3 order-1 order-xl-0">
-                        <div class="bg-white rounded shadow-sm mb-3">
-                            <div class="p-3 border-bottom fs-16 fw-600">
-                                Top Selling Products
-                            </div>
-                            <div class="p-3">
-                                <ul class="list-group list-group-flush">
-                                    <?php
-                                        $sql=mysqli_query($conn,"SELECT * FROM products WHERE seller_id='{$p['seller_id']}' ORDER by rand(id) LIMIT 4");
-                                        while($row=fetch_assoc($sql)){
-                                            $p_logo1=fetch_array("SELECT * FROM file WHERE id='{$row['files']}' LIMIT 1");
-                                    ?>
-                                    <li class="py-3 px-0 list-group-item border-light">
-                                        <div class="row gutters-10 align-items-center">
-                                            
-                                            <div class="col-5">
-                                                <a href="/product/<?=md5($row['id'])?>"
-                                                    class="d-block text-reset">
-                                                    <img class="img-fit lazyload h-xxl-110px h-xl-80px h-120px"
-                                                        src="/public/assets/img/placeholder.jpg"
-                                                        data-src="/public/uploads/all/<?=$p_logo1?$p_logo1['src']:""?>"
-                                                        alt="<?=$row['name']?>"
-                                                        onerror="this.onerror=null;this.src='/public/assets/img/placeholder.jpg';">
-                                                </a>
-                                            </div>
-                                            
-                                            <div class="col-7 text-left">
-                                                <h4 class="fs-13 text-truncate-2">
-                                                    <a href="/product/<?=md5($row['id'])?>"
-                                                        class="d-block text-reset"><?=$row['name']?></a>
-                                                </h4>
-                                                <div class="rating rating-sm mt-1">
-                                                    <i class='las la-star'></i><i class='las la-star'></i><i class='las la-star'></i><i class='las la-star'></i><i class='las la-star'></i>
-                                                </div>
-                                                <div class="mt-2">
-                                                    <span
-                                                        class="fs-17 fw-600 text-primary">382.00$</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </li>
-                                    <?php }?>
-                                    
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-xl-9 order-0 order-xl-1">
-                        <div class="bg-white mb-3 shadow-sm rounded">
-                            <div class="nav border-bottom aiz-nav-tabs">
-                                <a href="#tab_default_1" data-toggle="tab"
-                                    class="p-3 fs-16 fw-600 text-reset active show">Description</a>
-                                <a href="#tab_default_4" data-toggle="tab"
-                                    class="p-3 fs-16 fw-600 text-reset">reviews</a>
-                            </div>
-
-                            <div class="tab-content pt-0">
-                                <div class="tab-pane fade active show" id="tab_default_1">
-                                    <div class="p-4">
-                                        <div class="mw-100 overflow-auto text-left aiz-editor-data" translate="no">
-                                            <?=$p['description']?>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="tab-pane fade" id="tab_default_2">
-                                    <div class="p-4">
-                                        <div class="embed-responsive embed-responsive-16by9">
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="tab-pane fade" id="tab_default_3">
-                                    <div class="p-4 text-center ">
-                                        <a href="/public/assets/img/placeholder.jpg"
-                                            class="btn btn-primary">Download</a>
-                                    </div>
-                                </div>
-                                <div class="tab-pane fade" id="tab_default_4">
-                                    <div class="p-4">
-                                        <ul class="list-group list-group-flush">
-                                        </ul>
-
-                                        <div class="text-center fs-18 opacity-70">
-                                            There have been no reviews for this product yet.
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="bg-white rounded shadow-sm">
-                            <div class="border-bottom p-3">
-                                <h3 class="fs-16 fw-600 mb-0">
-                                    <span class="mr-4">Related products</span>
-                                </h3>
-                            </div>
-                            <div class="p-3">
-                                <div class="aiz-carousel gutters-5 half-outside-arrow" data-items="5" data-xl-items="3"
-                                    data-lg-items="4" data-md-items="3" data-sm-items="2" data-xs-items="2"
-                                    data-arrows='true' data-infinite='true'>
-                                    <?php
-                                    $sql=mysqli_query($conn,"SELECT * FROM products WHERE category_id='{$p['category_id']}' ORDER by rand(id) LIMIT 10");
-                                    while($row=fetch_assoc($sql)){
-                                        $p_logo1=fetch_array("SELECT * FROM file WHERE id='{$row['files']}'");
-                                    ?>
-                                    <div class="carousel-box">
-                                        <div
-                                            class="aiz-card-box border border-light rounded hov-shadow-md my-2 has-transition">
-                                            <div class="">
-                                                <a href="/product/<?=md5($row['id'])?>"
-                                                    class="d-block">
-                                                    <img class="img-fit lazyload mx-auto h-140px h-md-210px"
-                                                        src="/public/assets/img/placeholder.jpg"
-                                                        data-src="<?=$p_logo1?"/public/uploads/all/".$p_logo1['src']:'https://sc04.alicdn.com/kf/H1a98aaf162034fab861647bab51276e1h.jpg'?>"
-                                                        alt="<?=$row['name']?>"
-                                                        onerror="this.onerror=null;this.src='/public/assets/img/placeholder.jpg';">
-                                                </a>
-                                            </div>
-                                            <div class="p-md-3 p-2 text-left">
-                                                <div class="fs-15">
-                                                    <del
-                                                        class="fw-600 opacity-50 mr-1">69.20$</del>
-                                                    <span
-                                                        class="fw-700 text-primary">57.20$</span>
-                                                </div>
-                                                <div class="rating rating-sm mt-1">
-                                                    <i class='las la-star'></i><i class='las la-star'></i><i class='las la-star'></i><i class='las la-star'></i><i class='las la-star'></i>
-                                                </div>
-                                                <h3 class="fw-600 fs-13 text-truncate-2 lh-1-4 mb-0 h-35px">
-                                                    <a href="/product/<?=md5($row['id'])?>"
-                                                        class="d-block text-reset" translate="no"><?=$row['name']?></a>
-                                                </h3>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <?php }?>
-
-                                    <div class="carousel-box">
-                                        <div
-                                            class="aiz-card-box border border-light rounded hov-shadow-md my-2 has-transition">
-                                            <div class="">
-                                                <a href="/product/gucci-flora-gorgeous-gardenia-womens-perfume-set-3-pieces-gift-100-10ml-5ml-4"
-                                                    class="d-block">
-                                                    <img class="img-fit lazyload mx-auto h-140px h-md-210px"
-                                                        src="/public/assets/img/placeholder.jpg"
-                                                        data-src="/public/uploads/all/pZEoGLCU1a1T4hiYVguudrKNLiRjQLNaqACCc3mR.jpg"
-                                                        alt="Gucci Flora Gorgeous Gardenia Women&#039;s Perfume Set 3 Pieces Gift (100 + 10ml + 5ml)"
-                                                        onerror="this.onerror=null;this.src='/public/assets/img/placeholder.jpg';">
-                                                </a>
-                                            </div>
-                                            <div class="p-md-3 p-2 text-left">
-                                                <div class="fs-15">
-                                                    <span
-                                                        class="fw-700 text-primary">104.27$</span>
-                                                </div>
-                                                <div class="rating rating-sm mt-1">
-                                                    <i class='las la-star'></i><i class='las la-star'></i><i class='las la-star'></i><i class='las la-star'></i><i class='las la-star'></i>
-                                                </div>
-                                                <h3 class="fw-600 fs-13 text-truncate-2 lh-1-4 mb-0 h-35px">
-                                                    <a href="/product/gucci-flora-gorgeous-gardenia-womens-perfume-set-3-pieces-gift-100-10ml-5ml-4"
-                                                        class="d-block text-reset">Gucci Flora Gorgeous Gardenia Women&#039;s Perfume Set 3 Pieces Gift (100 + 10ml + 5ml)</a>
-                                                </h3>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="carousel-box">
-                                        <div
-                                            class="aiz-card-box border border-light rounded hov-shadow-md my-2 has-transition">
-                                            <div class="">
-                                                <a href="/product/nuoc-hoa-nam-christian-dior-sauvage-edp-dam-chat-hien-dai-100ml"
-                                                    class="d-block">
-                                                    <img class="img-fit lazyload mx-auto h-140px h-md-210px"
-                                                        src="/public/assets/img/placeholder.jpg"
-                                                        data-src="/public/uploads/all/2GXBULSSWn0F0gwSEs78mNy5PNGaB2gKQkLy0ke7.jpg"
-                                                        alt="Nước Hoa Nam Christian Dior Sauvage EDP Đậm Chất Hiện Đại, 100ml"
-                                                        onerror="this.onerror=null;this.src='/public/assets/img/placeholder.jpg';">
-                                                </a>
-                                            </div>
-                                            <div class="p-md-3 p-2 text-left">
-                                                <div class="fs-15">
-                                                    <span
-                                                        class="fw-700 text-primary">132.90$</span>
-                                                </div>
-                                                <div class="rating rating-sm mt-1">
-                                                    <i class='las la-star'></i><i class='las la-star'></i><i class='las la-star'></i><i class='las la-star'></i><i class='las la-star'></i>
-                                                </div>
-                                                <h3 class="fw-600 fs-13 text-truncate-2 lh-1-4 mb-0 h-35px">
-                                                    <a href="/product/nuoc-hoa-nam-christian-dior-sauvage-edp-dam-chat-hien-dai-100ml"
-                                                        class="d-block text-reset">Nước Hoa Nam Christian Dior Sauvage EDP Đậm Chất Hiện Đại, 100ml</a>
-                                                </h3>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="carousel-box">
-                                        <div
-                                            class="aiz-card-box border border-light rounded hov-shadow-md my-2 has-transition">
-                                            <div class="">
-                                                <a href="/product/nuoc-hoa-chanel-coco-mademoiselle-edp-100ml-4"
-                                                    class="d-block">
-                                                    <img class="img-fit lazyload mx-auto h-140px h-md-210px"
-                                                        src="/public/assets/img/placeholder.jpg"
-                                                        data-src="/public/uploads/all/wXYrlKV4AuvuS7HqblELxN8aAqwpvth9QUPkhuyZ.jpg"
-                                                        alt="Nước Hoa Chanel Coco Mademoiselle EDP 100ML"
-                                                        onerror="this.onerror=null;this.src='/public/assets/img/placeholder.jpg';">
-                                                </a>
-                                            </div>
-                                            <div class="p-md-3 p-2 text-left">
-                                                <div class="fs-15">
-                                                    <span
-                                                        class="fw-700 text-primary">153.34$</span>
-                                                </div>
-                                                <div class="rating rating-sm mt-1">
-                                                    <i class='las la-star'></i><i class='las la-star'></i><i class='las la-star'></i><i class='las la-star'></i><i class='las la-star'></i>
-                                                </div>
-                                                <h3 class="fw-600 fs-13 text-truncate-2 lh-1-4 mb-0 h-35px">
-                                                    <a href="/product/nuoc-hoa-chanel-coco-mademoiselle-edp-100ml-4"
-                                                        class="d-block text-reset">Nước Hoa Chanel Coco Mademoiselle EDP 100ML</a>
-                                                </h3>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="carousel-box">
-                                        <div
-                                            class="aiz-card-box border border-light rounded hov-shadow-md my-2 has-transition">
-                                            <div class="">
-                                                <a href="/product/nuoc-hoa-nu-yves-saint-laurent-ysl-black-opium-women-edp-90ml"
-                                                    class="d-block">
-                                                    <img class="img-fit lazyload mx-auto h-140px h-md-210px"
-                                                        src="/public/assets/img/placeholder.jpg"
-                                                        data-src="/public/uploads/all/DHLES5ZBVQcAFdDSUUQj85b7VyxheA3Y71ak2ZkO.jpg"
-                                                        alt="Nước Hoa Nữ Yves Saint Laurent YSL Black Opium Women EDP 90ml"
-                                                        onerror="this.onerror=null;this.src='/public/assets/img/placeholder.jpg';">
-                                                </a>
-                                            </div>
-                                            <div class="p-md-3 p-2 text-left">
-                                                <div class="fs-15">
-                                                    <span
-                                                        class="fw-700 text-primary">141.89$</span>
-                                                </div>
-                                                <div class="rating rating-sm mt-1">
-                                                    <i class='las la-star'></i><i class='las la-star'></i><i class='las la-star'></i><i class='las la-star'></i><i class='las la-star'></i>
-                                                </div>
-                                                <h3 class="fw-600 fs-13 text-truncate-2 lh-1-4 mb-0 h-35px">
-                                                    <a href="/product/nuoc-hoa-nu-yves-saint-laurent-ysl-black-opium-women-edp-90ml"
-                                                        class="d-block text-reset">Nước Hoa Nữ Yves Saint Laurent YSL Black Opium Women EDP 90ml</a>
-                                                </h3>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="carousel-box">
-                                        <div
-                                            class="aiz-card-box border border-light rounded hov-shadow-md my-2 has-transition">
-                                            <div class="">
-                                                <a href="/product/nuoc-hoa-nam-versace-eros-man-edt-200ml-4"
-                                                    class="d-block">
-                                                    <img class="img-fit lazyload mx-auto h-140px h-md-210px"
-                                                        src="/public/assets/img/placeholder.jpg"
-                                                        data-src="/public/uploads/all/xJy3LFGMlXAtKPblkoI77gl5TP8DNGl74NYAJG97.jpg"
-                                                        alt="Nước Hoa Nam Versace Eros Man EDT 200ml"
-                                                        onerror="this.onerror=null;this.src='/public/assets/img/placeholder.jpg';">
-                                                </a>
-                                            </div>
-                                            <div class="p-md-3 p-2 text-left">
-                                                <div class="fs-15">
-                                                    <span
-                                                        class="fw-700 text-primary">198.14$</span>
-                                                </div>
-                                                <div class="rating rating-sm mt-1">
-                                                    <i class='las la-star'></i><i class='las la-star'></i><i class='las la-star'></i><i class='las la-star'></i><i class='las la-star'></i>
-                                                </div>
-                                                <h3 class="fw-600 fs-13 text-truncate-2 lh-1-4 mb-0 h-35px">
-                                                    <a href="/product/nuoc-hoa-nam-versace-eros-man-edt-200ml-4"
-                                                        class="d-block text-reset">Nước Hoa Nam Versace Eros Man EDT 200ml</a>
-                                                </h3>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="carousel-box">
-                                        <div
-                                            class="aiz-card-box border border-light rounded hov-shadow-md my-2 has-transition">
-                                            <div class="">
-                                                <a href="/product/versace-eros-flame-edp-perfume-for-men-200ml-4"
-                                                    class="d-block">
-                                                    <img class="img-fit lazyload mx-auto h-140px h-md-210px"
-                                                        src="/public/assets/img/placeholder.jpg"
-                                                        data-src="/public/uploads/all/ufZjbyhJO6IVGEINWdcahWu6LloP8Ftn5rRSFxEX.jpg"
-                                                        alt="Versace Eros Flame EDP Perfume For Men, 200ml"
-                                                        onerror="this.onerror=null;this.src='/public/assets/img/placeholder.jpg';">
-                                                </a>
-                                            </div>
-                                            <div class="p-md-3 p-2 text-left">
-                                                <div class="fs-15">
-                                                    <span
-                                                        class="fw-700 text-primary">134.94$</span>
-                                                </div>
-                                                <div class="rating rating-sm mt-1">
-                                                    <i class='las la-star'></i><i class='las la-star'></i><i class='las la-star'></i><i class='las la-star'></i><i class='las la-star'></i>
-                                                </div>
-                                                <h3 class="fw-600 fs-13 text-truncate-2 lh-1-4 mb-0 h-35px">
-                                                    <a href="/product/versace-eros-flame-edp-perfume-for-men-200ml-4"
-                                                        class="d-block text-reset">Versace Eros Flame EDP Perfume For Men, 200ml</a>
-                                                </h3>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="carousel-box">
-                                        <div
-                                            class="aiz-card-box border border-light rounded hov-shadow-md my-2 has-transition">
-                                            <div class="">
-                                                <a href="/product/gucci-guilty-pour-homme-mens-perfume-set-3-pieces-edt-90ml-deostick-75ml-shower-gel-50ml-7"
-                                                    class="d-block">
-                                                    <img class="img-fit lazyload mx-auto h-140px h-md-210px"
-                                                        src="/public/assets/img/placeholder.jpg"
-                                                        data-src="/public/uploads/all/mV7tCT4IITPKgQfgVFOM8XskKvPT1CGNaAap9tlc.jpg"
-                                                        alt="Gucci Guilty Pour Homme Men&#039;s Perfume Set 3 Pieces (EDT 90ml + Deostick 75ml + Shower Gel 50ml)"
-                                                        onerror="this.onerror=null;this.src='/public/assets/img/placeholder.jpg';">
-                                                </a>
-                                            </div>
-                                            <div class="p-md-3 p-2 text-left">
-                                                <div class="fs-15">
-                                                    <span
-                                                        class="fw-700 text-primary">192.19$</span>
-                                                </div>
-                                                <div class="rating rating-sm mt-1">
-                                                    <i class='las la-star'></i><i class='las la-star'></i><i class='las la-star'></i><i class='las la-star'></i><i class='las la-star'></i>
-                                                </div>
-                                                <h3 class="fw-600 fs-13 text-truncate-2 lh-1-4 mb-0 h-35px">
-                                                    <a href="/product/gucci-guilty-pour-homme-mens-perfume-set-3-pieces-edt-90ml-deostick-75ml-shower-gel-50ml-7"
-                                                        class="d-block text-reset">Gucci Guilty Pour Homme Men&#039;s Perfume Set 3 Pieces (EDT 90ml + Deostick 75ml + Shower Gel 50ml)</a>
-                                                </h3>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="carousel-box">
-                                        <div
-                                            class="aiz-card-box border border-light rounded hov-shadow-md my-2 has-transition">
-                                            <div class="">
-                                                <a href="/product/yves-saint-laurent-ysl-mens-perfume-set-ysl-gift-set-ysl-y-3-pieces-100ml-10ml-4"
-                                                    class="d-block">
-                                                    <img class="img-fit lazyload mx-auto h-140px h-md-210px"
-                                                        src="/public/assets/img/placeholder.jpg"
-                                                        data-src="/public/uploads/all/diJoWw72fMqElmfgFGeC0QTypUahBUePoyDqZvWG.jpg"
-                                                        alt="Yves Saint Laurent YSL Men&#039;s Perfume Set YSL Gift Set YSL Y 3 Pieces (100ml + 10ml)"
-                                                        onerror="this.onerror=null;this.src='/public/assets/img/placeholder.jpg';">
-                                                </a>
-                                            </div>
-                                            <div class="p-md-3 p-2 text-left">
-                                                <div class="fs-15">
-                                                    <span
-                                                        class="fw-700 text-primary">228.99$</span>
-                                                </div>
-                                                <div class="rating rating-sm mt-1">
-                                                    <i class='las la-star'></i><i class='las la-star'></i><i class='las la-star'></i><i class='las la-star'></i><i class='las la-star'></i>
-                                                </div>
-                                                <h3 class="fw-600 fs-13 text-truncate-2 lh-1-4 mb-0 h-35px">
-                                                    <a href="/product/yves-saint-laurent-ysl-mens-perfume-set-ysl-gift-set-ysl-y-3-pieces-100ml-10ml-4"
-                                                        class="d-block text-reset">Yves Saint Laurent YSL Men&#039;s Perfume Set YSL Gift Set YSL Y 3 Pieces (100ml + 10ml)</a>
-                                                </h3>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="carousel-box">
-                                        <div
-                                            class="aiz-card-box border border-light rounded hov-shadow-md my-2 has-transition">
-                                            <div class="">
-                                                <a href="/product/yves-saint-laurent-ysl-y-le-parfum-mens-perfume-100ml-4"
-                                                    class="d-block">
-                                                    <img class="img-fit lazyload mx-auto h-140px h-md-210px"
-                                                        src="/public/assets/img/placeholder.jpg"
-                                                        data-src="/public/uploads/all/AqDM4I3OIz6o6DuX6T25EHUI7GFOsfucs3OemXWz.jpg"
-                                                        alt="Yves Saint Laurent YSL Y Le Parfum Men&#039;s Perfume 100ml"
-                                                        onerror="this.onerror=null;this.src='/public/assets/img/placeholder.jpg';">
-                                                </a>
-                                            </div>
-                                            <div class="p-md-3 p-2 text-left">
-                                                <div class="fs-15">
-                                                    <span
-                                                        class="fw-700 text-primary">132.90$</span>
-                                                </div>
-                                                <div class="rating rating-sm mt-1">
-                                                    <i class='las la-star'></i><i class='las la-star'></i><i class='las la-star'></i><i class='las la-star'></i><i class='las la-star'></i>
-                                                </div>
-                                                <h3 class="fw-600 fs-13 text-truncate-2 lh-1-4 mb-0 h-35px">
-                                                    <a href="/product/yves-saint-laurent-ysl-y-le-parfum-mens-perfume-100ml-4"
-                                                        class="d-block text-reset">Yves Saint Laurent YSL Y Le Parfum Men&#039;s Perfume 100ml</a>
-                                                </h3>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="bg-white rounded shadow-sm mt-3">
-                            <div class="border-bottom p-3">
-                                <h3 class="fs-18 fw-600 mb-0">
-                                    <span>Product Queries (0)</span>
-                                </h3>
-                            </div>
-                            <p class="fs-14 fw-400 mb-0 ml-3 mt-2"><a
-                                    href="/users/login">Login</a> or <a class="mr-1"
-                                    href="/users/registration">Register</a>to submit your questions to seller
-                            </p>
-
-                            <div class="pagination-area my-4 mb-0 ml-3">
-                                <div class="border-bottom py-3">
-                                    <h3 class="fs-18 fw-600 mb-0">
-                                        <span>Other Questions</span>
-                                    </h3>
-                                </div>
-                                <p>No none asked to seller yet</p>
-                                <div class="aiz-pagination py-2">
-
-                                </div>
-                            </div>
-                        </div>
-
-                    </div>
-                </div>
-            </div>
-        </section>
-
-
-        <section class="bg-white border-top mt-auto">
-            <div class="container">
-                <div class="row no-gutters">
-                    <div class="col-lg-3 col-md-6">
-                        <a class="text-reset border-left text-center p-4 d-block" href="/terms">
-                            <i class="la la-file-text la-3x text-primary mb-2"></i>
-                            <h4 class="h6">Terms &amp; conditions</h4>
-                        </a>
-                    </div>
-                    <div class="col-lg-3 col-md-6">
-                        <a class="text-reset border-left text-center p-4 d-block" href="/return-policy">
-                            <i class="la la-mail-reply la-3x text-primary mb-2"></i>
-                            <h4 class="h6">Return policy</h4>
-                        </a>
-                    </div>
-                    <div class="col-lg-3 col-md-6">
-                        <a class="text-reset border-left text-center p-4 d-block" href="/support-policy">
-                            <i class="la la-support la-3x text-primary mb-2"></i>
-                            <h4 class="h6">Support Policy</h4>
-                        </a>
-                    </div>
-                    <div class="col-lg-3 col-md-6">
-                        <a class="text-reset border-left border-right text-center p-4 d-block" href="/privacy-policy">
-                            <i class="las la-exclamation-circle la-3x text-primary mb-2"></i>
-                            <h4 class="h6">Privacy policy</h4>
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-
-        <!-- FOOTER -->
-        <?php include("../layout/footer.php")?>
-
-
-
+    // If the query returns no results, use a more lenient approach
+    if (!$purchases_result || mysqli_num_rows($purchases_result) == 0) {
+        // Fallback method - try using LIKE query for partial name match
+        $purchases_query = "SELECT d.id as detail_id, d.order_id, o.code as order_code,
+                           d.quantity as purchase_quantity, d.price, o.delivery_status, o.create_date,
+                           (SELECT COUNT(*) FROM product_reviews WHERE detail_order_id = d.id) as review_count
+                        FROM detail_orders d 
+                        JOIN orders o ON d.order_id = o.id
+                        WHERE d.user_id = $user_id 
+                        AND d.name LIKE '%".substr($escaped_product_name, 0, 30)."%'
+                        ORDER BY o.create_date DESC";
         
+        $purchases_result = mysqli_query($conn, $purchases_query);
+    }
 
+    if ($purchases_result && mysqli_num_rows($purchases_result) > 0) {
+        // Count total purchases and already reviewed
+        $total_purchased = 0;
+        $total_reviewed = 0;
+        $total_pending = 0;
 
-    <div class="modal website-popup removable-session d-none" data-key="website-popup" data-value="removed">
-        <div class="absolute-full bg-black opacity-60"></div>
-        <div class="modal-dialog modal-dialog-centered modal-dialog-zoom modal-md">
-            <div class="modal-content position-relative border-0 rounded-0 pb-5 pt-4 px-5">
-                <div class="aiz-editor-data">
-                    <div style="text-align: center;"><b style="background-color: rgb(255, 255, 0);">
-                            <font style="vertical-align: inherit;">
-                                <font style="vertical-align: inherit;">TRỞ THÀNH ĐẠI LÝ BÁN HÀNG TUYỆT VỜI CỦA&nbsp; </font>
-                            </font>
-                        </b><span style="text-align: left;"><span style="background-color: rgb(255, 255, 0);"><u><b>
-                                        <font style="vertical-align: inherit;">
-                                            <font style="vertical-align: inherit;">GMARKE</font>
-                                        </font>
-                                    </b></u>
-                                <font style="vertical-align: inherit;">
-                                    <font style="vertical-align: inherit;">T</font>
-                                </font>
-                            </span></span><b style="background-color: rgb(255, 255, 0);">
-                            <font style="vertical-align: inherit;">
-                                <font style="vertical-align: inherit;"> , BẠN SẼ RẤT VUI KHI ĐƯỢC THAM QUAN NHỮNG KHO HÀNG HÓA LỚN NHẤT TẠI SEOUL, HÀN QUỐC</font>
-                            </font>
-                        </b></div>
-                    <div style="text-align: center; "><u><b>
-                                <font style="vertical-align: inherit;">
-                                    <font style="vertical-align: inherit;">CHÚC CÁC ĐẠI LÝ BÁN HÀNG MAY MẮN!</font>
-                                </font>
-                            </b></u></div>
-                </div>
-                <button class="absolute-top-right bg-white shadow-lg btn btn-circle btn-icon mr-n3 mt-n3 set-session" data-key="website-popup" data-value="removed" data-toggle="remove-parent" data-parent=".website-popup">
-                    <i class="la la-close fs-20"></i>
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        function confirm_modal(delete_url) {
-            jQuery('#confirm-delete').modal('show', {
-                backdrop: 'static'
-            });
-            document.getElementById('delete_link').setAttribute('href', delete_url);
+        while ($purchase = mysqli_fetch_assoc($purchases_result)) {
+            $total_purchased++;
+            $total_reviewed += intval($purchase['review_count']);
+            
+            // Store unreviewed delivered orders for review
+            if ($purchase['review_count'] == 0 && $purchase['delivery_status'] == 'Delivered') {
+                $unreviewedOrders[] = [
+                    'detail_id' => $purchase['detail_id'],
+                    'order_id' => $purchase['order_id'],
+                    'order_code' => $purchase['order_code'],
+                    'date' => date('d M Y', strtotime($purchase['create_date'])),
+                    'price' => $purchase['price'],
+                    'quantity' => $purchase['purchase_quantity']
+                ];
+            }
+            
+            // Store pending orders
+            if ($purchase['delivery_status'] != 'Delivered' && $purchase['delivery_status'] != 'Cancelled') {
+                $total_pending++;
+                $pendingOrders[] = [
+                    'order_code' => $purchase['order_code'],
+                    'date' => date('d M Y', strtotime($purchase['create_date'])),
+                    'status' => $purchase['delivery_status']
+                ];
+            }
         }
-    </script>
 
-    <div class="modal fade" id="confirm-delete" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
+        // User can review if they have unreviewed orders
+        $can_review = !empty($unreviewedOrders);
+        
+        // User has reviewed if they have purchases but no unreviewed orders
+        $has_reviewed = ($total_purchased > 0 && empty($unreviewedOrders) && empty($pendingOrders));
+    }
+}
 
-                <div class="modal-header">
+// Get related products
+$related_products_query = "SELECT p.*, 
+                          f.src as image_src, 
+                          s.full_name as seller_name, 
+                          s.id as seller_id,
+                          p.unit_price + p.rose + p.profit as price,
+                          (SELECT COALESCE(SUM(quantity), 0) FROM detail_orders WHERE name = p.name) as sold_count
+                     FROM products p
+                     LEFT JOIN file f ON p.thumbnail_image = f.id
+                     LEFT JOIN sellers s ON p.seller_id = s.id
+                     WHERE p.category_id = '{$product['category_id']}' 
+                     AND p.id != '{$product['id']}'
+                     AND p.published = 1 
+                     AND p.seller_id IS NOT NULL
+                     ORDER BY sold_count DESC, p.create_date DESC
+                     LIMIT 6";
+$related_products_result = mysqli_query($conn, $related_products_query);
+$related_products = [];
 
-                    <h4 class="modal-title" id="myModalLabel">Confirmation</h4>
-                </div>
+if ($related_products_result) {
+    while ($related = mysqli_fetch_assoc($related_products_result)) {
+        // Calculate discount for related products
+        $discount_percent = 0;
+        $original_price = $related['unit_price'] ?? 0;
+        $final_price = $related['unit_price'] ?? 0;
 
-                <div class="modal-body">
-                    <p>Delete confirmation message</p>
-                </div>
-
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
-                    <a id="delete_link" class="btn btn-danger btn-ok">Delete</a>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        function account_delete_confirm_modal(delete_url) {
-            jQuery('#account_delete_confirm').modal('show', {
-                backdrop: 'static'
-            });
-            document.getElementById('account_delete_link').setAttribute('href', delete_url);
+        if (!empty($related['discount']) && $related['discount'] > 0) {
+            $discount_percent = $related['discount'];
+            $final_price = $original_price - $discount_percent;
         }
-    </script>
 
-    <div class="modal fade" id="account_delete_confirm" tabindex="-1" role="dialog" aria-labelledby="account_delete_confirmModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
+        $related_products[] = $related;
+    }
+}
 
-                <div class="modal-header d-block py-4">
-                    <div class="d-flex justify-content-center">
-                        <span class="avatar avatar-md mb-2 mt-2">
-                            <img src="/public/assets/img/avatar-place.png" class="image rounded-circle m-auto"
-                                onerror="this.onerror=null;this.src='/public/assets/img/avatar-place.png';">
-                        </span>
-                    </div>
-                    <h4 class="modal-title text-center fw-700" id="account_delete_confirmModalLabel" style="color: #ff9819;">Delete Your Account</h4>
-                    <p class="fs-16 fw-600 text-center" style="color: #8d8d8d;">Warning: You cannot undo this action</p>
-                </div>
+// Helper functions
+function getSellerLogo($logo)
+{
+    if (!empty($logo)) {
+        return "/public/uploads/" . $logo;
+    }
+    return "/public/assets/img/placeholder.jpg";
+}
 
-                <div class="modal-body pt-3 pb-5 px-xl-5">
-                    <p class="text-danger mt-3"><i><strong>Note:&nbsp;Don&#039;t Click to any button or don&#039;t do any action during account Deletion, it may takes some times.</strong></i></p>
-                    <p class="fs-14 fw-700" style="color: #8d8d8d;">Deleting Account Means:</p>
-                    <div class="row bg-soft-warning py-2 mb-2 ml-0 mr-0 border-left border-width-2 border-danger">
-                        <div class="col-1">
-                            <img src="/public/assets/img/warning.png" class="h-20px">
-                        </div>
-                        <div class="col">
-                            <p class="fw-600 mb-0">If you create any classified ptoducts, after deleting your account, those products will no longer in our system</p>
-                        </div>
-                    </div>
-                    <div class="row bg-soft-warning py-3 ml-0 mr-0 border-left border-width-2 border-danger">
-                        <div class="col-1">
-                            <img src="/public/assets/img/warning.png" class="h-20px">
-                        </div>
-                        <div class="col">
-                            <p class="fw-600 mb-0">After deleting your account, wallet balance no longer in our system</p>
-                        </div>
-                    </div>
-                </div>
+function renderStars($rating)
+{
+    $rating = min(5, max(0, $rating));
+    $full_stars = floor($rating);
+    $half_star = $rating - $full_stars >= 0.5;
+    $empty_stars = 5 - $full_stars - ($half_star ? 1 : 0);
 
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
-                    <a id="account_delete_link" class="btn btn-danger btn-rounded btn-ok">Delete Account</a>
-                </div>
-            </div>
+    $html = '';
+    for ($i = 0; $i < $full_stars; $i++) {
+        $html .= '<i class="fas fa-star"></i>';
+    }
+    if ($half_star) {
+        $html .= '<i class="fas fa-star-half-alt"></i>';
+    }
+    for ($i = 0; $i < $empty_stars; $i++) {
+        $html .= '<i class="far fa-star"></i>';
+    }
+    return $html;
+}
+
+function formatDate($date)
+{
+    if (!$date) return 'N/A';
+    return date('M Y', strtotime($date));
+}
+?>
+
+<style>
+    /* Shopee UI Color Variables */
+    :root {
+        --shopee-orange: #ee4d2d;
+        --shopee-orange-light: #f6422e;
+        --shopee-orange-dark: #d73211;
+        --shopee-yellow: #faca51;
+        --shopee-light-bg: #fff9f8;
+        --shopee-gray: #f5f5f5;
+    }
+
+    /* Utility Classes */
+    .text-shopee-orange { color: var(--shopee-orange) !important; }
+    .bg-shopee-orange { background-color: var(--shopee-orange) !important; }
+    .hover\:bg-shopee-orange-dark:hover { background-color: var(--shopee-orange-dark) !important; }
+    .border-shopee-orange { border-color: var(--shopee-orange) !important; }
+    .text-shopee-yellow { color: var(--shopee-yellow) !important; }
+    .bg-shopee-light { background-color: var(--shopee-light-bg) !important; }
+    .bg-shopee-gray { background-color: var(--shopee-gray) !important; }
+
+    /* Rating stars */
+    .shopee-rating { color: var(--shopee-yellow); }
+
+    /* Button Styles */
+    .btn-shopee {
+        background-color: var(--shopee-orange);
+        color: white;
+        transition: all 0.2s;
+        border-radius: 2px;
+        font-weight: 500;
+    }
+    .btn-shopee:hover {
+        background-color: var(--shopee-orange-dark);
+    }
+    .btn-shopee-outline {
+        border: 1px solid var(--shopee-orange);
+        color: var(--shopee-orange);
+        transition: all 0.2s;
+        border-radius: 2px;
+    }
+    .btn-shopee-outline:hover {
+        background-color: rgba(238, 77, 45, 0.1);
+    }
+
+    /* Rating Progress Bar */
+    .rating-progress {
+        height: 6px;
+        background-color: #efefef;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    .rating-progress-bar {
+        height: 100%;
+        background-color: var(--shopee-yellow);
+    }
+
+    /* Product Card */
+    .product-card {
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .product-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Gallery Thumbnails */
+    .gallery-thumbnail {
+        border: 1px solid #e0e0e0;
+        transition: all 0.2s;
+        cursor: pointer;
+    }
+    .gallery-thumbnail.active {
+        border-color: var(--shopee-orange);
+    }
+    .gallery-thumbnail:hover {
+        border-color: var(--shopee-orange);
+    }
+
+    /* Flash Badge */
+    .flash-badge {
+        background-color: var(--shopee-orange);
+        color: white;
+        font-weight: 500;
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 2px;
+        display: inline-block;
+    }
+
+    /* Form Controls */
+    .form-control-shopee {
+        border: 1px solid #e0e0e0;
+        border-radius: 2px;
+        padding: 0.5rem 0.75rem;
+        transition: border 0.2s;
+    }
+    .form-control-shopee:focus {
+        border-color: var(--shopee-orange);
+        box-shadow: none;
+        outline: none;
+    }
+
+    /* Quantity Selector */
+    .quantity-selector {
+        display: flex;
+        border: 1px solid #e0e0e0;
+        border-radius: 2px;
+        overflow: hidden;
+    }
+    .quantity-selector button {
+        width: 32px;
+        height: 32px;
+        background-color: #fff;
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #757575;
+        font-size: 1rem;
+        transition: background-color 0.2s;
+    }
+    .quantity-selector button:hover {
+        background-color: #f5f5f5;
+    }
+    .quantity-selector input {
+        width: 50px;
+        height: 32px;
+        border: none;
+        border-left: 1px solid #e0e0e0;
+        border-right: 1px solid #e0e0e0;
+        text-align: center;
+    }
+</style>
+
+<div class="bg-shopee-gray min-h-screen pb-6">
+    <!-- Main Content -->
+    <div class="max-w-screen-xl mx-auto px-2 sm:px-4 py-3">
+        <!-- Meta tags for SEO -->
+        <meta name="user-id" content="<?= $isLogged ? $chatUserId : '' ?>">
+<meta name="user-type" content="<?= $chatUserType ?>">
+<meta name="user-name" content="<?= $chatUserName ?>">
+        <meta name="description" content="<?= $product['meta_description'] ?? htmlspecialchars($product['name']) . ' - Shop now at Takashimaya' ?>">
+        <meta name="keywords" content="<?= $product['tags'] ?? '' ?>, <?= $product['brand_name'] ?? '' ?>, <?= $product['category_name'] ?? '' ?>">
+        <meta property="og:title" content="<?= htmlspecialchars($product['name']) ?>">
+        <meta property="og:description" content="<?= $product['meta_description'] ?? htmlspecialchars($product['name']) . ' - Shop now at Takashimaya' ?>">
+        <meta property="og:image" content="<?= $thumbnail_img ?>">
+        <meta property="og:url" content="<?= 'https://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'] ?>">
+        <meta property="og:type" content="product">
+        <meta property="product:price:amount" content="<?= $product['unit_price'] - ($product['discount'] ?? 0) ?>">
+        <meta property="product:price:currency" content="USD">
+        <meta property="product:availability" content="<?= $in_stock ? 'in stock' : 'out of stock' ?>">
+        
+        <!-- Breadcrumb -->
+        <div class="text-xs text-gray-500 mb-3 bg-white p-3 rounded shadow-sm">
+            <a href="/" class="hover:text-shopee-orange">Home</a> &gt;
+            <a href="/category/<?= $product['category_path'] ?? '' ?>" class="hover:text-shopee-orange"><?= $product['category_name'] ?? 'Uncategorized' ?></a>
+            <?php if ($seller): ?> &gt;
+                <a href="/shop.php?id=<?= $seller['id'] ?>" class="hover:text-shopee-orange"><?= htmlspecialchars($seller['full_name']) ?></a>
+            <?php endif; ?> &gt;
+            <span class="text-gray-700"><?= $product['name'] ?></span>
         </div>
-    </div>
 
-    <div class="modal fade" id="addToCart">
-        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-zoom product-modal" id="modal-size" role="document">
-            <div class="modal-content position-relative">
-                <div class="c-preloader text-center p-3">
-                    <i class="las la-spinner la-spin la-3x"></i>
-                </div>
-                <button type="button" class="close absolute-top-right btn-icon close z-1" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true" class="la-2x">&times;</span>
-                </button>
-                <div id="addToCart-modal-body">
-
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal fade" id="chat_modal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
-        aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-dialog-zoom product-modal" id="modal-size" role="document">
-            <div class="modal-content position-relative">
-                <div class="modal-header">
-                    <h5 class="modal-title fw-600 h5">Any query about this product</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <form class="" action="/conversations" method="POST"
-                    enctype="multipart/form-data">
-                    <input type="hidden" name="_token" value="wvMgOUXtuodYgokIYXfGrTbnAqyB6TKhLSqS5Lop"> <input type="hidden" name="product_id" value="<?=$p['id']?>">
-                    <input type="hidden" name="seller" value="1"> 
-
-                    <div class="modal-body gry-bg px-3 pt-3">
-                        <div class="form-group">
-                            <input type="text" class="form-control mb-3" name="title"
-                                value="<?=$p['name']?>" placeholder="Product Name"
-                                required>
+        <!-- Product Section -->
+        <div class="bg-white rounded-sm shadow-sm mb-3">
+            <div class="flex flex-col md:flex-row p-4">
+                <!-- Left: Product Images -->
+                <div class="md:w-[40%] pr-0 md:pr-6">
+                    <!-- Main Image -->
+                    <div class="border border-gray-100 mb-2 relative rounded-sm overflow-hidden product-image-container">
+                        <div class="aspect-square overflow-hidden">
+                            <img id="main-product-image" src="<?= $thumbnail_img ?>" alt="<?= $product['name'] ?>" class="w-full h-full object-contain">
                         </div>
-                        <div class="form-group">
-                            <textarea class="form-control" rows="8" name="message" required
-                                placeholder="Your Question">/product/valentino-uomo-intense-edp-100ml-8oQ9f-qpqY7</textarea>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-outline-primary fw-600"
-                            data-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary fw-600">Send</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal -->
-    <div class="modal fade" id="login_modal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-zoom" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h6 class="modal-title fw-600">Login</h6>
-                    <button type="button" class="close" data-dismiss="modal">
-                        <span aria-hidden="true"></span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <div class="p-3">
-                        <form class="form-default" role="form" action="/users/login"
-                            method="POST">
-                            <input type="hidden" name="_token" value="wvMgOUXtuodYgokIYXfGrTbnAqyB6TKhLSqS5Lop">
-                            <div class="form-group">
-                                <input type="text" class="form-control h-auto form-control-lg "value="" placeholder="Email"name="email">
+                        <?php if (!$in_stock): ?>
+                            <div class="absolute inset-0 bg-black/60 flex items-center justify-center">
+                                <div class="bg-black/70 text-white px-4 py-2 font-bold">OUT OF STOCK</div>
                             </div>
-
-                            <div class="form-group">
-                                <input type="password" name="password" class="form-control h-auto form-control-lg"
-                                    placeholder="Password">
+                        <?php endif; ?>
+                        <?php if ($discount_percent > 0): ?>
+                            <div class="absolute top-2 right-2">
+                                <div class="flash-badge">-<?= ceil(($product['discount'] / $product['unit_price']) * 100) ?>%</div>
                             </div>
+                        <?php endif; ?>
+                    </div>
 
-                            <div class="row mb-2">
-                                <div class="col-6">
-                                    <label class="aiz-checkbox">
-                                        <input type="checkbox" name="remember">
-                                        <span class=opacity-60>Remember Me</span>
-                                        <span class="aiz-square-check"></span>
-                                    </label>
+                    <!-- Thumbnails -->
+                    <?php if (!empty($gallery_images)): ?>
+                        <div class="flex space-x-2 overflow-x-auto py-1">
+                            <?php foreach ($gallery_images as $index => $img): ?>
+                                <div class="w-16 h-16 gallery-thumbnail <?= $index === 0 ? 'active' : '' ?>"
+                                    data-src="/public/uploads/all/<?= $img['src'] ?>">
+                                    <img src="/public/uploads/all/<?= $img['src'] ?>" alt="" class="w-full h-full object-cover">
                                 </div>
-                                <div class="col-6 text-right">
-                                    <a href="/password/reset"
-                                        class="text-reset opacity-60 fs-14">Forgot password?</a>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+
+                    <!-- Social Share -->
+                    <div class="flex items-center mt-6 space-x-3 text-sm text-gray-500 border-t border-gray-100 pt-3">
+                        <span>Share:</span>
+                        <div class="flex space-x-2">
+                            <a href="#" class="w-8 h-8 rounded-full bg-[#3b5998] text-white flex items-center justify-center hover:opacity-90">
+                                <i class="fab fa-facebook-f"></i>
+                            </a>
+                            <a href="#" class="w-8 h-8 rounded-full bg-[#E60023] text-white flex items-center justify-center hover:opacity-90">
+                                <i class="fab fa-pinterest"></i>
+                            </a>
+                            <a href="#" class="w-8 h-8 rounded-full bg-[#1DA1F2] text-white flex items-center justify-center hover:opacity-90">
+                                <i class="fab fa-twitter"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Product Details -->
+                <div class="md:w-[60%] mt-6 md:mt-0">
+                    <div class="flex items-center space-x-2">
+                        <?php if ($discount_percent > 0): ?>
+                            <span class="flash-badge">SALE</span>
+                        <?php endif; ?>
+                        <span class="inline-block bg-[#D0011B] text-white text-xs px-2 py-1 rounded-sm">HOT</span>
+                        <?php if ($product['type_product'] === 'digital'): ?>
+                            <span class="inline-block bg-[#1877F2] text-white text-xs px-2 py-1 rounded-sm">DIGITAL</span>
+                        <?php endif; ?>
+                    </div>
+
+                    <h1 class="text-xl font-normal mb-2 mt-2 product-title"><?= $product['name'] ?></h1>
+
+                    <!-- Ratings and Sold Count -->
+                    <div class="flex flex-wrap items-center mb-3 text-sm">
+                        <div class="flex items-center">
+                            <span class="text-shopee-orange font-medium mr-1"><?= number_format($avg_rating, 1) ?></span>
+                            <div class="flex shopee-rating text-sm mr-2">
+                                <?= renderStars($avg_rating) ?>
+                            </div>
+                        </div>
+                        <div class="mx-2 h-4 w-[1px] bg-gray-300"></div>
+                        <div>
+                            <span class="text-gray-500"><?= $total_reviews ?> Ratings</span>
+                        </div>
+                        <div class="mx-2 h-4 w-[1px] bg-gray-300"></div>
+                        <div>
+                            <span class="font-medium"><?= $product['sold_count'] ?> Sold</span>
+                        </div>
+                    </div>
+
+                    <!-- Price -->
+                    <div class="bg-shopee-light p-4 rounded-sm mb-4">
+                        <?php if (!empty($product['discount']) && $product['discount'] > 0): ?>
+                            <div class="flex items-center">
+                                <div class="text-gray-500 line-through text-sm" id="product-original-price">$<?= number_format($product['unit_price'], 0, '.', ',') ?></div>
+                            </div>
+                            <div class="flex items-end mt-1">
+                                <div class="text-shopee-orange text-3xl font-medium product-price" id="product-final-price">$<?= number_format($product['unit_price'] - $product['discount'], 0, '.', ',') ?></div>
+                                <div class="ml-3 flash-badge" id="product-discount-percent">
+                                    <?= ceil(($product['discount'] / $product['unit_price']) * 100) ?>% OFF
+                                </div>
+                            </div>
+                        <?php else: ?>
+                            <div class="text-shopee-orange text-3xl font-medium product-price" id="product-final-price">$<?= number_format($product['unit_price'], 0, '.', ',') ?></div>
+                        <?php endif; ?>
+                    </div>
+
+                    <!-- Product Details -->
+                    <div class="border-b border-gray-100 pb-4 mb-4">
+                        <!-- Deal -->
+                        <?php if ($discount_percent > 0): ?>
+                            <div class="flex mb-3">
+                                <div class="w-28 text-gray-500">Deal</div>
+                                <div class="flex items-center">
+                                    <span class="flash-badge">Save $<?= number_format($product['discount'] ?? 0, 0, '.', ',') ?></span>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+
+                        <!-- Unit -->
+                        <?php if (!empty($product['unit'])): ?>
+                            <div class="flex mb-3">
+                                <div class="w-28 text-gray-500">Unit</div>
+                                <div><?= htmlspecialchars($product['unit']) ?></div>
+                            </div>
+                        <?php endif; ?>
+
+                        <!-- Weight -->
+                        <?php if (!empty($product['weight'])): ?>
+                            <div class="flex mb-3">
+                                <div class="w-28 text-gray-500">Weight</div>
+                                <div><?= htmlspecialchars($product['weight']) ?> kg</div>
+                            </div>
+                        <?php endif; ?>
+
+                        <!-- Minimum quantity -->
+                        <?php if (!empty($product['minimum_quantity']) && $product['minimum_quantity'] > 1): ?>
+                            <div class="flex mb-3">
+                                <div class="w-28 text-gray-500">Min. Order</div>
+                                <div><?= htmlspecialchars($product['minimum_quantity']) ?> units</div>
+                            </div>
+                        <?php endif; ?>
+
+                        <!-- Barcode -->
+                        <?php if (!empty($product['barcode'])): ?>
+                            <div class="flex mb-3">
+                                <div class="w-28 text-gray-500">Barcode</div>
+                                <div><?= htmlspecialchars($product['barcode']) ?></div>
+                            </div>
+                        <?php endif; ?>
+
+                        <!-- Tags -->
+                        <?php if (!empty($product['tags'])): ?>
+                            <div class="flex mb-3">
+                                <div class="w-28 text-gray-500">Tags</div>
+                                <div class="flex flex-wrap gap-1">
+                                    <?php foreach (explode(',', $product['tags']) as $tag): ?>
+                                        <span class="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-sm"><?= htmlspecialchars(trim($tag)) ?></span>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+
+                        <!-- Type -->
+                        <?php if (!empty($product['type_product'])): ?>
+                            <div class="flex mb-3">
+                                <div class="w-28 text-gray-500">Type</div>
+                                <div class="capitalize"><?= htmlspecialchars($product['type_product']) ?></div>
+                            </div>
+                        <?php endif; ?>
+
+                        <!-- SKU -->
+                        <?php if (!empty($product['sku'])): ?>
+                            <div class="flex mb-3">
+                                <div class="w-28 text-gray-500">SKU</div>
+                                <div><?= htmlspecialchars($product['sku']) ?></div>
+                            </div>
+                        <?php endif; ?>
+
+                        <!-- Brand -->
+                        <?php if (!empty($product['brand_name'])): ?>
+                            <div class="flex mb-3">
+                                <div class="w-28 text-gray-500">Brand</div>
+                                <div><?= htmlspecialchars($product['brand_name']) ?></div>
+                            </div>
+                        <?php endif; ?>
+
+                        <!-- Delivery -->
+                        <div class="flex mb-3">
+                            <div class="w-28 text-gray-500">Delivery</div>
+                            <div>
+                                <div class="flex items-center">
+                                    <i class="fas fa-truck text-shopee-orange mr-2"></i>
+                                    <span>Free Shipping</span>
+                                </div>
+                                <div class="text-xs text-gray-500 mt-1">Ships from <?= $seller ? htmlspecialchars($seller['full_name']) : 'Warehouse' ?></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <?php if ($in_stock): ?>
+                        <form id="option-choice-form">
+                            <input type="hidden" name="id" value="<?= $product['id'] ?>">
+                            <input type="hidden" name="seller" value="<?= $product['seller_id'] ?>">
+                            <input type="hidden" name="price" value="<?= $product['unit_price'] - ($product['discount'] ?? 0) ?>">
+                            <input type="hidden" name="original_price" value="<?= $product['unit_price'] ?>">
+                            <input type="hidden" name="discount" value="<?= $product['discount'] ?? 0 ?>">
+
+                            <!-- Quantity -->
+                            <div class="flex flex-wrap items-center mb-6">
+                                <div class="w-28 text-gray-500">Quantity</div>
+                                <div class="flex items-center">
+                                    <div class="quantity-selector">
+                                        <button type="button" id="quantity-minus" class="text-lg">-</button>
+                                        <input type="text" name="quantity" class="shopee-input" value="1" min="1" max="<?= $product['quantity'] ?>">
+                                        <button type="button" id="quantity-plus" class="text-lg">+</button>
+                                    </div>
+                                    <div class="ml-3 text-gray-500 text-sm"><?= $product['quantity'] ?> pieces available</div>
                                 </div>
                             </div>
 
-                            <div class="mb-5">
-                                <button type="submit" name="submit" class="btn btn-primary btn-block fw-600">Login</button>
+                            <!-- Buttons -->
+                            <div class="flex flex-wrap gap-3 mt-6">
+                                <button type="button" onclick="addToCart()" class="px-5 py-3 btn-shopee-outline flex items-center flex-1 justify-center">
+                                    <i class="fas fa-cart-plus mr-2"></i> Add to Cart
+                                </button>
+                                <button type="button" onclick="buyNow()" class="px-5 py-3 btn-shopee flex-1 flex items-center justify-center">
+                                    Buy Now
+                                </button>
                             </div>
                         </form>
+                    <?php else: ?>
+                        <div class="text-red-500 font-medium bg-red-50 p-4 rounded-sm text-center">This product is currently out of stock.</div>
+                    <?php endif; ?>
 
-                        <div class="text-center mb-3">
-                            <p class="text-muted mb-0">Dont have an account?</p>
-                            <a href="/users/registration">Register Now</a>
-                        </div>
-                        <div class="separator mb-3">
-                            <span class="bg-white px-3 opacity-60">Or Login With</span>
-                        </div>
-                        <ul class="list-inline social colored text-center mb-5">
-                            <li class="list-inline-item">
-                                <a href="/social-login/redirect/facebook"
-                                    class="facebook">
-                                    <i class="lab la-facebook-f"></i>
-                                </a>
-                            </li>
-                            <li class="list-inline-item">
-                                <a href="/social-login/redirect/google"
-                                    class="google">
-                                    <i class="lab la-google"></i>
-                                </a>
-                            </li>
-                            <li class="list-inline-item">
-                                <a href="/social-login/redirect/twitter"
-                                    class="twitter">
-                                    <i class="lab la-twitter"></i>
-                                </a>
-                            </li>
-                            <li class="list-inline-item">
-                                <a href="/social-login/redirect/apple"
-                                    class="apple">
-                                    <i class="lab la-apple"></i>
-                                </a>
-                            </li>
-                        </ul>
+                    <!-- Shopee Guarantee -->
+                    <div class="flex items-center mt-6 pt-3 border-t border-gray-100">
+                        <img src="/public/assets/img/guarantee.webp" alt=" Guarantee" class="h-5 mr-2">
+                        <span class="text-xs text-gray-500"> Guarantee: Get the item you ordered or get your money back.</span>
                     </div>
+
+                    <!-- Shop Info -->
+                    <?php if ($seller): ?>
+                        <div class="border-t border-gray-200 mt-6 pt-4">
+                            <div class="flex items-center">
+                                <img src="<?= getSellerLogo($seller['shop_logo']) ?>" alt="<?= htmlspecialchars($seller['full_name']) ?>" class="w-12 h-12 rounded-full border object-cover">
+                                <div class="ml-3 flex-1">
+                                    <h3 class="font-medium"><?= htmlspecialchars($seller['full_name']) ?></h3>
+                                    <div class="flex items-center text-xs text-gray-500 mt-1">
+                                        <span>Active 5 minutes ago</span>
+                                        <span class="mx-1">•</span>
+                                        <span>Since <?= formatDate($seller['create_date']) ?></span>
+                                    </div>
+                                </div>
+                                <div class="hidden md:block">
+                                    <a href="/shop.php?id=<?= $seller['id'] ?>" class="px-4 py-1.5 btn-shopee-outline inline-block">
+                                        View Shop
+                                    </a>
+                                </div>
+                            </div>
+
+                            <!-- Shop stats -->
+                            <div class="grid grid-cols-3 gap-4 mt-4 text-center text-xs">
+                                <div class="p-2 border border-gray-100 rounded-sm hover:border-shopee-orange transition-colors">
+                                    <div class="text-gray-500 mb-1">Products</div>
+                                    <div class="font-medium"><?= $seller['product_count'] ?? 0 ?></div>
+                                </div>
+                                <div class="p-2 border border-gray-100 rounded-sm hover:border-shopee-orange transition-colors">
+                                    <div class="text-gray-500 mb-1">Rating</div>
+                                    <div class="font-medium flex justify-center shopee-rating">
+                                        <?= renderStars($seller['rating'] ?? 0) ?>
+                                    </div>
+                                </div>
+                                <div class="p-2 border border-gray-100 rounded-sm hover:border-shopee-orange transition-colors">
+                                    <div class="text-gray-500 mb-1">Response</div>
+                                    <div class="font-medium"><?= $seller['response_rate'] ?? '98%' ?></div>
+                                </div>
+                            </div>
+
+                            <div class="flex mt-3 space-x-3">
+                                <?php if ($isLogged): ?>
+                                    <button class="shop-chat-button flex-1 py-2 border border-gray-300 rounded-sm text-center hover:bg-gray-50 text-gray-700 text-sm"
+                                        data-seller-id="<?= $seller['id'] ?>"
+                                        data-seller-name="<?= htmlspecialchars($seller['full_name']) ?>">
+                                        <i class="far fa-comment-dots mr-1"></i> Chat Now
+                                    </button>
+                                <?php else: ?>
+                                    <a href="/users/login.php?redirect=<?= urlencode($_SERVER['REQUEST_URI']) ?>" class="flex-1 py-2 border border-gray-300 rounded-sm text-center hover:bg-gray-50 text-gray-700 text-sm">
+                                        <i class="far fa-comment-dots mr-1"></i> Login to Chat
+                                    </a>
+                                <?php endif; ?>
+                                <a href="/shop.php?id=<?= $seller['id'] ?>" class="flex-1 py-2 border border-gray-300 rounded-sm text-center hover:bg-gray-50 text-gray-700 text-sm md:hidden">
+                                    <i class="fas fa-store-alt mr-1"></i> View Shop
+                                </a>
+                            </div>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
+
+        <!-- Product Description Section -->
+        <div class="bg-white rounded-sm shadow-sm p-4 mb-3">
+            <h2 class="text-xl font-medium mb-4 text-shopee-orange border-b border-gray-100 pb-2">Product Description</h2>
+            <div class="product-description text-gray-800">
+                <?= $product['description'] ?>
+            </div>
+        </div>
+
+        <!-- Product Ratings Section -->
+        <div class="bg-white rounded-sm shadow-sm p-4 mb-3" id="product-reviews">
+            <h2 class="text-xl font-medium pb-3 mb-4 text-shopee-orange border-b border-gray-100">Ratings & Reviews</h2>
+
+            <div class="flex flex-col md:flex-row gap-6">
+                <!-- Rating summary -->
+                <div class="md:w-1/3 flex flex-col items-center justify-center p-4 md:border-r border-gray-100">
+                    <div class="text-3xl font-medium text-shopee-orange mb-1"><?= $avg_rating ?><span class="text-sm text-gray-500">/5</span></div>
+                    <div class="flex shopee-rating justify-center text-xl mb-4">
+                        <?= renderStars($avg_rating) ?>
+                    </div>
+                    <div class="text-sm text-gray-500"><?= $total_reviews ?> ratings</div>
+
+                    <!-- Rating distribution -->
+                    <?php if ($total_reviews > 0): ?>
+                        <div class="w-full mt-4">
+                            <?php
+                            $star_ratings = [
+                                5 => $review_stats['five_star'] ?? 0,
+                                4 => $review_stats['four_star'] ?? 0,
+                                3 => $review_stats['three_star'] ?? 0,
+                                2 => $review_stats['two_star'] ?? 0,
+                                1 => $review_stats['one_star'] ?? 0
+                            ];
+
+                            foreach ($star_ratings as $stars => $count):
+                                $percent = $total_reviews > 0 ? ($count / $total_reviews) * 100 : 0;
+                            ?>
+                                <div class="flex items-center mb-1">
+                                    <div class="w-10 text-xs text-gray-500"><?= $stars ?> <i class="fas fa-star text-shopee-yellow"></i></div>
+                                    <div class="flex-1 mx-2">
+                                        <div class="rating-progress">
+                                            <div class="rating-progress-bar" style="width: <?= $percent ?>%"></div>
+                                        </div>
+                                    </div>
+                                    <div class="w-8 text-xs text-gray-500"><?= $count ?></div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if ($can_review && !empty($unreviewedOrders)): ?>
+                        <div class="mt-4 w-full">
+                            <button type="button" onclick="showReviewForm()" class="w-full py-2 btn-shopee">
+                                Write a Review (<?= count($unreviewedOrders) ?> order<?= count($unreviewedOrders) > 1 ? 's' : '' ?> to review)
+                            </button>
+                        </div>
+                    <?php elseif (!empty($pendingOrders)): ?>
+                        <div class="mt-4 w-full">
+                            <div class="w-full py-2 bg-blue-100 text-blue-700 rounded-sm text-center">
+                                You have <?= count($pendingOrders) ?> pending order<?= count($pendingOrders) > 1 ? 's' : '' ?> that will be available for review once delivered
+                            </div>
+                        </div>
+                    <?php elseif ($has_reviewed): ?>
+                        <div class="mt-4 w-full">
+                            <div class="w-full py-2 bg-gray-100 text-gray-600 rounded-sm text-center">
+                                You've reviewed all your purchases
+                            </div>
+                        </div>
+                    <?php elseif ($isLogged && empty($unreviewedOrders) && empty($pendingOrders)): ?>
+                        <div class="mt-4 w-full">
+                            <div class="w-full py-2 bg-yellow-100 text-yellow-700 rounded-sm text-center">
+                                Please purchase this product to leave a review
+                            </div>
+                        </div>
+                    <?php elseif (!$isLogged): ?>
+                        <div class="mt-4 w-full">
+                            <a href="/users/login.php?redirect=<?= urlencode($_SERVER['REQUEST_URI']) ?>" class="block text-center w-full py-2 bg-gray-200 text-gray-700 rounded-sm hover:bg-gray-300">
+                                Login to Review
+                            </a>
+                        </div>
+                    <?php endif; ?>
+                </div>
+
+                <!-- Review list -->
+                <div class="md:w-2/3">
+                    <?php if (!empty($reviews)): ?>
+                        <?php foreach ($reviews as $review): ?>
+                            <div class="review-card">
+                                <div class="flex items-start">
+                                    <div class="w-10 h-10 rounded-full mr-3 bg-gray-200 flex items-center justify-center overflow-hidden">
+                                        <span class="text-gray-500 font-bold text-lg"><?= substr($review['user_name'] ?? 'U', 0, 1) ?></span>
+                                    </div>
+                                    <div class="flex-1">
+                                        <div class="flex justify-between">
+                                            <div class="font-medium"><?= htmlspecialchars($review['user_name'] ?? 'Anonymous') ?></div>
+                                            <div class="text-xs text-gray-500">
+                                                <?= date('d M Y', strtotime($review['created_at'] ?? 'now')) ?>
+                                            </div>
+                                        </div>
+                                        <div class="flex shopee-rating text-xs my-1">
+                                            <?= renderStars($review['rating'] ?? 0) ?>
+                                        </div>
+                                        <div class="text-xs text-gray-500 mb-2">
+                                            Order: #<?= $review['order_id'] ?? '-' ?> • Purchased <?= $review['purchase_count'] ?? 0 ?> time(s)
+                                        </div>
+                                        <div class="text-sm"><?= nl2br(htmlspecialchars($review['comment'] ?? '')) ?></div>
+
+                                        <?php if (!empty($review['images'])): ?>
+                                            <div class="flex flex-wrap gap-2 mt-2">
+                                                <?php
+                                                $images = explode(',', $review['images']);
+                                                foreach ($images as $img): ?>
+                                                    <div class="w-16 h-16 border border-gray-200 rounded-sm overflow-hidden gallery-thumbnail">
+                                                        <img src="/public/uploads/reviews/<?= $img ?>" alt="Review image" class="w-full h-full object-cover cursor-pointer" onclick="showImageModal(this.src)">
+                                                    </div>
+                                                <?php endforeach; ?>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+
+                        <?php if ($total_reviews > count($reviews)): ?>
+                            <div class="text-center mt-4">
+                                <a href="/product-reviews.php?id=<?= $product['id'] ?>" class="px-5 py-2 btn-shopee-outline inline-block">
+                                    See All Reviews (<?= $total_reviews ?>)
+                                </a>
+                            </div>
+                        <?php endif; ?>
+                    <?php else: ?>
+                        <div class="py-6 text-center text-gray-500">
+                            <div class="text-5xl shopee-rating mb-2">
+                                <i class="fas fa-star"></i>
+                            </div>
+                            <p class="mb-4">No reviews yet for this product</p>
+                            <?php if ($can_review && !empty($unreviewedOrders)): ?>
+                                <button onclick="showReviewForm()" class="px-4 py-2 btn-shopee-outline">
+                                    Be the first to review
+                                </button>
+                            <?php elseif (!$isLogged): ?>
+                                <a href="/users/login.php?redirect=<?= urlencode($_SERVER['REQUEST_URI']) ?>" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-sm text-sm hover:bg-gray-50">
+                                    Login to review this product
+                                </a>
+                            <?php endif; ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+
+        <!-- Review Form Modal -->
+        <?php if ($can_review && !empty($unreviewedOrders)): ?>
+            <div id="review-modal" class="fixed inset-0 z-50 hidden">
+                <div class="absolute inset-0 bg-black/50" onclick="hideReviewForm()"></div>
+                <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-xl p-3">
+                    <div class="bg-white rounded-sm shadow-xl">
+                        <div class="flex items-center justify-between px-6 py-4 border-b">
+                            <h3 class="font-medium text-lg">Write Your Review</h3>
+                            <button type="button" onclick="hideReviewForm()" class="text-gray-400 hover:text-gray-600">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+
+                        <div class="p-6">
+                            <form id="review-form" action="/submit-review.php" method="POST" enctype="multipart/form-data">
+                                <input type="hidden" name="product_id" value="<?= $product['id'] ?>">
+
+                                <!-- Order selection dropdown if multiple unreviewed orders -->
+                                <?php if (count($unreviewedOrders) > 1): ?>
+                                    <div class="mb-4">
+                                        <label for="order-select" class="block text-gray-700 mb-2">Select Order to Review</label>
+                                        <select id="order-select" class="w-full px-3 py-2 form-control-shopee" onchange="updateOrderDetails()">
+                                            <?php foreach ($unreviewedOrders as $index => $order): ?>
+                                                <option value="<?= $index ?>"
+                                                    data-order-id="<?= $order['order_id'] ?>"
+                                                    data-detail-id="<?= $order['detail_id'] ?>"
+                                                    data-order-code="<?= $order['order_code'] ?>"
+                                                    data-date="<?= $order['date'] ?>"
+                                                    data-price="<?= $order['price'] ?>"
+                                                    data-quantity="<?= $order['quantity'] ?>">
+                                                    Order #<?= $order['order_code'] ?> (<?= $order['date'] ?>) - <?= $order['quantity'] ?> item(s)
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                <?php endif; ?>
+
+                                <input type="hidden" name="order_id" id="order_id" value="<?= $unreviewedOrders[0]['order_id'] ?>">
+                                <input type="hidden" name="detail_order_id" id="detail_order_id" value="<?= $unreviewedOrders[0]['detail_id'] ?>">
+
+                                <!-- Order details -->
+                                <div class="mb-4 p-3 bg-gray-50 rounded-sm">
+                                    <div class="text-sm">
+                                        <div><strong>Order:</strong> <span id="order-code">#<?= $unreviewedOrders[0]['order_code'] ?></span></div>
+                                        <div><strong>Purchased:</strong> <span id="order-date"><?= $unreviewedOrders[0]['date'] ?></span></div>
+                                        <div><strong>Quantity:</strong> <span id="order-quantity"><?= $unreviewedOrders[0]['quantity'] ?></span> units</div>
+                                    </div>
+                                </div>
+
+                                <!-- Rating stars -->
+                                <div class="mb-4">
+                                    <label class="block text-gray-700 mb-2">Your Rating</label>
+                                    <div class="flex space-x-2 text-2xl review-stars">
+                                        <?php for ($i = 1; $i <= 5; $i++): ?>
+                                            <i class="far fa-star cursor-pointer hover:text-shopee-orange" data-rating="<?= $i ?>"></i>
+                                        <?php endfor; ?>
+                                    </div>
+                                    <input type="hidden" name="rating" id="rating-input" value="0">
+                                </div>
+
+                                <!-- Review comment -->
+                                <div class="mb-4">
+                                    <label for="review-comment" class="block text-gray-700 mb-2">Your Review</label>
+                                    <textarea id="review-comment" name="comment" rows="4" class="w-full px-3 py-2 form-control-shopee" placeholder="Share your experience with this product..."></textarea>
+                                </div>
+
+                                <!-- Image upload -->
+                                <div class="mb-4">
+                                    <label class="block text-gray-700 mb-2">Upload Photos (Optional)</label>
+                                    <div class="border-dashed border-2 border-gray-300 p-4 text-center rounded-sm hover:border-shopee-orange transition-colors">
+                                        <input type="file" name="review_images[]" id="review-images" class="hidden" multiple accept="image/*">
+                                        <label for="review-images" class="cursor-pointer">
+                                            <i class="fas fa-cloud-upload-alt text-3xl text-gray-400"></i>
+                                            <p class="mt-2 text-sm text-gray-600">Click to upload images</p>
+                                        </label>
+                                        <div id="image-preview" class="flex flex-wrap gap-2 mt-2"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Submit button -->
+                                <div class="flex justify-end">
+                                    <button type="button" onclick="hideReviewForm()" class="px-4 py-2 border border-gray-300 rounded-sm text-sm mr-2 hover:bg-gray-50">Cancel</button>
+                                    <button type="submit" class="px-4 py-2 btn-shopee text-sm">Submit Review</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        <?php endif; ?>
+
+        <!-- Image Viewer Modal -->
+        <div id="image-modal" class="fixed inset-0 z-50 hidden">
+            <div class="absolute inset-0 bg-black/80" onclick="hideImageModal()"></div>
+            <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 max-w-3xl w-full p-4">
+                <button type="button" onclick="hideImageModal()" class="absolute top-4 right-4 text-white text-2xl z-10">
+                    <i class="fas fa-times"></i>
+                </button>
+                <img id="modal-image" src="" alt="Review image" class="max-w-full max-h-[80vh] mx-auto">
+            </div>
+        </div>
+
+        <!-- Success/Error Message Toast -->
+        <div id="toast-message" class="fixed top-4 right-4 z-50 hidden">
+            <div id="toast-content" class="bg-white shadow-lg rounded-sm p-4 max-w-md border-l-4"></div>
+        </div>
+
     </div>
+</div>
 
-    <!-- SCRIPTS -->
-    <script src="/public/assets/js/vendors.js"></script>
-    <script src="/public/assets/js/aiz-core.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Gallery thumbnails functionality
+        const thumbItems = document.querySelectorAll('[data-src]');
+        const mainImage = document.getElementById('main-product-image');
 
+        thumbItems.forEach(item => {
+            item.addEventListener('click', function() {
+                // Remove active class from all thumbnails
+                thumbItems.forEach(thumb => thumb.classList.remove('border-shopee-orange'));
 
+                // Add active class to clicked thumbnail
+                this.classList.add('border-shopee-orange');
 
-
-    <script>
-    </script>
-
-    <script>
-        $(document).ready(function() {
-            $('.category-nav-element').each(function(i, el) {
-                $(el).on('mouseover', function() {
-                    if (!$(el).find('.sub-cat-menu').hasClass('loaded')) {
-                        $.post('/category/nav-element-list', {
-                            _token: AIZ.data.csrf,
-                            id: $(el).data('id')
-                        }, function(data) {
-                            $(el).find('.sub-cat-menu').addClass('loaded').html(data);
-                        });
-                    }
-                });
+                // Update main image
+                mainImage.src = this.getAttribute('data-src');
             });
-            if ($('#lang-change').length > 0) {
-                $('#lang-change .dropdown-menu a').each(function() {
-                    $(this).on('click', function(e) {
-                        e.preventDefault();
-                        var $this = $(this);
-                        var locale = $this.data('flag');
-                        $.post('/language', {
-                            _token: AIZ.data.csrf,
-                            locale: locale
-                        }, function(data) {
-                            location.reload();
-                        });
+        });
 
+        // Quantity buttons functionality
+        const qtyInput = document.querySelector('input[name="quantity"]');
+        const minusBtn = document.getElementById('quantity-minus');
+        const plusBtn = document.getElementById('quantity-plus');
+
+        if (minusBtn && plusBtn && qtyInput) {
+            minusBtn.addEventListener('click', function() {
+                const currentValue = parseInt(qtyInput.value);
+                if (currentValue > parseInt(qtyInput.min)) {
+                    qtyInput.value = currentValue - 1;
+                }
+            });
+
+            plusBtn.addEventListener('click', function() {
+                const currentValue = parseInt(qtyInput.value);
+                if (currentValue < parseInt(qtyInput.max)) {
+                    qtyInput.value = currentValue + 1;
+                }
+            });
+        }
+
+        // Show toast message if present in URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('success')) {
+            showToast(urlParams.get('success'), 'success');
+        } else if (urlParams.has('error')) {
+            showToast(urlParams.get('error'), 'error');
+        }
+
+        // Review stars functionality
+        const stars = document.querySelectorAll('.review-stars i');
+        const ratingInput = document.getElementById('rating-input');
+
+        if (stars && ratingInput) {
+            stars.forEach(star => {
+                star.addEventListener('click', function() {
+                    const rating = this.getAttribute('data-rating');
+                    ratingInput.value = rating;
+
+                    // Update stars display
+                    stars.forEach(s => {
+                        const starRating = parseInt(s.getAttribute('data-rating'));
+                        if (starRating <= rating) {
+                            s.classList.remove('far');
+                            s.classList.add('fas', 'text-shopee-yellow');
+                        } else {
+                            s.classList.remove('fas', 'text-shopee-yellow');
+                            s.classList.add('far');
+                        }
                     });
                 });
-            }
 
-            if ($('#currency-change').length > 0) {
-                $('#currency-change .dropdown-menu a').each(function() {
-                    $(this).on('click', function(e) {
-                        e.preventDefault();
-                        var $this = $(this);
-                        var currency_code = $this.data('currency');
-                        $.post('/currency', {
-                            _token: AIZ.data.csrf,
-                            currency_code: currency_code
-                        }, function(data) {
-                            location.reload();
-                        });
+                // Hover effects
+                star.addEventListener('mouseover', function() {
+                    const rating = parseInt(this.getAttribute('data-rating'));
 
+                    stars.forEach(s => {
+                        const starRating = parseInt(s.getAttribute('data-rating'));
+                        if (starRating <= rating) {
+                            s.classList.add('text-shopee-yellow');
+                        }
                     });
                 });
-            }
-        });
 
-        $('#search').on('keyup', function() {
-            search();
-        });
+                star.addEventListener('mouseout', function() {
+                    const currentRating = parseInt(ratingInput.value);
 
-        $('#search').on('focus', function() {
-            search();
-        });
-
-        function search() {
-            var searchKey = $('#search').val();
-            if (searchKey.length > 0) {
-                $('body').addClass("typed-search-box-shown");
-
-                $('.typed-search-box').removeClass('d-none');
-                $('.search-preloader').removeClass('d-none');
-                $.post('/ajax-search', {
-                    _token: AIZ.data.csrf,
-                    search: searchKey
-                }, function(data) {
-                    if (data == '0') {
-                        // $('.typed-search-box').addClass('d-none');
-                        $('#search-content').html(null);
-                        $('.typed-search-box .search-nothing').removeClass('d-none').html('Sorry, nothing found for <strong>"' + searchKey + '"</strong>');
-                        $('.search-preloader').addClass('d-none');
-
-                    } else {
-                        $('.typed-search-box .search-nothing').addClass('d-none').html(null);
-                        $('#search-content').html(data);
-                        $('.search-preloader').addClass('d-none');
-                    }
+                    stars.forEach(s => {
+                        const starRating = parseInt(s.getAttribute('data-rating'));
+                        if (starRating > currentRating) {
+                            s.classList.remove('text-shopee-yellow');
+                        }
+                    });
                 });
-            } else {
-                $('.typed-search-box').addClass('d-none');
-                $('body').removeClass("typed-search-box-shown");
-            }
-        }
-
-        function updateNavCart(view, count) {
-            $('.cart-count').html(count);
-            $('#cart_items').html(view);
-        }
-
-        function removeFromCart(key) {
-            $.post('/cart/removeFromCart', {
-                _token: AIZ.data.csrf,
-                id: key
-            }, function(data) {
-                updateNavCart(data.nav_cart_view, data.cart_count);
-                $('#cart-summary').html(data.cart_view);
-                AIZ.plugins.notify('success', "Item has been removed from cart");
-                $('#cart_items_sidenav').html(parseInt($('#cart_items_sidenav').html()) - 1);
             });
         }
 
-        function addToCompare(id) {
-            $.post('/compare/addToCompare', {
-                _token: AIZ.data.csrf,
-                id: id
-            }, function(data) {
-                $('#compare').html(data);
-                AIZ.plugins.notify('success', "Item has been added to compare list");
-                $('#compare_items_sidenav').html(parseInt($('#compare_items_sidenav').html()) + 1);
-            });
-        }
+        // Image preview functionality
+        const imageInput = document.getElementById('review-images');
+        const imagePreview = document.getElementById('image-preview');
 
-        function addToWishList(id) {
-            AIZ.plugins.notify('warning', "Please login first");
-        }
+        if (imageInput && imagePreview) {
+            imageInput.addEventListener('change', function() {
+                imagePreview.innerHTML = '';
 
-        function showAddToCartModal(id) {
-            if (!$('#modal-size').hasClass('modal-lg')) {
-                $('#modal-size').addClass('modal-lg');
-            }
-            $('#addToCart-modal-body').html(null);
-            $('#addToCart').modal();
-            $('.c-preloader').show();
-            $.post('/cart/show-cart-modal', {
-                _token: AIZ.data.csrf,
-                id: id
-            }, function(data) {
-                $('.c-preloader').hide();
-                $('#addToCart-modal-body').html(data);
-                AIZ.plugins.slickCarousel();
-                AIZ.plugins.zoom();
-                AIZ.extra.plusMinus();
-                getVariantPrice();
-            });
-        }
-
-        $('#option-choice-form input').on('change', function() {
-            getVariantPrice();
-        });
-
-        function getVariantPrice() {
-            if ($('#option-choice-form input[name=quantity]').val() > 0 && checkAddToCartValidity()) {
-                $.ajax({
-                    type: "POST",
-                    url: '/product/variant_price',
-                    data: $('#option-choice-form').serializeArray(),
-                    success: function(data) {
-
-                        $('.product-gallery-thumb .carousel-box').each(function(i) {
-                            if ($(this).data('variation') && data.variation == $(this).data('variation')) {
-                                $('.product-gallery-thumb').slick('slickGoTo', i);
-                            }
-                        })
-
-                        $('#option-choice-form #chosen_price_div').removeClass('d-none');
-                        $('#option-choice-form #chosen_price_div #chosen_price').html(data.price);
-                        $('#available-quantity').html(data.quantity);
-                        $('.input-number').prop('max', data.max_limit);
-                        if (parseInt(data.in_stock) == 0 && data.digital == 0) {
-                            $('.buy-now').addClass('d-none');
-                            $('.add-to-cart').addClass('d-none');
-                            $('.out-of-stock').removeClass('d-none');
-                        } else {
-                            $('.buy-now').removeClass('d-none');
-                            $('.add-to-cart').removeClass('d-none');
-                            $('.out-of-stock').addClass('d-none');
+                if (this.files) {
+                    Array.from(this.files).forEach(file => {
+                        if (!file.type.match('image.*')) {
+                            return;
                         }
 
-                        AIZ.extra.plusMinus();
-                    }
-                });
-            }
-        }
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            const imgWrap = document.createElement('div');
+                            imgWrap.className = 'relative w-16 h-16';
 
-        function checkAddToCartValidity() {
-            var names = {};
-            $('#option-choice-form input:radio').each(function() { // find unique names
-                names[$(this).attr('name')] = true;
-            });
-            var count = 0;
-            $.each(names, function() { // then count them
-                count++;
-            });
+                            const img = document.createElement('img');
+                            img.src = e.target.result;
+                            img.className = 'w-full h-full object-cover border border-gray-200 rounded';
+                            imgWrap.appendChild(img);
 
-            if ($('#option-choice-form input:radio:checked').length == count) {
-                return true;
-            }
-
-            return false;
-        }
-
-        function addToCart() {
-
-            if (checkAddToCartValidity()) {
-                $('#addToCart').modal();
-                $('.c-preloader').show();
-                $.ajax({
-                    type: "POST",
-                    url: '/cart/addtocart',
-                    data: $('#option-choice-form').serializeArray(),
-                    success: function(data) {
-
-                        $('#addToCart-modal-body').html(null);
-                        $('.c-preloader').hide();
-                        $('#modal-size').removeClass('modal-lg');
-                        $('#addToCart-modal-body').html(data.modal_view);
-                        AIZ.extra.plusMinus();
-                        AIZ.plugins.slickCarousel();
-                        updateNavCart(data.nav_cart_view, data.cart_count);
-                    }
-                });
-            } else {
-                AIZ.plugins.notify('warning', "Please choose all the options");
-            }
-        }
-
-        function buyNow() {
-
-            if (checkAddToCartValidity()) {
-                $('#addToCart-modal-body').html(null);
-                $('#addToCart').modal();
-                $('.c-preloader').show();
-                $.ajax({
-                    type: "POST",
-                    url: '/cart/addtocart',
-                    data: $('#option-choice-form').serializeArray(),
-                    success: function(data) {
-                        if (data.status == 1) {
-
-                            $('#addToCart-modal-body').html(data.modal_view);
-                            updateNavCart(data.nav_cart_view, data.cart_count);
-
-                            window.location.replace("/cart");
-                        } else {
-                            $('#addToCart-modal-body').html(null);
-                            $('.c-preloader').hide();
-                            $('#modal-size').removeClass('modal-lg');
-                            $('#addToCart-modal-body').html(data.modal_view);
-                        }
-                    }
-                });
-            } else {
-                AIZ.plugins.notify('warning', "Please choose all the options");
-            }
-        }
-    </script>
-
-    <script type="text/javascript">
-        $(document).ready(function() {
-            getVariantPrice();
-        });
-
-        function CopyToClipboard(e) {
-            var url = $(e).data('url');
-            var $temp = $("<input>");
-            $("body").append($temp);
-            $temp.val(url).select();
-            try {
-                document.execCommand("copy");
-                AIZ.plugins.notify('success', 'Link copied to clipboard');
-            } catch (err) {
-                AIZ.plugins.notify('danger', 'Oops, unable to copy');
-            }
-            $temp.remove();
-            // if (document.selection) {
-            //     var range = document.body.createTextRange();
-            //     range.moveToElementText(document.getElementById(containerid));
-            //     range.select().createTextRange();
-            //     document.execCommand("Copy");
-
-            // } else if (window.getSelection) {
-            //     var range = document.createRange();
-            //     document.getElementById(containerid).style.display = "block";
-            //     range.selectNode(document.getElementById(containerid));
-            //     window.getSelection().addRange(range);
-            //     document.execCommand("Copy");
-            //     document.getElementById(containerid).style.display = "none";
-
-            // }
-            // AIZ.plugins.notify('success', 'Copied');
-        }
-
-        function show_chat_modal() {
-            <?php if($isLogin){?>
-                $('#chat_modal').modal('show');
-            <?php }else{?>
-            $('#login_modal').modal('show');
-            <?php }?>
-        }
-
-        // Pagination using ajax
-        $(window).on('hashchange', function() {
-            if (window.location.hash) {
-                var page = window.location.hash.replace('#', '');
-                if (page == Number.NaN || page <= 0) {
-                    return false;
-                } else {
-                    getQuestions(page);
-                }
-            }
-        });
-
-        $(document).ready(function() {
-            $(document).on('click', '.pagination a', function(e) {
-                getQuestions($(this).attr('href').split('page=')[1]);
-                e.preventDefault();
-            });
-        });
-
-        function getQuestions(page) {
-            $.ajax({
-                url: '?page=' + page,
-                dataType: 'json',
-            }).done(function(data) {
-                $('.pagination-area').html(data);
-                location.hash = page;
-            }).fail(function() {
-                alert('Something went worng! Questions could not be loaded.');
-            });
-        }
-        // Pagination end
-    </script>
-
-    <script type='text/javascript'>
-        var $jscomp = $jscomp || {};
-        $jscomp.scope = {};
-        $jscomp.arrayIteratorImpl = function(b) {
-            var d = 0;
-            return function() {
-                return d < b.length ? {
-                    done: !1,
-                    value: b[d++]
-                } : {
-                    done: !0
-                }
-            }
-        };
-        $jscomp.arrayIterator = function(b) {
-            return {
-                next: $jscomp.arrayIteratorImpl(b)
-            }
-        };
-        $jscomp.ASSUME_ES5 = !1;
-        $jscomp.ASSUME_NO_NATIVE_MAP = !1;
-        $jscomp.ASSUME_NO_NATIVE_SET = !1;
-        $jscomp.SIMPLE_FROUND_POLYFILL = !1;
-        $jscomp.defineProperty = $jscomp.ASSUME_ES5 || "function" == typeof Object.defineProperties ? Object.defineProperty : function(b, d, a) {
-            b != Array.prototype && b != Object.prototype && (b[d] = a.value)
-        };
-        $jscomp.getGlobal = function(b) {
-            return "undefined" != typeof window && window === b ? b : "undefined" != typeof global && null != global ? global : b
-        };
-        $jscomp.global = $jscomp.getGlobal(this);
-        $jscomp.SYMBOL_PREFIX = "jscomp_symbol_";
-        $jscomp.initSymbol = function() {
-            $jscomp.initSymbol = function() {};
-            $jscomp.global.Symbol || ($jscomp.global.Symbol = $jscomp.Symbol)
-        };
-        $jscomp.Symbol = function() {
-            var b = 0;
-            return function(d) {
-                return $jscomp.SYMBOL_PREFIX + (d || "") + b++
-            }
-        }();
-        $jscomp.initSymbolIterator = function() {
-            $jscomp.initSymbol();
-            var b = $jscomp.global.Symbol.iterator;
-            b || (b = $jscomp.global.Symbol.iterator = $jscomp.global.Symbol("iterator"));
-            "function" != typeof Array.prototype[b] && $jscomp.defineProperty(Array.prototype, b, {
-                configurable: !0,
-                writable: !0,
-                value: function() {
-                    return $jscomp.iteratorPrototype($jscomp.arrayIteratorImpl(this))
-                }
-            });
-            $jscomp.initSymbolIterator = function() {}
-        };
-        $jscomp.initSymbolAsyncIterator = function() {
-            $jscomp.initSymbol();
-            var b = $jscomp.global.Symbol.asyncIterator;
-            b || (b = $jscomp.global.Symbol.asyncIterator = $jscomp.global.Symbol("asyncIterator"));
-            $jscomp.initSymbolAsyncIterator = function() {}
-        };
-        $jscomp.iteratorPrototype = function(b) {
-            $jscomp.initSymbolIterator();
-            b = {
-                next: b
-            };
-            b[$jscomp.global.Symbol.iterator] = function() {
-                return this
-            };
-            return b
-        };
-        $jscomp.iteratorFromArray = function(b, d) {
-            $jscomp.initSymbolIterator();
-            b instanceof String && (b += "");
-            var a = 0,
-                c = {
-                    next: function() {
-                        if (a < b.length) {
-                            var e = a++;
-                            return {
-                                value: d(e, b[e]),
-                                done: !1
-                            }
-                        }
-                        c.next = function() {
-                            return {
-                                done: !0,
-                                value: void 0
-                            }
+                            imagePreview.appendChild(imgWrap);
                         };
-                        return c.next()
-                    }
-                };
-            c[Symbol.iterator] = function() {
-                return c
-            };
-            return c
-        };
-        $jscomp.polyfill = function(b, d, a, c) {
-            if (d) {
-                a = $jscomp.global;
-                b = b.split(".");
-                for (c = 0; c < b.length - 1; c++) {
-                    var e = b[c];
-                    e in a || (a[e] = {});
-                    a = a[e]
-                }
-                b = b[b.length - 1];
-                c = a[b];
-                d = d(c);
-                d != c && null != d && $jscomp.defineProperty(a, b, {
-                    configurable: !0,
-                    writable: !0,
-                    value: d
-                })
-            }
-        };
-        $jscomp.polyfill("Array.prototype.values", function(b) {
-            return b ? b : function() {
-                return $jscomp.iteratorFromArray(this, function(b, a) {
-                    return a
-                })
-            }
-        }, "es8", "es3");
-        $jscomp.findInternal = function(b, d, a) {
-            b instanceof String && (b = String(b));
-            for (var c = b.length, e = 0; e < c; e++) {
-                var l = b[e];
-                if (d.call(a, l, e, b)) return {
-                    i: e,
-                    v: l
-                }
-            }
-            return {
-                i: -1,
-                v: void 0
-            }
-        };
-        $jscomp.polyfill("Array.prototype.find", function(b) {
-            return b ? b : function(b, a) {
-                return $jscomp.findInternal(this, b, a).v
-            }
-        }, "es6", "es3");
-        (function(b) {
-            function d(a, c) {
-                this._initialized = !1;
-                this.settings = null;
-                this.popups = [];
-                this.options = b.extend({}, d.Defaults, c);
-                this.$element = b(a);
-                this.init();
-                this.y = this.x = 0;
-                this._interval;
-                this._callbackOpened = this._popupOpened = this._menuOpened = !1;
-                this.countdown = null
-            }
-            d.Defaults = {
-                activated: !1,
-                pluginVersion: "2.0.1",
-                wordpressPluginVersion: !1,
-                align: "right",
-                mode: "regular",
-                countdown: 0,
-                drag: !1,
-                buttonText: "Contact us",
-                buttonSize: "large",
-                menuSize: "normal",
-                buttonIcon: '<svg width="20" height="20" viewBox="0 0 20 20" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><g transform="translate(-825 -308)"><g><path transform="translate(825 308)" fill="#FFFFFF" d="M 19 4L 17 4L 17 13L 4 13L 4 15C 4 15.55 4.45 16 5 16L 16 16L 20 20L 20 5C 20 4.45 19.55 4 19 4ZM 15 10L 15 1C 15 0.45 14.55 0 14 0L 1 0C 0.45 0 0 0.45 0 1L 0 15L 4 11L 14 11C 14.55 11 15 10.55 15 10Z"/></g></g></svg>',
-                ajaxUrl: "server.php",
-                action: "callback",
-                phonePlaceholder: "+X-XXX-XXX-XX-XX",
-                callbackSubmitText: "Waiting for call",
-                reCaptcha: !1,
-                reCaptchaAction: "callbackRequest",
-                reCaptchaKey: "",
-                errorMessage: "Connection error. Please try again.",
-                callProcessText: "We are calling you to phone",
-                callSuccessText: "Thank you.<br>We are call you back soon.",
-                showMenuHeader: !1,
-                menuHeaderText: "How would you like to contact us?",
-                showHeaderCloseBtn: !0,
-                menuInAnimationClass: "show-messageners-block",
-                menuOutAnimationClass: "",
-                eaderCloseBtnBgColor: "#787878",
-                eaderCloseBtnColor: "#FFFFFF",
-                items: [],
-                itemsIconType: "rounded",
-                iconsAnimationSpeed: 800,
-                iconsAnimationPause: 2E3,
-                promptPosition: "side",
-                callbackFormFields: {
-                    name: {
-                        name: "name",
-                        enabled: !0,
-                        required: !0,
-                        type: "text",
-                        label: "Please enter your name",
-                        placeholder: "Your full name"
-                    },
-                    email: {
-                        name: "email",
-                        enabled: !0,
-                        required: !1,
-                        type: "email",
-                        label: "Enter your email address",
-                        placeholder: "Optional field. Example: email@domain.com"
-                    },
-                    time: {
-                        name: "time",
-                        enabled: !0,
-                        required: !1,
-                        type: "dropdown",
-                        label: "Please choose schedule time",
-                        values: [{
-                            value: "asap",
-                            label: "Call me ASAP"
-                        }, "00:00", "01:00", "02:00", "03:00", "04:00", "05:00", "06:00", "07:00", "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00", "23:00"]
-                    },
-                    phone: {
-                        name: "phone",
-                        enabled: !0,
-                        required: !0,
-                        type: "tel",
-                        label: "Please enter your phone number",
-                        placeholder: "+X-XXX-XXX-XX-XX"
-                    },
-                    description: {
-                        name: "description",
-                        enabled: !0,
-                        required: !1,
-                        type: "textarea",
-                        label: "Please leave a message with your request"
-                    }
-                },
-                theme: "#000000",
-                callbackFormText: "Please enter your phone number<br>and we call you back soon",
-                closeIcon: '<svg width="12" height="13" viewBox="0 0 14 14" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><g transform="translate(-4087 108)"><g><path transform="translate(4087 -108)" fill="currentColor" d="M 14 1.41L 12.59 0L 7 5.59L 1.41 0L 0 1.41L 5.59 7L 0 12.59L 1.41 14L 7 8.41L 12.59 14L 14 12.59L 8.41 7L 14 1.41Z"></path></g></g></svg>',
-                callbackStateIcon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M493.4 24.6l-104-24c-11.3-2.6-22.9 3.3-27.5 13.9l-48 112c-4.2 9.8-1.4 21.3 6.9 28l60.6 49.6c-36 76.7-98.9 140.5-177.2 177.2l-49.6-60.6c-6.8-8.3-18.2-11.1-28-6.9l-112 48C3.9 366.5-2 378.1.6 389.4l24 104C27.1 504.2 36.7 512 48 512c256.1 0 464-207.5 464-464 0-11.2-7.7-20.9-18.6-23.4z"></path></svg>'
-            };
-            d.prototype.init = function() {
-                if (this._initialized) return !1;
-                this.destroy();
-                this.settings = b.extend({}, this.options);
-                this.$element.addClass("arcontactus-widget").addClass("arcontactus-message");
-                "left" === this.settings.align ? this.$element.addClass("left") : this.$element.addClass("right");
-                this.settings.items.length ? (this.$element.append("\x3c!--noindex--\x3e"), this._initCallbackBlock(), "regular" == this.settings.mode && this._initMessengersBlock(), this.popups.length && this._initPopups(), this._initMessageButton(),
-                    this._initPrompt(), this._initEvents(), this.startAnimation(), this.$element.append("\x3c!--/noindex--\x3e"), this.$element.addClass("active")) : console.info("jquery.contactus:no items");
-                this._initialized = !0;
-                this.$element.trigger("arcontactus.init")
-            };
-            d.prototype.destroy = function() {
-                if (!this._initialized) return !1;
-                this.$element.html("");
-                this._initialized = !1;
-                this.$element.trigger("arcontactus.destroy")
-            };
-            d.prototype._initCallbackBlock = function() {
-                var a = b("<div>", {
-                        class: "callback-countdown-block",
-                        style: this._colorStyle()
-                    }),
-                    c = b("<div>", {
-                        class: "callback-countdown-block-close",
-                        style: "background-color:" + this.settings.theme + "; color: #FFFFFF"
-                    });
-                c.append(this.settings.closeIcon);
-                var e = b("<div>", {
-                    class: "callback-countdown-block-phone"
-                });
-                e.append("<p>" + this.settings.callbackFormText + "</p>");
-                var d = b("<form>", {
-                        id: "arcu-callback-form",
-                        action: this.settings.ajaxUrl,
-                        method: "POST"
-                    }),
-                    h = b("<div>", {
-                        class: "callback-countdown-block-form-group"
-                    }),
-                    f = b("<input>", {
-                        name: "action",
-                        type: "hidden",
-                        value: this.settings.action
-                    }),
-                    g = b("<input>", {
-                        name: "gtoken",
-                        class: "ar-g-token",
-                        type: "hidden",
-                        value: ""
-                    });
-                h.append(f);
-                h.append(g);
-                this._initCallbackFormFields(h);
-                f = b("<div>", {
-                    class: "arcu-form-group arcu-form-button"
-                });
-                g = b("<button>", {
-                    id: "arcontactus-message-callback-phone-submit",
-                    type: "submit",
-                    style: this._backgroundStyle()
-                });
-                g.text(this.settings.callbackSubmitText);
-                f.append(g);
-                h.append(f);
-                f = b("<div>", {
-                    class: "callback-countdown-block-timer"
-                });
-                g = b("<p>" + this.settings.callProcessText + "</p>");
-                var k = b("<div>", {
-                    class: "callback-countdown-block-timer_timer"
-                });
-                f.append(g);
-                f.append(k);
-                g = b("<div>", {
-                    class: "callback-countdown-block-sorry"
-                });
-                k = b("<p>" + this.settings.callSuccessText + "</p>");
-                g.append(k);
-                d.append(h);
-                e.append(d);
-                a.append(c);
-                a.append(e);
-                a.append(f);
-                a.append(g);
-                this.$element.append(a)
-            };
-            d.prototype._initCallbackFormFields = function(a) {
-                var c = this;
-                b.each(c.settings.callbackFormFields, function(e) {
-                    var d = b("<div>", {
-                            class: "arcu-form-group arcu-form-group-type-" + c.settings.callbackFormFields[e].type + " arcu-form-group-" + c.settings.callbackFormFields[e].name + (c.settings.callbackFormFields[e].required ?
-                                " arcu-form-group-required" : "")
-                        }),
-                        h = "<input>";
-                    switch (c.settings.callbackFormFields[e].type) {
-                        case "textarea":
-                            h = "<textarea>";
-                            break;
-                        case "dropdown":
-                            h = "<select>"
-                    }
-                    if (c.settings.callbackFormFields[e].label) {
-                        var f = b("<div>", {
-                            class: "arcu-form-label"
-                        });
-                        f.html(c.settings.callbackFormFields[e].label);
-                        d.append(f)
-                    }
-                    var g = b(h, {
-                        name: c.settings.callbackFormFields[e].name,
-                        class: "arcu-form-field arcu-field-" + c.settings.callbackFormFields[e].name,
-                        required: c.settings.callbackFormFields[e].required,
-                        type: "dropdown" == c.settings.callbackFormFields[e].type ?
-                            null : c.settings.callbackFormFields[e].type,
-                        value: ""
-                    });
-                    g.attr("placeholder", c.settings.callbackFormFields[e].placeholder);
-                    "undefined" != typeof c.settings.callbackFormFields[e].maxlength && g.attr("maxlength", c.settings.callbackFormFields[e].maxlength);
-                    "dropdown" == c.settings.callbackFormFields[e].type && b.each(c.settings.callbackFormFields[e].values, function(a) {
-                        var d = c.settings.callbackFormFields[e].values[a],
-                            l = c.settings.callbackFormFields[e].values[a];
-                        "object" == typeof c.settings.callbackFormFields[e].values[a] &&
-                            (d = c.settings.callbackFormFields[e].values[a].value, l = c.settings.callbackFormFields[e].values[a].label);
-                        a = b("<option>", {
-                            value: d
-                        });
-                        a.text(l);
-                        g.append(a)
-                    });
-                    d.append(g);
-                    a.append(d)
-                })
-            };
-            d.prototype._initPopups = function() {
-                var a = this,
-                    c = b("<div>", {
-                        class: "popups-block arcuAnimated"
-                    }),
-                    e = b("<div>", {
-                        class: "popups-list-container"
-                    });
-                b.each(this.popups, function() {
-                    var c = b("<div>", {
-                            class: "arcu-popup",
-                            id: "arcu-popup-" + this.id
-                        }),
-                        d = b("<div>", {
-                            class: "arcu-popup-header",
-                            style: a.settings.theme ? "background-color:" + a.settings.theme : null
-                        }),
-                        f = b("<div>", {
-                            class: "arcu-popup-close",
-                            style: a.settings.theme ? "background-color:" + a.settings.theme : null
-                        }),
-                        g = b("<div>", {
-                            class: "arcu-popup-back",
-                            style: a.settings.theme ? "background-color:" + a.settings.theme : null
-                        });
-                    f.append(a.settings.closeIcon);
-                    g.append('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512"><path fill="currentColor" d="M231.293 473.899l19.799-19.799c4.686-4.686 4.686-12.284 0-16.971L70.393 256 251.092 74.87c4.686-4.686 4.686-12.284 0-16.971L231.293 38.1c-4.686-4.686-12.284-4.686-16.971 0L4.908 247.515c-4.686 4.686-4.686 12.284 0 16.971L214.322 473.9c4.687 4.686 12.285 4.686 16.971-.001z" class=""></path></svg>');
-                    d.text(this.title);
-                    d.append(f);
-                    d.append(g);
-                    f = b("<div>", {
-                        class: "arcu-popup-content"
-                    });
-                    f.html(this.popupContent);
-                    c.append(d);
-                    c.append(f);
-                    e.append(c)
-                });
-                c.append(e);
-                this.$element.append(c)
-            };
-            d.prototype._initMessengersBlock = function() {
-                var a = b("<div>", {
-                        class: "messangers-block arcuAnimated"
-                    }),
-                    c = b("<div>", {
-                        class: "messangers-list-container"
-                    }),
-                    e = b("<ul>", {
-                        class: "messangers-list"
-                    });
-                "normal" !== this.settings.menuSize && "large" !== this.settings.menuSize || a.addClass("lg");
-                "small" === this.settings.menuSize && a.addClass("sm");
-                this._appendMessengerIcons(e);
-                if (this.settings.showMenuHeader) {
-                    var d = b("<div>", {
-                        class: "arcu-menu-header",
-                        style: this.settings.theme ? "background-color:" + this.settings.theme : null
-                    });
-                    d.html(this.settings.menuHeaderText);
-                    if (this.settings.showHeaderCloseBtn) {
-                        var h = b("<div>", {
-                            class: "arcu-header-close",
-                            style: "color:" + this.settings.headerCloseBtnColor + "; background:" + this.settings.headerCloseBtnBgColor
-                        });
-                        h.append(this.settings.closeIcon);
-                        d.append(h)
-                    }
-                    a.append(d);
-                    a.addClass("has-header")
-                }
-                "rounded" == this.settings.itemsIconType ?
-                    e.addClass("rounded-items") : e.addClass("not-rounded-items");
-                c.append(e);
-                a.append(c);
-                this.$element.append(a)
-            };
-            d.prototype._appendMessengerIcons = function(a) {
-                var c = this;
-                b.each(this.settings.items, function(e) {
-                    e = b("<li>", {});
-                    if ("callback" == this.href) var d = b("<div>", {
-                        class: "messanger call-back " + (this.class ? this.class : "")
-                    });
-                    else if ("_popup" == this.href) c.popups.push(this), d = b("<div>", {
-                        class: "messanger arcu-popup-link " + (this.class ? this.class : ""),
-                        "data-id": this.id ? this.id : null
-                    });
-                    else if (d = b("<a>", {
-                            class: "messanger " +
-                                (this.class ? this.class : ""),
-                            id: this.id ? this.id : null,
-                            href: this.href
-                        }), this.onClick) {
-                        var h = this;
-                        d.on("click", function(a) {
-                            h.onClick(a)
-                        })
-                    }
-                    var f = "rounded" == c.settings.itemsIconType ? b("<span>", {
-                        style: this.color ? "background-color:" + this.color : null
-                    }) : b("<span>", {
-                        style: (this.color ? "color:" + this.color : null) + "; background-color: transparent"
-                    });
-                    f.append(this.icon);
-                    d.append(f);
-                    f = b("<div>", {
-                        class: "arcu-item-label"
-                    });
-                    var g = b("<div>", {
-                        class: "arcu-item-title"
-                    });
-                    g.text(this.title);
-                    f.append(g);
-                    "undefined" != typeof this.subTitle && this.subTitle && (g = b("<div>", {
-                        class: "arcu-item-subtitle"
-                    }), g.text(this.subTitle), f.append(g));
-                    d.append(f);
-                    e.append(d);
-                    a.append(e)
-                })
-            };
-            d.prototype._initMessageButton = function() {
-                var a = this,
-                    c = b("<div>", {
-                        class: "arcontactus-message-button",
-                        style: this._backgroundStyle()
-                    });
-                "large" === this.settings.buttonSize && this.$element.addClass("lg");
-                "huge" === this.settings.buttonSize && this.$element.addClass("hg");
-                "medium" === this.settings.buttonSize && this.$element.addClass("md");
-                "small" === this.settings.buttonSize && this.$element.addClass("sm");
-                var e = b("<div>", {
-                    class: "static"
-                });
-                e.append(this.settings.buttonIcon);
-                !1 !== this.settings.buttonText ? e.append("<p>" + this.settings.buttonText + "</p>") : c.addClass("no-text");
-                var d = b("<div>", {
-                    class: "callback-state",
-                    style: a._colorStyle()
-                });
-                d.append(this.settings.callbackStateIcon);
-                var h = b("<div>", {
-                        class: "icons hide"
-                    }),
-                    f = b("<div>", {
-                        class: "icons-line"
-                    });
-                b.each(this.settings.items, function(c) {
-                    c = b("<span>", {
-                        style: a._colorStyle()
-                    });
-                    c.append(this.icon);
-                    f.append(c)
-                });
-                h.append(f);
-                var g = b("<div>", {
-                    class: "arcontactus-close"
-                });
-                g.append(this.settings.closeIcon);
-                var k = b("<div>", {
-                        class: "pulsation",
-                        style: a._backgroundStyle()
-                    }),
-                    m = b("<div>", {
-                        class: "pulsation",
-                        style: a._backgroundStyle()
-                    });
-                c.append(e).append(d).append(h).append(g).append(k).append(m);
-                this.$element.append(c)
-            };
-            d.prototype._initPrompt = function() {
-                var a = b("<div>", {
-                        class: "arcontactus-prompt arcu-prompt-" + this.settings.promptPosition
-                    }),
-                    c = b("<div>", {
-                        class: "arcontactus-prompt-close",
-                        style: this._backgroundStyle() +
-                            "; color: #FFFFFF"
-                    });
-                c.append(this.settings.closeIcon);
-                var e = b("<div>", {
-                    class: "arcontactus-prompt-inner"
-                });
-                a.append(c).append(e);
-                this.$element.append(a)
-            };
-            d.prototype._initEvents = function() {
-                var a = this.$element,
-                    c = this;
-                a.find(".arcontactus-message-button").on("mousedown", function(a) {
-                    c.x = a.pageX;
-                    c.y = a.pageY
-                }).on("mouseup", function(a) {
-                    if (c.settings.drag && a.pageX === c.x && a.pageY === c.y || !c.settings.drag) "regular" == c.settings.mode ? c._menuOpened || c._popupOpened || c._callbackOpened ? (c._menuOpened && c.closeMenu(),
-                        c._popupOpened && c.closePopup()) : c.openMenu() : c.openCallbackPopup(), a.preventDefault()
-                });
-                this.settings.drag && (a.draggable(), a.get(0).addEventListener("touchmove", function(c) {
-                    var b = c.targetTouches[0];
-                    a.get(0).style.left = b.pageX - 25 + "px";
-                    a.get(0).style.top = b.pageY - 25 + "px";
-                    c.preventDefault()
-                }, !1));
-                b(document).on("click", function(a) {
-                    c.closeMenu();
-                    c.closePopup()
-                });
-                a.on("click", function(a) {
-                    a.stopPropagation()
-                });
-                a.find(".call-back").on("click", function() {
-                    c.openCallbackPopup()
-                });
-                a.find(".arcu-popup-link").on("click",
-                    function() {
-                        var a = b(this).data("id");
-                        c.openPopup(a)
-                    });
-                a.find(".arcu-header-close").on("click", function() {
-                    c.closeMenu()
-                });
-                a.find(".arcu-popup-close").on("click", function() {
-                    c.closePopup()
-                });
-                a.find(".arcu-popup-back").on("click", function() {
-                    c.closePopup();
-                    c.openMenu()
-                });
-                a.find(".callback-countdown-block-close").on("click", function() {
-                    null != c.countdown && (clearInterval(c.countdown), c.countdown = null);
-                    c.closeCallbackPopup()
-                });
-                a.find(".arcontactus-prompt-close").on("click", function() {
-                    c.hidePrompt()
-                });
-                a.find("#arcu-callback-form").on("submit",
-                    function(b) {
-                        b.preventDefault();
-                        a.find(".callback-countdown-block-phone").addClass("ar-loading");
-                        c.settings.reCaptcha ? grecaptcha.execute(c.settings.reCaptchaKey, {
-                            action: c.settings.reCaptchaAction
-                        }).then(function(b) {
-                            a.find(".ar-g-token").val(b);
-                            c.sendCallbackRequest()
-                        }) : c.sendCallbackRequest()
-                    });
-                setTimeout(function() {
-                    c._processHash()
-                }, 500);
-                b(window).on("hashchange", function(a) {
-                    c._processHash()
-                })
-            };
-            d.prototype._processHash = function() {
-                switch (window.location.hash) {
-                    case "#callback-form":
-                    case "callback-form":
-                        this.openCallbackPopup();
-                        break;
-                    case "#callback-form-close":
-                    case "callback-form-close":
-                        this.closeCallbackPopup();
-                        break;
-                    case "#contactus-menu":
-                    case "contactus-menu":
-                        this.openMenu();
-                        break;
-                    case "#contactus-menu-close":
-                    case "contactus-menu-close":
-                        this.closeMenu();
-                        break;
-                    case "#contactus-hide":
-                    case "contactus-hide":
-                        this.hide();
-                        break;
-                    case "#contactus-show":
-                    case "contactus-show":
-                        this.show()
-                }
-            };
-            d.prototype._callBackCountDownMethod = function() {
-                var a = this.settings.countdown,
-                    c = this.$element,
-                    b = this,
-                    d = 60;
-                c.find(".callback-countdown-block-phone, .callback-countdown-block-timer").toggleClass("display-flex");
-                this.countdown = setInterval(function() {
-                    --d;
-                    var e = a,
-                        f = d;
-                    10 > a && (e = "0" + a);
-                    10 > d && (f = "0" + d);
-                    e = e + ":" + f;
-                    c.find(".callback-countdown-block-timer_timer").html(e);
-                    0 === d && 0 === a && (clearInterval(b.countdown), b.countdown = null, c.find(".callback-countdown-block-sorry, .callback-countdown-block-timer").toggleClass("display-flex"));
-                    0 === d && (d = 60, --a)
-                }, 20)
-            };
-            d.prototype.sendCallbackRequest = function() {
-                var a = this,
-                    c = a.$element;
-                this.$element.trigger("arcontactus.beforeSendCallbackRequest");
-                b.ajax({
-                    url: a.settings.ajaxUrl,
-                    type: "POST",
-                    dataType: "json",
-                    data: c.find("form").serialize(),
-                    success: function(b) {
-                        a.settings.countdown && a._callBackCountDownMethod();
-                        c.find(".callback-countdown-block-phone").removeClass("ar-loading");
-                        if (b.success) a.settings.countdown || c.find(".callback-countdown-block-sorry, .callback-countdown-block-phone").toggleClass("display-flex");
-                        else if (b.errors) {
-                            var d = b.errors.join("\n\r");
-                            alert(d)
-                        } else alert(a.settings.errorMessage);
-                        a.$element.trigger("arcontactus.successCallbackRequest", b)
-                    },
-                    error: function() {
-                        c.find(".callback-countdown-block-phone").removeClass("ar-loading");
-                        alert(a.settings.errorMessage);
-                        a.$element.trigger("arcontactus.errorCallbackRequest")
-                    }
-                })
-            };
-            d.prototype.show = function() {
-                this.$element.addClass("active");
-                this.$element.trigger("arcontactus.show")
-            };
-            d.prototype.hide = function() {
-                this.$element.removeClass("active");
-                this.$element.trigger("arcontactus.hide")
-            };
-            d.prototype.openPopup = function(a) {
-                this.closeMenu();
-                var c = this.$element;
-                c.find("#arcu-popup-" + a).addClass("show-messageners-block");
-                c.find("#arcu-popup-" + a).hasClass("popup-opened") || (this.stopAnimation(),
-                    c.addClass("popup-opened"), c.find("#arcu-popup-" + a).addClass(this.settings.menuInAnimationClass), c.find(".arcontactus-close").addClass("show-messageners-block"), c.find(".icons, .static").addClass("hide"), c.find(".pulsation").addClass("stop"), this._popupOpened = !0, this.$element.trigger("arcontactus.openPopup"))
-            };
-            d.prototype.closePopup = function() {
-                var a = this.$element;
-                a.find(".arcu-popup").hasClass("show-messageners-block") && (setTimeout(function() {
-                        a.removeClass("popup-opened")
-                    }, 150), a.find(".arcu-popup").removeClass(this.settings.menuInAnimationClass).addClass(this.settings.menuOutAnimationClass),
-                    setTimeout(function() {
-                        a.removeClass("popup-opened")
-                    }, 150), a.find(".arcontactus-close").removeClass("show-messageners-block"), a.find(".icons, .static").removeClass("hide"), a.find(".pulsation").removeClass("stop"), this.startAnimation(), this._popupOpened = !1, this.$element.trigger("arcontactus.closeMenu"))
-            };
-            d.prototype.openMenu = function() {
-                if ("callback" == this.settings.mode) return console.log("Widget in callback mode"), !1;
-                var a = this.$element;
-                a.find(".messangers-block").hasClass(this.settings.menuInAnimationClass) ||
-                    (this.stopAnimation(), a.addClass("open"), a.find(".messangers-block").addClass(this.settings.menuInAnimationClass), a.find(".arcontactus-close").addClass("show-messageners-block"), a.find(".icons, .static").addClass("hide"), a.find(".pulsation").addClass("stop"), this._menuOpened = !0, this.$element.trigger("arcontactus.openMenu"))
-            };
-            d.prototype.closeMenu = function() {
-                if ("callback" == this.settings.mode) return console.log("Widget in callback mode"), !1;
-                var a = this.$element,
-                    c = this;
-                a.find(".messangers-block").hasClass(this.settings.menuInAnimationClass) &&
-                    (setTimeout(function() {
-                        a.removeClass("open")
-                    }, 150), a.find(".messangers-block").removeClass(this.settings.menuInAnimationClass).addClass(this.settings.menuOutAnimationClass), setTimeout(function() {
-                        a.find(".messangers-block").removeClass(c.settings.menuOutAnimationClass)
-                    }, 1E3), a.find(".arcontactus-close").removeClass("show-messageners-block"), a.find(".icons, .static").removeClass("hide"), a.find(".pulsation").removeClass("stop"), this.startAnimation(), this._menuOpened = !1, this.$element.trigger("arcontactus.closeMenu"))
-            };
-            d.prototype.toggleMenu = function() {
-                var a = this.$element;
-                this.hidePrompt();
-                if (a.find(".callback-countdown-block").hasClass("display-flex")) return !1;
-                a.find(".messangers-block").hasClass(this.settings.menuInAnimationClass) ? this.closeMenu() : this.openMenu();
-                this.$element.trigger("arcontactus.toggleMenu")
-            };
-            d.prototype.openCallbackPopup = function() {
-                var a = this.$element;
-                a.addClass("opened");
-                this.closeMenu();
-                this.stopAnimation();
-                a.find(".icons, .static").addClass("hide");
-                a.find(".pulsation").addClass("stop");
-                a.find(".callback-countdown-block").addClass("display-flex");
-                a.find(".callback-countdown-block-phone").addClass("display-flex");
-                a.find(".callback-state").addClass("display-flex");
-                this._callbackOpened = !0;
-                this.$element.trigger("arcontactus.openCallbackPopup")
-            };
-            d.prototype.closeCallbackPopup = function() {
-                var a = this.$element;
-                a.removeClass("opened");
-                a.find(".messangers-block").removeClass(this.settings.menuInAnimationClass);
-                a.find(".arcontactus-close").removeClass("show-messageners-block");
-                a.find(".icons, .static").removeClass("hide");
-                a.find(".pulsation").removeClass("stop");
-                a.find(".callback-countdown-block, .callback-countdown-block-phone, .callback-countdown-block-sorry, .callback-countdown-block-timer").removeClass("display-flex");
-                a.find(".callback-state").removeClass("display-flex");
-                this.startAnimation();
-                this._callbackOpened = !1;
-                this.$element.trigger("arcontactus.closeCallbackPopup")
-            };
-            d.prototype.startAnimation = function() {
-                var a = this.$element,
-                    c = a.find(".icons-line"),
-                    b = a.find(".static"),
-                    d = a.find(".icons-line>span:first-child").width() +
-                    40;
-                if ("huge" === this.settings.buttonSize) var h = 2,
-                    f = 0;
-                "large" === this.settings.buttonSize && (h = 2, f = 0);
-                "medium" === this.settings.buttonSize && (h = 4, f = -2);
-                "small" === this.settings.buttonSize && (h = 4, f = -2);
-                var g = a.find(".icons-line>span").length,
-                    k = 0;
-                this.stopAnimation();
-                if (0 === this.settings.iconsAnimationSpeed) return !1;
-                var m = this;
-                this._interval = setInterval(function() {
-                    0 === k && (c.parent().removeClass("hide"), b.addClass("hide"));
-                    var a = "translate(" + -(d * k + h) + "px, " + f + "px)";
-                    c.css({
-                        "-webkit-transform": a,
-                        "-ms-transform": a,
-                        transform: a
-                    });
-                    k++;
-                    if (k > g) {
-                        if (k > g + 1) {
-                            if (m.settings.iconsAnimationPause) return m.stopAnimation(), setTimeout(function() {
-                                if (m._callbackOpened || m._menuOpened || m._popupOpened) return !1;
-                                m.startAnimation()
-                            }, m.settings.iconsAnimationPause), !1;
-                            k = 0
-                        }
-                        c.parent().addClass("hide");
-                        b.removeClass("hide");
-                        a = "translate(" + -h + "px, " + f + "px)";
-                        c.css({
-                            "-webkit-transform": a,
-                            "-ms-transform": a,
-                            transform: a
-                        })
-                    }
-                }, this.settings.iconsAnimationSpeed)
-            };
-            d.prototype.stopAnimation = function() {
-                clearInterval(this._interval);
-                var a = this.$element,
-                    b = a.find(".icons-line");
-                a = a.find(".static");
-                b.parent().addClass("hide");
-                a.removeClass("hide");
-                b.css({
-                    "-webkit-transform": "translate(-2px, 0px)",
-                    "-ms-transform": "translate(-2px, 0px)",
-                    transform: "translate(-2px, 0px)"
-                })
-            };
-            d.prototype.showPrompt = function(a) {
-                var b = this.$element.find(".arcontactus-prompt");
-                a && a.content && b.find(".arcontactus-prompt-inner").html(a.content);
-                b.addClass("active");
-                this.$element.trigger("arcontactus.showPrompt")
-            };
-            d.prototype.hidePrompt = function() {
-                this.$element.find(".arcontactus-prompt").removeClass("active");
-                this.$element.trigger("arcontactus.hidePrompt")
-            };
-            d.prototype.showPromptTyping = function() {
-                this.$element.find(".arcontactus-prompt").find(".arcontactus-prompt-inner").html("");
-                this._insertPromptTyping();
-                this.showPrompt({});
-                this.$element.trigger("arcontactus.showPromptTyping")
-            };
-            d.prototype._insertPromptTyping = function() {
-                var a = this.$element.find(".arcontactus-prompt-inner"),
-                    c = b("<div>", {
-                        class: "arcontactus-prompt-typing"
-                    }),
-                    d = b("<div>");
-                c.append(d);
-                c.append(d.clone());
-                c.append(d.clone());
-                a.append(c)
-            };
-            d.prototype.hidePromptTyping =
-                function() {
-                    this.$element.find(".arcontactus-prompt").removeClass("active");
-                    this.$element.trigger("arcontactus.hidePromptTyping")
-                };
-            d.prototype._backgroundStyle = function() {
-                return "background-color: " + this.settings.theme
-            };
-            d.prototype._colorStyle = function() {
-                return "color: " + this.settings.theme
-            };
-            b.fn.contactUs = function(a) {
-                var c = Array.prototype.slice.call(arguments, 1);
-                return this.each(function() {
-                    var e = b(this),
-                        l = e.data("ar.contactus");
-                    l || (l = new d(this, "object" == typeof a && a), e.data("ar.contactus", l));
-                    "string" ==
-                    typeof a && "_" !== a.charAt(0) && l[a].apply(l, c)
-                })
-            };
-            b.fn.contactUs.Constructor = d
-        })(jQuery);
-    </script>
 
-</body>
+                        reader.readAsDataURL(file);
+                    });
+                }
+            });
+        }
 
-</html>
+        // Form validation
+        const reviewForm = document.getElementById('review-form');
+
+        if (reviewForm) {
+            reviewForm.addEventListener('submit', function(e) {
+                const rating = ratingInput.value;
+                const comment = document.getElementById('review-comment').value;
+
+                if (rating === '0') {
+                    e.preventDefault();
+                    showToast('Please select a star rating', 'error');
+                } else if (comment.trim() === '') {
+                    e.preventDefault();
+                    showToast('Please write a review comment', 'error');
+                }
+            });
+        }
+
+        // Function to update order details in review form
+        window.updateOrderDetails = function() {
+            const selectElement = document.getElementById('order-select');
+            if (selectElement) {
+                const selectedOption = selectElement.options[selectElement.selectedIndex];
+                const orderId = selectedOption.getAttribute('data-order-id');
+                const detailId = selectedOption.getAttribute('data-detail-id');
+                const orderCode = selectedOption.getAttribute('data-order-code');
+                const orderDate = selectedOption.getAttribute('data-date');
+                const quantity = selectedOption.getAttribute('data-quantity');
+
+                document.getElementById('order_id').value = orderId;
+                document.getElementById('detail_order_id').value = detailId;
+                document.getElementById('order-code').textContent = '#' + orderCode;
+                document.getElementById('order-date').textContent = orderDate;
+                document.getElementById('order-quantity').textContent = quantity;
+            }
+        }
+
+    });
+
+    // Add to cart function
+    function addToCart() {
+        const form = document.getElementById('option-choice-form');
+        if (!form) {
+            console.error("Form not found");
+            alert('Error: Could not find the product form.');
+            return;
+        }
+        const formData = new FormData(form);
+        // Ensure required fields are included
+        const id = formData.get('id');
+        const seller = formData.get('seller');
+        const quantity = formData.get('quantity');
+        if (!id || !seller || !quantity) {
+            console.error("Required fields missing", {
+                id,
+                seller,
+                quantity
+            });
+            alert('Error: Missing required product information.');
+            return;
+        }
+        // Log the data being sent (for debugging)
+        console.log("Sending data:", {
+            id: formData.get('id'),
+            seller: formData.get('seller'),
+            quantity: formData.get('quantity'),
+            price: formData.get('price'),
+            original_price: formData.get('original_price'),
+            discount: formData.get('discount')
+        });
+        // Send AJAX request to add item to cart
+        fetch('/add-to-cart.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok: ' + response.status);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // Show success message
+                    alert('Product added to cart!');
+                    // Update cart count in the header if needed
+                    if (data.cartCount && document.querySelector('.cart-count')) {
+                        document.querySelector('.cart-count').textContent = data.cartCount;
+                    }
+                } else {
+                    // Show error message
+                    alert(data.message || 'Failed to add product to cart.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while adding the product to cart. Please try again.');
+            });
+    }
+
+    // Buy now function
+    function buyNow() {
+        // First add to cart
+        const form = document.getElementById('option-choice-form');
+        if (!form) {
+            alert('Error: Could not find the product form.');
+            return;
+        }
+        const formData = new FormData(form);
+        // Ensure the required fields
+        if (!formData.get('id') || !formData.get('seller') || !formData.get('quantity')) {
+            alert('Error: Missing required product information.');
+            return;
+        }
+        fetch('/add-to-cart.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // Redirect to checkout page
+                    window.location.href = '/checkout';
+                } else {
+                    alert(data.message || 'Failed to add product to cart.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while processing your request. Please try again.');
+            });
+    }
+
+    function showLoginModal() {
+        $('#loginModal').modal('show');
+    }
+
+    function addToWishList(id) {
+        // Implement wishlist functionality
+        alert('Product added to wishlist!');
+    }
+
+    function addToCompare(id) {
+        // Implement compare functionality
+        alert('Product added to compare!');
+    }
+
+    function showReviewForm() {
+        const reviewModal = document.getElementById('review-modal');
+        if (reviewModal) {
+            reviewModal.classList.remove('hidden');
+        }
+    }
+
+    function hideReviewForm() {
+        const reviewModal = document.getElementById('review-modal');
+        if (reviewModal) {
+            reviewModal.classList.add('hidden');
+        }
+    }
+
+    function showImageModal(src) {
+        const modal = document.getElementById('image-modal');
+        const modalImage = document.getElementById('modal-image');
+        if (modal && modalImage) {
+            modalImage.src = src;
+            modal.classList.remove('hidden');
+        }
+    }
+
+    function hideImageModal() {
+        const modal = document.getElementById('image-modal');
+        if (modal) {
+            modal.classList.add('hidden');
+        }
+    }
+
+    function showToast(message, type = 'success') {
+        const toast = document.getElementById('toast-message');
+        const toastContent = document.getElementById('toast-content');
+
+        if (toast && toastContent) {
+            toastContent.innerHTML = message;
+
+            if (type === 'success') {
+                toastContent.className = 'bg-white shadow-lg rounded-lg p-4 max-w-md border-l-4 border-green-500';
+            } else if (type === 'error') {
+                toastContent.className = 'bg-white shadow-lg rounded-lg p-4 max-w-md border-l-4 border-red-500';
+            }
+
+            toast.classList.remove('hidden');
+
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 5000);
+        }
+    }
+</script>
+
+<?php
+require_once("../layout/footer.php");
+?>

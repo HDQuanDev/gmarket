@@ -13,7 +13,7 @@
 
     <!-- Favicon -->
     <link rel="icon" href="/public/uploads/all/ImUXrP5YC9e0hsv4zR6xjoYJCuxmFYkonSInvGtJ.jpg">
-    <title>GMARKETVN | Buy Korean domestic products at original prices from the manufacturer</title>
+    <title>Takashimaya | Buy Korean domestic products at original prices from the manufacturer</title>
 
     <!-- google font -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Poppins:300,400,500,600,700">
@@ -133,8 +133,10 @@
                                         <?php
                                         $page=isset($_GET['page'])?$_GET['page']:1;
                                         $i=0;
-                                        $sql=mysqli_query($conn,"SELECT * FROM users WHERE id>($page-1)*10 and id<=$page*10");
-                                        if(isset($_GET['search']) && $_GET['search']!="#" && $_GET['search']!="") $sql=mysqli_query($conn,"SELECT * FROM users WHERE  id>($page-1)*10 and id<=$page*10 and full_name LIKE '%{$_GET['search']}%' ");
+                                        $sql=mysqli_query($conn,"SELECT * FROM users ");
+                                        if(isset($_GET['search']) && $_GET['search']!="#" && $_GET['search']!="") {
+                                        $sql=mysqli_query($conn,"SELECT * FROM users WHERE full_name LIKE '%{$_GET['search']}%' ");
+                                        }
                                         while($row=fetch_assoc($sql)){
                                             $i++;
                                             if($i<=$page*15 && $i>($page-1)*15){}
@@ -152,7 +154,7 @@
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td>1</td>
+                                            <td><?=$i?></td>
                                             <td><?=$row['full_name']?></td>
                                             <td><?=$row['email']?></td>
                                             <td><?=$row['phone']?></td>
@@ -186,37 +188,37 @@
                                         
                                     </tbody>
                                 </table>
-                                <div class="aiz-pagination">
-                                    <nav>
-                                            <ul class="pagination">
+                                <!--<div class="aiz-pagination">-->
+                                <!--    <nav>-->
+                                <!--            <ul class="pagination">-->
 
-                                                <li class="page-item"  aria-label="« Previous">
-                                                    <?php if($page==1){?><span class="page-link" aria-hidden="true">&lsaquo;</span>
-                                                    <?php }else{ ?>
-                                                    <a class="page-link" href="/admin/customers/index.php?page=<?=$page-1?>" rel="next" aria-label="« Previous">&lsaquo;</a>
-                                                    <?php }?>
+                                <!--                <li class="page-item"  aria-label="« Previous">-->
+                                <!--                    <?php if($page==1){?><span class="page-link" aria-hidden="true">&lsaquo;</span>-->
+                                <!--                    <?php }else{ ?>-->
+                                <!--                    <a class="page-link" href="/admin/customers/index.php?page=<?=$page-1?>" rel="next" aria-label="« Previous">&lsaquo;</a>-->
+                                <!--                    <?php }?>-->
 
-                                                </li>
-
-
-
-
-                                                <?php if($page>1){?><li class="page-item  "><a class="page-link" href="/admin/customers/index.php?page=<?=$page-1?>"><?=$page-1?></a></li><?php }?>
-                                                <?php if($page>2){?><li class="page-item  "><a class="page-link" href="/admin/customers/index.php?page=<?=$page-2?>"><?=$page-2?></a></li><?php }?>
-
-                                                <li class="page-item active " aria-current="page"><span class="page-link"><?=$page?></span></li>
-                                                <?php if($page+1<=intval($i/15)){?><li class="page-item  "><a class="page-link" href="/admin/customers/index.php?page=<?=$page+1?>"><?=$page+1?></a></li><?php }?>
-                                                <?php if($page+2<=intval($i/15)){?><li class="page-item  "><a class="page-link" href="/admin/customers/index.php?page=<?=$page+2?>"><?=$page+2?></a></li><?php }?>
+                                <!--                </li>-->
 
 
 
-                                                <li class="page-item">
-                                                    <a class="page-link" href="/admin/customers/index.php?page=<?=$page+1?>" rel="next" aria-label="Next »">&rsaquo;</a>
-                                                </li>
-                                            </ul>
-                                        </nav>
 
-                                </div>
+                                <!--                <?php if($page>1){?><li class="page-item  "><a class="page-link" href="/admin/customers/index.php?page=<?=$page-1?>"><?=$page-1?></a></li><?php }?>-->
+                                <!--                <?php if($page>2){?><li class="page-item  "><a class="page-link" href="/admin/customers/index.php?page=<?=$page-2?>"><?=$page-2?></a></li><?php }?>-->
+
+                                <!--                <li class="page-item active " aria-current="page"><span class="page-link"><?=$page?></span></li>-->
+                                <!--                <?php if($page+1<=intval($i/15)){?><li class="page-item  "><a class="page-link" href="/admin/customers/index.php?page=<?=$page+1?>"><?=$page+1?></a></li><?php }?>-->
+                                <!--                <?php if($page+2<=intval($i/15)){?><li class="page-item  "><a class="page-link" href="/admin/customers/index.php?page=<?=$page+2?>"><?=$page+2?></a></li><?php }?>-->
+
+
+
+                                <!--                <li class="page-item">-->
+                                <!--                    <a class="page-link" href="/admin/customers/index.php?page=<?=$page+1?>" rel="next" aria-label="Next »">&rsaquo;</a>-->
+                                <!--                </li>-->
+                                <!--            </ul>-->
+                                <!--        </nav>-->
+
+                                <!--</div>-->
                             </div>
                         </form>
                     </div>
@@ -259,7 +261,7 @@
                     </div>
                 </div>
                 <div class="bg-white text-center py-3 px-15px px-lg-25px mt-auto">
-                    <p class="mb-0">&copy; GMARKETVN v7.4.0</p>
+                    <p class="mb-0">&copy; Takashimaya v7.4.0</p>
                 </div>
             </div><!-- .aiz-main-content -->
         </div><!-- .aiz-content-wrapper -->

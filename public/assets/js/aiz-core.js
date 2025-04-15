@@ -9,16 +9,41 @@ $.fn.toggleAttr = function (attr, attr1, attr2) {
 (function ($) {
     // USE STRICT
     "use strict";
-
+      AIZ.local = {
+            nothing_selected: 'Không có gì được chọn',
+            nothing_found: 'Không tìm thấy',
+            choose_file: 'Chọn tệp',
+            file_selected: 'Tệp đã được chọn',
+            files_selected: 'Các tệp đã được chọn',
+            add_more_files: 'Thêm nhiều tệp hơn',
+            adding_more_files: 'Đang thêm nhiều tệp hơn',
+            drop_files_here_paste_or: 'Thả tệp vào đây, dán hoặc',
+            browse: 'Duyệt',
+            upload_complete: 'Tải lên hoàn tất',
+            upload_paused: 'Tải lên bị tạm dừng',
+            resume_upload: 'Tiếp tục tải lên',
+            pause_upload: 'Tạm dừng tải lên',
+            retry_upload: 'Thử tải lên lại',
+            cancel_upload: 'Hủy tải lên',
+            uploading: 'Đang tải lên',
+            processing: 'Đang xử lý',
+            complete: 'Hoàn tất',
+            file: 'Tệp',
+            files: 'Các tệp',
+        }
+        
     AIZ.data = {
         csrf: $('meta[name="csrf-token"]').attr("content"),
         appUrl:"",
         // appUrl: $('meta[name="app-url"]').attr("content"),
 //
         fileBaseUrl: "/public/",
+        seller_id: window?.seller_id,
+        user_id : window?.user_id,
         // fileBaseUrl: $('meta[name="file-base-url"]').attr("content"),
 
     };
+    
     AIZ.uploader = {
         data: {
             selectedFiles: [],
@@ -210,10 +235,14 @@ $.fn.toggleAttr = function (attr, attr1, attr2) {
             );
         },
         getAllUploads: function (url, search_key = null, sort_key = null) {
+            console.log(window.seller_id, window.user_id)
             $(".aiz-uploader-all").html(
                 '<div class="align-items-center d-flex h-100 justify-content-center w-100"><div class="spinner-border" role="status"></div></div>'
             );
             var params = {};
+            params['seller'] = window.seller_id || null;
+            params['user'] = window.user_id|| null;
+            
             if (search_key != null && search_key.length > 0) {
                 params["search"] = search_key;
             }

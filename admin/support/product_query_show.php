@@ -147,7 +147,7 @@ $user_logo=fetch_array("SELECT src FROM file WHERE id='{$user['logo']}' LIMIT 1"
                     </div>
                 </div>
                 <div class="bg-white text-center py-3 px-15px px-lg-25px mt-auto">
-                    <p class="mb-0">&copy; Gmarket Viet Nam v7.4.0</p>
+                    <p class="mb-0"></p>
                 </div>
             </div><!-- .aiz-main-content -->
         </div><!-- .aiz-content-wrapper -->

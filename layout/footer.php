@@ -1,394 +1,438 @@
 <?php
-$footer_setting = fetch_array("SELECT  * FROM website_footer LIMIT 1");
+$footer_setting = fetch_array("SELECT * FROM website_footer LIMIT 1");
 ?>
-<section class="bg-white border-top mt-auto">
-    <div class="container">
-        <div class="row no-gutters">
-            <div class="col-lg-3 col-md-6">
-                <a class="text-reset border-left text-center p-4 d-block" href="/terms">
-                    <i class="la la-file-text la-3x text-primary mb-2"></i>
-                    <h4 class="h6">Terms &amp; conditions</h4>
-                </a>
-            </div>
-            <div class="col-lg-3 col-md-6">
-                <a class="text-reset border-left text-center p-4 d-block" href="/return-policy">
-                    <i class="la la-mail-reply la-3x text-primary mb-2"></i>
-                    <h4 class="h6">Return policy</h4>
-                </a>
-            </div>
-            <div class="col-lg-3 col-md-6">
-                <a class="text-reset border-left text-center p-4 d-block" href="/support-policy">
-                    <i class="la la-support la-3x text-primary mb-2"></i>
-                    <h4 class="h6">Support Policy</h4>
-                </a>
-            </div>
-            <div class="col-lg-3 col-md-6">
-                <a class="text-reset border-left border-right text-center p-4 d-block" href="/privacy-policy">
-                    <i class="las la-exclamation-circle la-3x text-primary mb-2"></i>
-                    <h4 class="h6">Privacy policy</h4>
-                </a>
-            </div>
-        </div>
-    </div>
-</section>
-</div>
-<section class="bg-dark py-5 text-light footer-widget">
-    <div class="container">
-        <div class="row">
-            <div class="col-lg-5 col-xl-4 text-center text-md-left">
-                <div class="mt-4">
-                    <a href="" class="d-block">
-                        <img class="lazyload" src="/public/assets/img/placeholder-rect.jpg" data-src="/public/uploads/all/d2grNsNYud5xW9aMD2v99SwZSmYSsJMOhS42eSBs.jpg" alt="GMARKETVN" height="44">
-                    </a>
-                    <div class="my-3">
 
+<!-- Modern Features Section with Tailwind -->
+<section class="bg-white py-10 border-t border-gray-100">
+    <div class="container mx-auto px-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <!-- Fast Delivery -->
+            <div class="bg-white rounded-xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 border border-gray-100 group">
+                <div class="flex flex-col items-center text-center">
+                    <div class="w-16 h-16 bg-shopee-50 rounded-full flex items-center justify-center mb-5 group-hover:bg-shopee-100 transition-colors">
+                        <i class="fa-solid fa-truck-fast text-2xl text-shopee-500"></i>
                     </div>
-                    <div class="d-inline-block d-md-block mb-4">
-                        <form class="form-inline" method="POST" action="/subscribers">
-                            <input type="hidden" name="_token" value="aCXlmkGIF8M5mTlqrTsNo6sGJQysBJlDUqOh9JGt">
-                            <div class="form-group mb-0">
-                                <input type="email" class="form-control" placeholder="Your Email Address" name="email" required>
-                            </div>
-                            <button type="submit" class="btn btn-primary">
-                                <?= tran("Subscribe") ?>
-                            </button>
-                        </form>
-                    </div>
-                    <div class="w-300px mw-100 mx-auto mx-md-0">
-                        <a href="/" target="_blank" class="d-inline-block mr-3 ml-0">
-                            <img src="/public/assets/img/play.png" class="mx-100 h-40px">
-                        </a>
-                        <a href="/" target="_blank" class="d-inline-block">
-                            <img src="/public/assets/img/app.png" class="mx-100 h-40px">
-                        </a>
-                    </div>
+                    <h3 class="text-lg font-bold text-gray-800 mb-2">Fast Delivery</h3>
+                    <p class="text-gray-600 text-sm">Quick shipping from Korea directly to your doorstep</p>
                 </div>
             </div>
-            <div class="col-lg-3 ml-xl-auto col-md-4 mr-0">
-                <div class="text-center text-md-left mt-4">
-                    <h4 class="fs-13 text-uppercase fw-600 border-bottom border-gray-900 pb-2 mb-4">
-                        <?= tran("Contact Info") ?>
-                    </h4>
-                    <ul class="list-unstyled">
-                        <li class="mb-2">
-                            <span class="d-block opacity-30"><?= tran("Address") ?>:</span>
-                            <span class="d-block opacity-70"><?= $footer_setting['contact_address'] ?></span>
-                        </li>
-                        <li class="mb-2">
-                            <span class="d-block opacity-30"><?= tran("Phone") ?>:</span>
-                            <span class="d-block opacity-70"><?= $footer_setting['contact_phone'] ?></span>
-                        </li>
-                        <li class="mb-2">
-                            <span class="d-block opacity-30">Email:</span>
-                            <span class="d-block opacity-70">
-                                <?= $footer_setting['contact_email'] ?>
-                            </span>
-                        </li>
-                    </ul>
+
+            <!-- Secure Payment -->
+            <div class="bg-white rounded-xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 border border-gray-100 group">
+                <div class="flex flex-col items-center text-center">
+                    <div class="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mb-5 group-hover:bg-green-100 transition-colors">
+                        <i class="fa-solid fa-shield-halved text-2xl text-green-500"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-800 mb-2">Secure Payment</h3>
+                    <p class="text-gray-600 text-sm">Multiple payment options with enhanced security</p>
                 </div>
             </div>
-            <div class="col-md-4 col-lg-2">
-                <div class="text-center text-md-left mt-4">
-                    <h4 class="fs-13 text-uppercase fw-600 border-bottom border-gray-900 pb-2 mb-4">
-                        <?= tran("My Account") ?>
-                    </h4>
-                    <ul class="list-unstyled">
-                        <li class="mb-2">
-                            <a class="opacity-50 hov-opacity-100 text-reset" href="/users/login">
-                                <?= tran("Login") ?>
-                            </a>
-                        </li>
-                        <li class="mb-2">
-                            <a class="opacity-50 hov-opacity-100 text-reset" href="/purchase_history">
-                                <?= tran("Order History") ?>
-                            </a>
-                        </li>
-                        <li class="mb-2">
-                            <a class="opacity-50 hov-opacity-100 text-reset" href="/wishlists">
-                                <?= tran("My Wishlist") ?>
-                            </a>
-                        </li>
-                        <li class="mb-2">
-                            <a class="opacity-50 hov-opacity-100 text-reset" href="/track-your-order">
-                                <?= tran("Track Order") ?>
-                            </a>
-                        </li>
-                        <li class="mb-2">
-                            <a class="opacity-50 hov-opacity-100 text-light" href="/affiliate"><?= tran("Be an affiliate partner") ?></a>
-                        </li>
-                    </ul>
+
+            <!-- 24/7 Support -->
+            <div class="bg-white rounded-xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 border border-gray-100 group">
+                <div class="flex flex-col items-center text-center">
+                    <div class="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-5 group-hover:bg-blue-100 transition-colors">
+                        <i class="fa-solid fa-headset text-2xl text-blue-500"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-800 mb-2">24/7 Support</h3>
+                    <p class="text-gray-600 text-sm">Dedicated service team ready to assist anytime</p>
                 </div>
             </div>
-            <div class="col-lg-2 col-md-4">
-                <div class="text-center text-md-left mt-4">
-                    <h4 class="fs-13 text-uppercase fw-600 border-bottom border-gray-900 pb-2 mb-4">
-                        <?= tran("Be A Seller") ?>
-                    </h4>
-                    <!-- <p>Become seller in our website</p> -->
-                    <a href="/shops/create.php" class="btn btn-primary btn-sm shadow-md">
-                        <?= tran("Shop registration") ?>
-                    </a>
+
+            <!-- Easy Returns -->
+            <div class="bg-white rounded-xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 border border-gray-100 group">
+                <div class="flex flex-col items-center text-center">
+                    <div class="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mb-5 group-hover:bg-red-100 transition-colors">
+                        <i class="fa-solid fa-rotate-left text-2xl text-red-500"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-800 mb-2">Easy Returns</h3>
+                    <p class="text-gray-600 text-sm">Hassle-free 30-day return policy guarantee</p>
                 </div>
             </div>
         </div>
     </div>
 </section>
 
-<!-- FOOTER -->
-<footer class="pt-3 pb-7 pb-xl-3 bg-black text-light">
-    <div class="container">
-        <div class="row align-items-center">
-            <div class="col-lg-4">
-                <div class="text-center text-md-left" current-verison="7.4.0">
+<!-- Modern Main Footer -->
+<footer class="bg-gray-900 pt-16 pb-6">
+    <div class="container mx-auto px-4">
+        <!-- Company Information Section -->
+        <div class="pt-8 pb-6">
+            <div class="max-w-4xl mx-auto text-gray-400 text-sm leading-relaxed">
+                <div class="flex justify-center mb-6">
+                    <img src="/public/uploads/final-ver1.svg" alt="Takashimaya VN" class="h-12">
+                </div>
+                <p class="text-center mb-4">
+                    Công ty TNHH Takashimaya Việt Nam thành lập và hoạt động theo Giấy Chứng Nhận Đăng Ký Doanh Nghiệp số 0312505165 do Sở kế hoạch và đầu tư Thành phố Hồ Chí Minh<br class="hidden md:block">
+                    cấp lần đầu vào ngày 13 tháng 09 năm 2023, địa chỉ tại Saigon Centre, số 65, đường Lê Lợi, Phường Bến Nghé, Quận 1, Thành phố Hồ Chí Minh, Việt Nam. 
+                </p>
+                
+                <div class="flex flex-wrap justify-center gap-x-6 gap-y-2 mb-4">
+                    <a href="tel:+842838278555" class="text-shopee-500 hover:text-shopee-400 transition-colors flex items-center">
+                        <i class="fa-solid fa-phone mr-2"></i> (028) 3827-8555
+                    </a>
+                    <span class="hidden md:inline text-gray-600">|</span>
+                    <a href="mailto:online@takashimaya-vn.com.vn" class="text-shopee-500 hover:text-shopee-400 transition-colors flex items-center">
+                        <i class="fa-solid fa-envelope mr-2"></i> online@takashimaya-vn.com.vn
+                    </a>
+                    <span class="hidden md:inline text-gray-600">|</span>
+                    <a href="https://takashimayavn.com" class="text-shopee-500 hover:text-shopee-400 transition-colors flex items-center">
+                        <i class="fa-solid fa-globe mr-2"></i> takashimayavn.com
+                    </a>
+                </div>
+                
+                <p class="text-center mb-4">
+                    Bản quyền thuộc Takashimaya Việt Nam.<br class="md:hidden">
+                    Website: <a href="https://takashimayavn.com" class="text-shopee-500 hover:text-shopee-400 transition-colors">takashimayavn.com</a> 
+                    thuộc quyền sở hữu của Công ty TNHH Takashimaya Việt Nam và được phát triển bởi Teko.
+                </p>
+                
+                <div class="flex flex-wrap justify-center items-center mt-6">
+                    <a href="#" target="_blank" rel="noreferrer noopener" class="mx-4 transform hover:scale-105 transition-transform">
+                        <img alt="Đã đăng ký Bộ Công Thương" title="Đã đăng ký Bộ Công Thương" src="https://shopfront-cdn.tekoapis.com/common/da-dang-ky.png" class="h-16 inline-block">
+                    </a>
+                    <a href="#" target="_blank" rel="noreferrer noopener" class="mx-4 transform hover:scale-105 transition-transform">
+                        <img alt="Đã đăng ký Bộ Công Thương" title="Đã đăng ký Bộ Công Thương" src="https://shopfront-cdn.tekoapis.com/common/da-dang-ky.png" class="h-16 inline-block">
+                    </a>
+                </div>
+            </div>
+        </div>
 
-                </div>
+        <!-- Bottom Section -->
+        <div class="pt-8 flex flex-col md:flex-row items-center justify-between">
+            <div class="mb-4 md:mb-0">
+                <a href="/shops/create.php" class="inline-flex items-center px-5 py-2 bg-shopee-500 hover:bg-shopee-600 text-white rounded-full text-sm font-medium transition-colors">
+                    <i class="fa-solid fa-store mr-2"></i> <?= tran("Become a Seller") ?>
+                </a>
             </div>
-            <div class="col-lg-4">
-                <ul class="list-inline my-3 my-md-0 social colored text-center">
-                    <li class="list-inline-item">
-                        <a href="<?= $footer_setting['facebook_url'] ?>" target="_blank" class="facebook"><i class="lab la-facebook-f"></i></a>
-                    </li>
-                    <li class="list-inline-item">
-                        <a href="<?= $footer_setting['twitter_url'] ?>" target="_blank" class="twitter"><i class="lab la-twitter"></i></a>
-                    </li>
-                    <li class="list-inline-item">
-                        <a href="<?= $footer_setting['instagram_url'] ?>" target="_blank" class="instagram"><i class="lab la-instagram"></i></a>
-                    </li>
-                    <li class="list-inline-item">
-                        <a href="<?= $footer_setting['youtube_url'] ?>" target="_blank" class="youtube"><i class="lab la-youtube"></i></a>
-                    </li>
-                    <li class="list-inline-item">
-                        <a href="<?= $footer_setting['linkedin_url'] ?>" target="_blank" class="linkedin"><i class="lab la-linkedin-in"></i></a>
-                    </li>
-                </ul>
-            </div>
-            <div class="col-lg-4">
-                <div class="text-center text-md-right">
-                    <ul class="list-inline mb-0">
-                        <li class="list-inline-item">
-                            <img src="/public/uploads/all/x2PNOaOS6VXSI1SGozrjHtZ1yVp8Mfq9RXB0yD8H.png" height="30" class="mw-100 h-auto" style="max-height: 30px">
-                        </li>
-                        <li class="list-inline-item">
-                            <img src="/public/uploads/all/4qF2PJQHw5rtlmeiwtP0Rk2o9KjsFyfLdZ2pUsPg.png" height="30" class="mw-100 h-auto" style="max-height: 30px">
-                        </li>
-                        <li class="list-inline-item">
-                            <img src="/public/uploads/all/davn6mDDhwClwSzwT1PRuDSotpyAhm1Uyh7hyoqC.png" height="30" class="mw-100 h-auto" style="max-height: 30px">
-                        </li>
-                        <li class="list-inline-item">
-                            <img src="/public/uploads/all/4fvIoubXi7wTPla0GJInJXaeuiDevlXxmvkQDBAT.png" height="30" class="mw-100 h-auto" style="max-height: 30px">
-                        </li>
-                        <li class="list-inline-item">
-                            <img src="/public/uploads/all/mPc42zjeqLErWAyTks76Vgc2mNq6oqjPQmSiRo0n.webp" height="30" class="mw-100 h-auto" style="max-height: 30px">
-                        </li>
-                        <li class="list-inline-item">
-                            <img src="/public/uploads/all/1ZZ6ccmeWUOBii7WEvFnVpnzY2q0I5xhe06pOI4T.png" height="30" class="mw-100 h-auto" style="max-height: 30px">
-                        </li>
-                        <li class="list-inline-item">
-                            <img src="/public/uploads/all/2JRFnzKLOnt81chRISVQBKLADNBdRDMEVmls3dU2.png" height="30" class="mw-100 h-auto" style="max-height: 30px">
-                        </li>
-                        <li class="list-inline-item">
-                            <img src="/public/uploads/all/VwEOJNH2n3FNDi1dgUpvOvbGNS0oKaYZVjn9GnMy.png" height="30" class="mw-100 h-auto" style="max-height: 30px">
-                        </li>
-                        <li class="list-inline-item">
-                            <img src="/public/uploads/all/dqpOssMysk0H5ovefvOUM2aF0O1UhR6rmzx5jBRx.png" height="30" class="mw-100 h-auto" style="max-height: 30px">
-                        </li>
-                        <li class="list-inline-item">
-                            <img src="/public/uploads/all/OT3aJXJBsq4xHaubKHYwVWm35iUI7zFqRSqkOZ7E.png" height="30" class="mw-100 h-auto" style="max-height: 30px">
-                        </li>
-                        <li class="list-inline-item">
-                            <img src="/public/uploads/all/hhjvgBFNlxrifyeRE2oVohk6kAmg3drnXCTqSQIl.png" height="30" class="mw-100 h-auto" style="max-height: 30px">
-                        </li>
-                        <li class="list-inline-item">
-                            <img src="/public/uploads/all/nd0NuuOseK1RY4dGaUKR9r6HrLsFQlHUSNJa5aS3.png" height="30" class="mw-100 h-auto" style="max-height: 30px">
-                        </li>
-                    </ul>
-                </div>
+            <div class="text-gray-500 text-sm">
+                &copy; <?= date('Y') ?> Takashimaya. <?= tran("All Rights Reserved") ?>
             </div>
         </div>
     </div>
 </footer>
-<div class="aiz-mobile-bottom-nav d-xl-none fixed-bottom bg-white shadow-lg border-top rounded-top" style="box-shadow: 0px -1px 10px rgb(0 0 0 / 15%)!important; ">
-    <div class="row align-items-center gutters-5">
-        <div class="col">
-            <a href="/" class="text-reset d-block text-center pb-2 pt-3">
-                <i class="las la-home fs-20 opacity-60 opacity-100 text-primary"></i>
-                <span class="d-block fs-10 fw-600 opacity-60 opacity-100 fw-600"><?= tran("Home") ?></span>
-            </a>
-        </div>
-        <div class="col">
-            <a href="/categories" class="text-reset d-block text-center pb-2 pt-3">
-                <i class="las la-list-ul fs-20 opacity-60 "></i>
-                <span class="d-block fs-10 fw-600 opacity-60 "><?= tran("Categories") ?></span>
-            </a>
-        </div>
-        <div class="col-auto">
-            <a href="/cart" class="text-reset d-block text-center pb-2 pt-3">
-                <span class="align-items-center bg-primary border border-white border-width-4 d-flex justify-content-center position-relative rounded-circle size-50px" style="margin-top: -33px;box-shadow: 0px -5px 10px rgb(0 0 0 / 15%);border-color: #fff !important;">
-                    <i class="las la-shopping-bag la-2x text-white"></i>
-                </span>
-                <span class="d-block mt-1 fs-10 fw-600 opacity-60 ">
-                    <?= tran("Cart") ?>
-                    (<span class="cart-count">0</span>)
-                </span>
-            </a>
-        </div>
-        <div class="col">
-            <a href="/all-notifications" class="text-reset d-block text-center pb-2 pt-3">
-                <span class="d-inline-block position-relative px-2">
-                    <i class="las la-bell fs-20 opacity-60 "></i>
-                </span>
-                <span class="d-block fs-10 fw-600 opacity-60 "><?= tran("Notifications") ?></span>
-            </a>
-        </div>
-        <div class="col">
-            <a href="/users/login" class="text-reset d-block text-center pb-2 pt-3">
-                <span class="d-block mx-auto">
-                    <img src="/public/assets/img/avatar-place.png" class="rounded-circle size-20px">
-                </span>
-                <span class="d-block fs-10 fw-600 opacity-60"><?= tran("Account") ?></span>
-            </a>
-        </div>
+
+<!-- Content Padding for Mobile Navigation -->
+<div class="lg:hidden h-16 w-full"><!-- Spacer to prevent content from being hidden behind mobile nav --></div>
+
+<!-- Modern Mobile Navigation -->
+<div class="lg:hidden fixed bottom-0 left-0 right-0 bg-white shadow-[0_-2px_10px_rgba(0,0,0,0.1)] z-50 border-t border-gray-200">
+    <div class="grid grid-cols-5 gap-1">
+        <!-- Home -->
+        <a href="/" class="flex flex-col items-center justify-center py-2 <?= $_SERVER['REQUEST_URI'] == '/' ? 'text-shopee-500' : 'text-gray-600' ?>">
+            <i class="fa-solid fa-home text-xl"></i>
+            <span class="text-xs mt-1">Home</span>
+        </a>
+
+        <!-- Categories -->
+        <a href="/categories" class="flex flex-col items-center justify-center py-2 <?= strpos($_SERVER['REQUEST_URI'], '/categories') === 0 ? 'text-shopee-500' : 'text-gray-600' ?>">
+            <i class="fa-solid fa-th-large text-xl"></i>
+            <span class="text-xs mt-1">Categories</span>
+        </a>
+
+        <!-- Cart in the middle -->
+        <a href="/cart" class="relative flex flex-col items-center justify-center py-2 <?= strpos($_SERVER['REQUEST_URI'], '/cart') === 0 ? 'text-shopee-500' : 'text-gray-600' ?>">
+            <i class="fa-solid fa-shopping-bag text-xl"></i>
+            <span class="text-xs mt-1">Cart</span>
+            <?php if ($count_cart > 0): ?>
+                <span class="absolute top-0 right-1/4 bg-red-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full"><?= $count_cart > 9 ? '9+' : $count_cart ?></span>
+            <?php endif; ?>
+        </a>
+
+        <!-- Settings - Link to dedicated settings page -->
+        <a href="/settings.php" class="flex flex-col items-center justify-center py-2 <?= strpos($_SERVER['REQUEST_URI'], '/settings.php') === 0 ? 'text-shopee-500' : 'text-gray-600' ?>">
+            <i class="fa-solid fa-cog text-xl"></i>
+            <span class="text-xs mt-1">Settings</span>
+        </a>
+
+        <!-- Account -->
+        <?php if ($isLogin): ?>
+        <a href="/purchase_history" class="flex flex-col items-center justify-center py-2 <?= strpos($_SERVER['REQUEST_URI'], '/purchase_history') === 0 || strpos($_SERVER['REQUEST_URI'], '/dashboard') === 0 ? 'text-shopee-500' : 'text-gray-600' ?>">
+            <i class="fa-solid fa-user text-xl"></i>
+            <span class="text-xs mt-1">Account</span>
+        </a>
+        <?php else: ?>
+        <a href="/users/login" class="flex flex-col items-center justify-center py-2 <?= strpos($_SERVER['REQUEST_URI'], '/users/login') === 0 ? 'text-shopee-500' : 'text-gray-600' ?>">
+            <i class="fa-solid fa-user text-xl"></i>
+            <span class="text-xs mt-1"><?= tran("Account") ?></span>
+        </a>
+        <?php endif; ?>
     </div>
 </div>
 
-</div>
-<div class="aiz-cookie-alert shadow-xl">
-    <div class="p-3 bg-dark rounded">
-        <div class="text-white mb-3">
-            <b>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <?= tran("WELCOME TO") ?>&nbsp;<br></b>&nbsp; &nbsp; &nbsp; &nbsp;<a href="https://english.visitseoul.net/index" target="_blank"><b>GMARKET VIET NAM </b><br>&nbsp;</a>
+<!-- Modern Cookie Alert -->
+<div class="fixed bottom-20 lg:bottom-8 left-4 right-4 md:left-auto md:right-8 md:max-w-sm bg-white shadow-xl rounded-xl overflow-hidden z-50 border border-gray-200 aiz-cookie-alert" style="display: none;">
+    <div class="p-4">
+        <div class="mb-3">
+            <h3 class="text-gray-800 font-bold text-lg mb-2"><?= tran("Cookies Consent") ?></h3>
+            <p class="text-gray-600 text-sm"><?= tran("We use cookies to enhance your experience. By continuing to browse, you agree to our") ?> <a href="/privacy-policy" class="text-shopee-500 hover:text-shopee-600"><?= tran("Privacy Policy") ?></a>.</p>
         </div>
-        <button class="btn btn-primary aiz-cookie-accept">
-            <?= tran("Ok. I Understood") ?>
-        </button>
-    </div>
-</div>
-<div class="modal website-popup removable-session d-none" data-key="website-popup" data-value="removed">
-    <div class="absolute-full bg-black opacity-60"></div>
-    <div class="modal-dialog modal-dialog-centered modal-dialog-zoom modal-md">
-        <div class="modal-content position-relative border-0 rounded-0 pb-5 pt-4 px-5">
-            <div class="aiz-editor-data">
-                <div style="text-align: center;"><b style="background-color: rgb(255, 255, 0);">
-                        <?= tran("BECOME AN EXCELLENT SALES AGENT OF GMARKET VIET NAM, YOU WILL BE HONORABLE TO VISIT THE LARGEST MERCHANDISE WAREHOUSES IN SEOUL, KOREA") ?></b></div>
-                <div style="text-align: center; "><u><b><?= tran("GOOD LUCK TO SALES AGENTS!") ?></b></u></div>
-            </div>
-            <div class="pt-4">
-                <form class="" method="POST" action="/subscribers">
-                    <input type="hidden" name="_token" value="aCXlmkGIF8M5mTlqrTsNo6sGJQysBJlDUqOh9JGt">
-                    <div class="form-group mb-0">
-                        <input type="email" class="form-control" placeholder="Your Email Address" name="email" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary btn-block mt-3">
-                        <?= tran("Subscribe Now") ?>
-                    </button>
-                </form>
-            </div>
-            <button class="absolute-top-right bg-white shadow-lg btn btn-circle btn-icon mr-n3 mt-n3 set-session" data-key="website-popup" data-value="removed" data-toggle="remove-parent" data-parent=".website-popup">
-                <i class="la la-close fs-20"></i>
+        <div class="flex justify-end">
+            <button class="aiz-cookie-accept bg-shopee-500 hover:bg-shopee-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
+                <?= tran("Accept & Continue") ?>
             </button>
         </div>
     </div>
 </div>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script>
 <script>
-    function confirm_modal(delete_url) {
-        jQuery('#confirm-delete').modal('show', {
-            backdrop: 'static'
-        });
-        document.getElementById('delete_link').setAttribute('href', delete_url);
+    // AJAX Search Implementation
+    document.addEventListener('DOMContentLoaded', function() {
+        // Mobile language switcher functionality
+        function updateMobileLanguage(lang) {
+            if (document.getElementById('mobile-current-language')) {
+                document.getElementById('mobile-current-language').textContent = lang === 'vi' ? 'Vietnamese' : 'USA';
+            }
+        }
+        
+        // Initialize mobile language display
+        function initMobileLanguageDisplay() {
+            const currentLang = detectCurrentLanguage();
+            updateMobileLanguage(currentLang);
+            
+            // Also update the header flag in case we're loading the page fresh
+            if (document.getElementById('current-language-flag')) {
+                document.getElementById('current-language-flag').src = currentLang === 'vi' ? 
+                    'https://cdn.shopify.com/static/images/flags/vn.svg?width=32' : 
+                    'https://cdn.shopify.com/static/images/flags/us.svg?width=32';
+                
+                document.getElementById('current-language').textContent = currentLang === 'vi' ? 'Vietnamese' : 'USA';
+            }
+        }
+        
+        // Call initialization after a short delay to ensure language detection works
+        setTimeout(initMobileLanguageDisplay, 500);
+        
+        // Make updateMobileLanguage function globally available
+        window.updateMobileLanguage = function(lang) {
+            const langText = lang === 'vi' ? 'Vietnamese' : 'USA';
+            
+            // Update mobile language display
+            if (document.getElementById('mobile-current-language')) {
+                document.getElementById('mobile-current-language').textContent = langText;
+            }
+            
+            // Update header language display
+            if (document.getElementById('current-language-flag')) {
+                document.getElementById('current-language-flag').src = lang === 'vi' ? 
+                    'https://cdn.shopify.com/static/images/flags/vn.svg?width=32' : 
+                    'https://cdn.shopify.com/static/images/flags/us.svg?width=32';
+                
+                document.getElementById('current-language').textContent = langText;
+            }
+        };
+
+        // Rest of the existing search functionality
+        const searchInput = document.getElementById('search-input');
+        const searchResults = document.getElementById('search-results');
+        const searchResultsContent = document.getElementById('search-results-content');
+        const searchLoading = document.getElementById('search-loading');
+
+        // Only proceed if all necessary elements exist
+        if (searchInput && searchResults && searchResultsContent && searchLoading) {
+            let searchTimeout;
+            let currentSearchTerm = '';
+
+            // Show/hide search results
+            searchInput.addEventListener('focus', function() {
+                if (searchInput.value.trim().length >= 2) {
+                    searchResults.classList.add('active');
+                }
+            });
+
+            // Hide search results when clicking outside
+            document.addEventListener('click', function(event) {
+                if (!searchResults.contains(event.target) && event.target !== searchInput) {
+                    searchResults.classList.remove('active');
+                }
+            });
+
+            // Search on input
+            searchInput.addEventListener('input', function() {
+                const searchTerm = searchInput.value.trim();
+
+                // Clear previous timeout
+                clearTimeout(searchTimeout);
+
+                if (searchTerm.length < 2) {
+                    searchResults.classList.remove('active');
+                    return;
+                }
+
+                if (searchTerm === currentSearchTerm) {
+                    searchResults.classList.add('active');
+                    return;
+                }
+
+                // Show loading state
+                searchResults.classList.add('active');
+                searchLoading.style.display = 'block';
+                searchResultsContent.innerHTML = '';
+
+                // Delay search to avoid excessive requests
+                searchTimeout = setTimeout(function() {
+                    fetchSearchResults(searchTerm);
+                }, 300);
+            });
+
+            // Function to fetch search results
+            function fetchSearchResults(term) {
+                fetch(`/ajax-search.php?q=${encodeURIComponent(term)}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        searchLoading.style.display = 'none';
+                        renderSearchResults(data, term);
+                    })
+                    .catch(error => {
+                        console.error('Search error:', error);
+                        searchLoading.style.display = 'none';
+                        searchResultsContent.innerHTML = `
+                        <div class="search-no-results">
+                            <i class="las la-exclamation-circle text-2xl text-red-500 mb-2"></i>
+                            <p>An error occurred. Please try again.</p>
+                        </div>
+                    `;
+                    });
+            }
+
+            // Function to render search results
+            function renderSearchResults(data, term) {
+                if ((data.products && data.products.length > 0) || (data.sellers && data.sellers.length > 0) || (data.categories && data.categories.length > 0)) {
+                    let html = '';
+
+                    // Products section
+                    if (data.products && data.products.length > 0) {
+                        html += '<div class="search-results-section">';
+                        html += '<div class="search-results-header">Products</div>';
+
+                        data.products.forEach(product => {
+                            html += `
+                        <a href="/product/${product.id}" class="search-results-item">
+                            <div class="search-item-image">
+                                <img src="${product.image || '/public/assets/img/placeholder.jpg'}" alt="${product.name}" onerror="this.src='/public/assets/img/placeholder.jpg'">
+                            </div>
+                            <div class="search-item-info">
+                                <div class="search-item-title">${product.name}</div>
+                                <div class="search-item-subtitle">${product.category_name || ''}</div>
+                            </div>
+                            <div class="search-item-price">${formatPrice(product.price)}</div>
+                        </a>`;
+                        });
+
+                        html += '</div>';
+                    }
+
+                    // Sellers section
+                    if (data.sellers && data.sellers.length > 0) {
+                        html += '<div class="search-results-section">';
+                        html += '<div class="search-results-header">Shops</div>';
+
+                        data.sellers.forEach(seller => {
+                            html += `
+                        <a href="/shop.php?id=${seller.id}" class="search-results-item">
+                            <div class="search-item-image">
+                                <img src="${seller.logo || '/public/assets/img/placeholder.jpg'}" alt="${seller.name}" onerror="this.src='/public/assets/img/placeholder.jpg'">
+                            </div>
+                            <div class="search-item-info">
+                                <div class="search-item-title">${seller.name}</div>
+                                <div class="search-item-subtitle">${seller.product_count || 0} products</div>
+                            </div>
+                        </a>`;
+                        });
+
+                        html += '</div>';
+                    }
+
+                    // Categories section
+                    if (data.categories && data.categories.length > 0) {
+                        html += '<div class="search-results-section">';
+                        html += '<div class="search-results-header">Categories</div>';
+
+                        data.categories.forEach(category => {
+                            html += `
+                        <a href="/category/${category.path}" class="search-results-item">
+                            <div class="search-item-image">
+                                <img src="${category.image || '/public/assets/img/placeholder.jpg'}" alt="${category.name}" onerror="this.src='/public/assets/img/placeholder.jpg'">
+                            </div>
+                            <div class="search-item-info">
+                                <div class="search-item-title">${category.name}</div>
+                                <div class="search-item-subtitle">${category.product_count || 0} products</div>
+                            </div>
+                        </a>`;
+                        });
+
+                        html += '</div>';
+                    }
+
+                    // View all results footer
+                    html += `
+                <div class="search-footer">
+                    <a href="/search?q=${encodeURIComponent(term)}" class="search-view-all">
+                        View All Results
+                    </a>
+                </div>`;
+
+                    searchResultsContent.innerHTML = html;
+
+                } else {
+                    // No results found
+                    searchResultsContent.innerHTML = `
+                <div class="search-no-results">
+                    <i class="las la-search text-2xl mb-2 text-gray-400"></i>
+                    <p>No results found for "${term}"</p>
+                    <p class="text-sm text-gray-500 mt-1">Try different or more general keywords</p>
+                </div>`;
+                }
+            }
+        }
+
+        // Format price with thousand separator - keep this outside as it might be used elsewhere
+        function formatPrice(price) {
+            return (parseFloat(price)).toLocaleString('vi-VN') + ' đ';
+        }
+    });
+
+    // Cart functionality
+    function removeFromCart(cartItemId) {
+        if (confirm('Are you sure you want to remove this item from your cart?')) {
+            fetch('/remove-from-cart.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'cart_item_id=' + cartItemId
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Refresh the page to update cart
+                        window.location.reload();
+                    } else {
+                        alert(data.message || 'Failed to remove item from cart.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while removing the item from cart.');
+                });
+        }
     }
 </script>
+<script src="https://cdn.socket.io/4.4.1/socket.io.min.js"
+    integrity="sha384-fKnu0iswBIqkjxrhQCTZ7qlLHOFEgNkRmK2vaO/LbTZSXdJfAu6ewRBdwHPhBo/H"
+    crossorigin="anonymous"></script>
+<script src="/public/assets/js/shop-chat.js?v=<?php echo time(); ?>"></script>
+<script src="/public/assets/js/shop-chat-ui.js?v=<?php echo time(); ?>"></script>
 
-<div class="modal fade" id="confirm-delete" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
+<?php 
+// Include bootstrap file for dynamic script loading
+// include_once($_SERVER['DOCUMENT_ROOT'] . '/public/bootstrap.php');
+// // Output the notification loader HTML
+// echo getNotificationLoaderHTML();
+?>
 
-            <div class="modal-header">
-
-                <h4 class="modal-title" id="myModalLabel"><?= tran("Confirmation") ?></h4>
-            </div>
-
-            <div class="modal-body">
-                <p><?= tran("Delete confirmation message") ?></p>
-            </div>
-
-            <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal"><?= tran("Cancel") ?></button>
-                <a id="delete_link" class="btn btn-danger btn-ok"><?= tran("Delete") ?></a>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script>
-    function account_delete_confirm_modal(delete_url) {
-        jQuery('#account_delete_confirm').modal('show', {
-            backdrop: 'static'
-        });
-        document.getElementById('account_delete_link').setAttribute('href', delete_url);
-    }
-</script>
-
-<div class="modal fade" id="account_delete_confirm" tabindex="-1" role="dialog" aria-labelledby="account_delete_confirmModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-
-            <div class="modal-header d-block py-4">
-                <div class="d-flex justify-content-center">
-                    <span class="avatar avatar-md mb-2 mt-2">
-                        <img src="/public/assets/img/avatar-place.png" class="image rounded-circle m-auto"
-                            onerror="this.onerror=null;this.src='/public/assets/img/avatar-place.png';">
-                    </span>
-                </div>
-                <h4 class="modal-title text-center fw-700" id="account_delete_confirmModalLabel" style="color: #ff9819;"><?= tran("Delete Your Account") ?></h4>
-                <p class="fs-16 fw-600 text-center" style="color: #8d8d8d;"><?= tran("Warning: You cannot undo this action") ?></p>
-            </div>
-
-            <div class="modal-body pt-3 pb-5 px-xl-5">
-                <p class="text-danger mt-3"><i><strong>Note:&nbsp;Don&#039;t Click to any button or don&#039;t do any action during account Deletion, it may takes some times.</strong></i></p>
-                <p class="fs-14 fw-700" style="color: #8d8d8d;"><?= tran("Deleting Account Means:") ?></p>
-                <div class="row bg-soft-warning py-2 mb-2 ml-0 mr-0 border-left border-width-2 border-danger">
-                    <div class="col-1">
-                        <img src="/public/assets/img/warning.png" class="h-20px">
-                    </div>
-                    <div class="col">
-                        <p class="fw-600 mb-0"><?= tran("If you create any classified ptoducts, after deleting your account, those products will no longer in our system") ?></p>
-                    </div>
-                </div>
-                <div class="row bg-soft-warning py-3 ml-0 mr-0 border-left border-width-2 border-danger">
-                    <div class="col-1">
-                        <img src="/public/assets/img/warning.png" class="h-20px">
-                    </div>
-                    <div class="col">
-                        <p class="fw-600 mb-0"><?= tran("After deleting your account, wallet balance no longer in our system") ?></p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal"><?= tran("Cancel") ?></button>
-                <a id="account_delete_link" class="btn btn-danger btn-rounded btn-ok"><?= tran("Delete Account") ?></a>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="modal fade" id="addToCart">
-    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-zoom product-modal" id="modal-size" role="document">
-        <div class="modal-content position-relative">
-            <div class="c-preloader text-center p-3">
-                <i class="las la-spinner la-spin la-3x"></i>
-            </div>
-            <button type="button" class="close absolute-top-right btn-icon close z-1" data-dismiss="modal" aria-label="Close">
-                <span aria-hidden="true" class="la-2x">&times;</span>
-            </button>
-            <div id="addToCart-modal-body">
-
-            </div>
-        </div>
-    </div>
-</div>
-
-</body>
-
-</html>

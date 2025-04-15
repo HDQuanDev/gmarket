@@ -1,0 +1,226 @@
+Chat server running on port 3000
+Database connection successful
+Connection attempt from ::ffff:127.0.0.1 via Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0
+Transport: websocket
+New client connected rGwvn16Wr0pSNgu_AAAB
+Authentication request: {
+  type: 'user',
+  userId: '<br />\n' +
+    '<b>Warning</b>:  Undefined variable $chatUserId in <b>/www/wwwroot/takashimayavn.com/product/shop_product.php</b> on line <b>426</b><br />\n'
+}
+User <br />
+<b>Warning</b>:  Undefined variable $chatUserId in <b>/www/wwwroot/takashimayavn.com/product/shop_product.php</b> on line <b>426</b><br />
+ authenticated
+Connection attempt from ::ffff:127.0.0.1 via Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36
+Transport: polling
+New client connected nfcW1ezyClYTmMxlAAAD
+Authentication request: { type: 'seller', sellerId: '35', name: 'Bún' }
+Seller 35 authenticated
+Received message data: {
+  conversationId: 9,
+  senderType: 'user',
+  senderId: null,
+  message: 'alo'
+}
+Error sending message: Error: Invalid message data: missing required fields
+    at Socket.<anonymous> (/www/wwwroot/takashimayavn.com/chat-server/server.js:129:15)
+    at Socket.emit (node:events:518:28)
+    at Socket.emitUntyped (/www/wwwroot/takashimayavn.com/chat-server/node_modules/socket.io/dist/typed-events.js:69:22)
+    at /www/wwwroot/takashimayavn.com/chat-server/node_modules/socket.io/dist/socket.js:697:39
+    at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+Connection attempt from ::ffff:127.0.0.1 via Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36
+Transport: websocket
+New client connected z5J-_fGuSyFS4zGnAAAF
+Authentication request: {
+  type: 'user',
+  userId: '<br />\n' +
+    '<b>Warning</b>:  Undefined variable $chatUserId in <b>/www/wwwroot/takashimayavn.com/product/shop_product.php</b> on line <b>426</b><br />\n'
+}
+User <br />
+<b>Warning</b>:  Undefined variable $chatUserId in <b>/www/wwwroot/takashimayavn.com/product/shop_product.php</b> on line <b>426</b><br />
+ authenticated
+Received message data: {
+  conversationId: 9,
+  senderType: 'user',
+  senderId: null,
+  message: 'Alo'
+}
+Error sending message: Error: Invalid message data: missing required fields
+    at Socket.<anonymous> (/www/wwwroot/takashimayavn.com/chat-server/server.js:129:15)
+    at Socket.emit (node:events:518:28)
+    at Socket.emitUntyped (/www/wwwroot/takashimayavn.com/chat-server/node_modules/socket.io/dist/typed-events.js:69:22)
+    at /www/wwwroot/takashimayavn.com/chat-server/node_modules/socket.io/dist/socket.js:697:39
+    at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+Connection attempt from ::ffff:127.0.0.1 via Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36
+Transport: websocket
+New client connected 9ji_njsMeGJvZ296AAAH
+Authentication request: { type: 'user', userId: '16' }
+User 16 authenticated
+npm warn config init.module Use `--init-module` instead.
+
+> gmarket-chat-server@1.0.0 start
+> node server.js
+
+Chat server running on port 3000
+Database connection successful
+Connection attempt from ::ffff:127.0.0.1 via Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0
+Transport: websocket
+New client connected NGGF5cKTPopYNpzxAAAB
+Authentication request: { type: 'user', userId: '8' }
+User 8 authenticated
+Received message data: {
+  conversationId: 9,
+  senderType: 'user',
+  senderId: 8,
+  message: 'chào bạn'
+}
+Recipient seller 7 socket ID: offline
+Message sent successfully: ID 94
+Connection attempt from ::ffff:127.0.0.1 via Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36
+Transport: websocket
+New client connected SN9HFLdfhqTBvt0iAAAD
+Authentication request: { type: 'user', userId: '16' }
+User 16 authenticated
+Received message data: {
+  conversationId: 10,
+  senderType: 'user',
+  senderId: 16,
+  message: 'alo đi đụ không'
+}
+Recipient seller 35 socket ID: offline
+Message sent successfully: ID 95
+Connection attempt from ::ffff:127.0.0.1 via Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36
+Transport: polling
+New client connected PMLnrWb8sjOSzYKZAAAF
+Authentication request: { type: 'seller', sellerId: '35', name: 'Bún' }
+Seller 35 authenticated
+Client disconnected PMLnrWb8sjOSzYKZAAAF
+Connection attempt from ::ffff:127.0.0.1 via Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36
+Transport: polling
+New client connected DphLmBLo5rvZkEf3AAAH
+Authentication request: { type: 'seller', sellerId: '35', name: 'Bún' }
+Seller 35 authenticated
+Client disconnected DphLmBLo5rvZkEf3AAAH
+Connection attempt from ::ffff:127.0.0.1 via Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36
+Transport: polling
+New client connected cTJ5EbMh1tswd9WEAAAJ
+Authentication request: { type: 'seller', sellerId: '35', name: 'Bún' }
+Seller 35 authenticated
+Client disconnected cTJ5EbMh1tswd9WEAAAJ
+Connection attempt from ::ffff:127.0.0.1 via Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36
+Transport: polling
+New client connected _DWqqAboPVrIMNb1AAAL
+Authentication request: { type: 'seller', sellerId: '35', name: 'Bún' }
+Seller 35 authenticated
+Client disconnected _DWqqAboPVrIMNb1AAAL
+Connection attempt from ::ffff:127.0.0.1 via Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36
+Transport: polling
+New client connected RGbKvIH1GHqheftgAAAN
+Authentication request: { type: 'seller', sellerId: '35', name: 'Bún' }
+Seller 35 authenticated
+Received message data: {
+  conversationId: 10,
+  senderType: 'user',
+  senderId: 16,
+  message: 'hú hú'
+}
+Recipient seller 35 socket ID: RGbKvIH1GHqheftgAAAN
+Message sent successfully: ID 96
+Client disconnected RGbKvIH1GHqheftgAAAN
+Connection attempt from ::ffff:127.0.0.1 via Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36
+Transport: polling
+New client connected 949DLkY2n-g9jKdGAAAP
+Authentication request: { type: 'seller', sellerId: '35', name: 'Bún' }
+Seller 35 authenticated
+Received message data: {
+  conversationId: 10,
+  senderType: 'user',
+  senderId: 16,
+  message: '500k bao phòng'
+}
+Recipient seller 35 socket ID: 949DLkY2n-g9jKdGAAAP
+Message sent successfully: ID 97
+Client disconnected 949DLkY2n-g9jKdGAAAP
+Connection attempt from ::ffff:127.0.0.1 via Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36
+Transport: polling
+New client connected DlQz42tH6VvM8LMiAAAR
+Authentication request: { type: 'seller', sellerId: '35', name: 'Bún' }
+Seller 35 authenticated
+Client disconnected DlQz42tH6VvM8LMiAAAR
+Client disconnected SN9HFLdfhqTBvt0iAAAD
+Connection attempt from ::ffff:127.0.0.1 via Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36
+Transport: polling
+New client connected LmDxxELdm9wfziC8AAAT
+Authentication request: { type: 'seller', sellerId: '34', name: 'Khoai' }
+Seller 34 authenticated
+Connection attempt from ::ffff:127.0.0.1 via Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36
+Transport: websocket
+New client connected I94D7QFYSLVvViXTAAAV
+Authentication request: { type: 'user', userId: '16' }
+User 16 authenticated
+Received message data: {
+  conversationId: 11,
+  senderType: 'user',
+  senderId: 16,
+  message: 'alo em'
+}
+Recipient seller 34 socket ID: LmDxxELdm9wfziC8AAAT
+Message sent successfully: ID 98
+Received message data: {
+  conversationId: 11,
+  senderType: 'user',
+  senderId: 16,
+  message: 'đi hót theo không'
+}
+Recipient seller 34 socket ID: LmDxxELdm9wfziC8AAAT
+Message sent successfully: ID 99
+Client disconnected LmDxxELdm9wfziC8AAAT
+Connection attempt from ::ffff:127.0.0.1 via Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36
+Transport: polling
+New client connected MVAxgsxNxxcq7gx5AAAX
+Authentication request: { type: 'seller', sellerId: '34', name: 'Khoai' }
+Seller 34 authenticated
+Connection attempt from ::ffff:127.0.0.1 via Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36
+Transport: polling
+New client connected 4B2IgDJAlfNMR9VaAAAZ
+Authentication request: { type: 'seller', sellerId: '35', name: 'Bún' }
+Seller 35 authenticated
+Client disconnected MVAxgsxNxxcq7gx5AAAX
+Client disconnected 4B2IgDJAlfNMR9VaAAAZ
+Connection attempt from ::ffff:127.0.0.1 via Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36
+Transport: polling
+New client connected MtIpN3PbmMdbwWwfAAAb
+Authentication request: { type: 'seller', sellerId: '34', name: 'Khoai' }
+Seller 34 authenticated
+Client disconnected NGGF5cKTPopYNpzxAAAB
+Connection attempt from ::ffff:127.0.0.1 via Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36
+Transport: websocket
+New client connected wmeUC3tYisUDzLJwAAAd
+Authentication request: { type: 'user', userId: '19' }
+User 19 authenticated
+Client disconnected wmeUC3tYisUDzLJwAAAd
+Client disconnected I94D7QFYSLVvViXTAAAV
+Connection attempt from ::ffff:127.0.0.1 via Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36
+Transport: websocket
+New client connected UO383c9xfQRPRAMzAAAf
+Authentication request: { type: 'user', userId: '16' }
+User 16 authenticated
+Client disconnected UO383c9xfQRPRAMzAAAf
+Connection attempt from ::ffff:127.0.0.1 via Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36
+Transport: websocket
+New client connected -XEPOdj8ykZSgbeoAAAh
+Authentication request: { type: 'user', userId: '16' }
+User 16 authenticated
+Received message data: {
+  conversationId: 10,
+  senderType: 'user',
+  senderId: 16,
+  message: 'đi ko'
+}
+Recipient seller 35 socket ID: offline
+Message sent successfully: ID 100
+Connection attempt from ::ffff:127.0.0.1 via Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36
+Transport: polling
+New client connected v-oojF3omwMVvizQAAAj
+Authentication request: { type: 'seller', sellerId: '35', name: 'Bún' }
+Seller 35 authenticated

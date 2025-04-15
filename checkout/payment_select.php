@@ -1,1943 +1,534 @@
-
 <?php
+require_once(__DIR__ . "/../config.php");
 
-use function PHPSTORM_META\map;
+// Redirect if not logged in or is seller
+if (!$isLogin) {
+    header("Location: /users/login?redirect=/checkout/payment_select");
+    exit;
+} else if ($isSeller) {
+    header("Location: /seller/index.php");
+    exit;
+}
 
- include("../config.php"); if (!$isLogin) header("Location: /users/login");else if($isSeller) header("Location: /seller/index.php") ?>
+// Check if address_id is provided
+if (!isset($_POST['address_id']) || empty($_POST['address_id'])) {
+    header("Location: /checkout");
+    exit;
+}
 
-<!DOCTYPE html>
-<html lang="en">
+$address_id = $_POST['address_id'];
+$shipping_method = isset($_POST['shipping_method']) ? $_POST['shipping_method'] : ['home_delivery'];
 
-<head>
+// Get address details
+$address_check = fetch_array("SELECT * FROM address WHERE id='$address_id' AND user_id='$user_id' LIMIT 1");
+if (!$address_check) {
+    header("Location: /checkout");
+    exit;
+}
 
-    <meta name="csrf-token" content="4f5MLkwyl37w2ajfpKCbQjxbVPi35vsvCctPNncF">
-    <meta name="app-url" content="//tmdtquocte.com/">
-    <meta name="file-base-url" content="//tmdtquocte.com/public/">
+$address_formatted = $address_check ? $address_check['address'] . ", " . $address_check['post_code'] : "";
 
-    <title>GMARKETVN | Buy Korean domestic products at original prices from the manufacturer</title>
-
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="robots" content="index, follow">
-    <meta name="description" content="Buy Korean domestic products at original prices from the manufacturer" />
-    <meta name="keywords" content="GMARKETVN">
-
-
-    <!-- Schema.org markup for Google+ -->
-    <meta itemprop="name" content="GMARKETVN">
-    <meta itemprop="description" content="Buy Korean domestic products at original prices from the manufacturer">
-    <meta itemprop="image" content="/public/uploads/all/ImUXrP5YC9e0hsv4zR6xjoYJCuxmFYkonSInvGtJ.jpg">
-
-    <!-- Twitter Card data -->
-    <meta name="twitter:card" content="product">
-    <meta name="twitter:site" content="@publisher_handle">
-    <meta name="twitter:title" content="GMARKETVN">
-    <meta name="twitter:description" content="Buy Korean domestic products at original prices from the manufacturer">
-    <meta name="twitter:creator" content="@author_handle">
-    <meta name="twitter:image" content="/public/uploads/all/ImUXrP5YC9e0hsv4zR6xjoYJCuxmFYkonSInvGtJ.jpg">
-
-    <!-- Open Graph data -->
-    <meta property="og:title" content="GMARKETVN" />
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="/" />
-    <meta property="og:image" content="/public/uploads/all/ImUXrP5YC9e0hsv4zR6xjoYJCuxmFYkonSInvGtJ.jpg" />
-    <meta property="og:description" content="Buy Korean domestic products at original prices from the manufacturer" />
-    <meta property="og:site_name" content="GMARKETVN" />
-    <meta property="fb:app_id" content="">
-
-    <!-- Favicon -->
-    <link rel="icon" href="/public/uploads/all/ImUXrP5YC9e0hsv4zR6xjoYJCuxmFYkonSInvGtJ.jpg">
-
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,600,600i,700,700i,800,800i&display=swap" rel="stylesheet">
-
-    <!-- CSS Files -->
-    <link rel="stylesheet" href="/public/assets/css/vendors.css">
-    <link rel="stylesheet" href="/public/assets/css/aiz-core.css">
-    <link rel="stylesheet" href="/public/assets/css/custom-style.css">
-
-
-    <script>
-        var AIZ = AIZ || {};
-        AIZ.local = {
-            nothing_selected: 'Nothing selected',
-            nothing_found: 'Nothing found',
-            choose_file: 'Choose File',
-            file_selected: 'File selected',
-            files_selected: 'Files selected',
-            add_more_files: 'Add more files',
-            adding_more_files: 'Adding more files',
-            drop_files_here_paste_or: 'Drop files here, paste or',
-            browse: 'Browse',
-            upload_complete: 'Upload complete',
-            upload_paused: 'Upload paused',
-            resume_upload: 'Resume upload',
-            pause_upload: 'Pause upload',
-            retry_upload: 'Retry upload',
-            cancel_upload: 'Cancel upload',
-            uploading: 'Uploading',
-            processing: 'Processing',
-            complete: 'Complete',
-            file: 'File',
-            files: 'Files',
+// Process order submission
+if (isset($_POST['submit'])) {
+    $payment_option = $_POST['payment_option'];
+    $payment_status = $payment_option == "cash_on_delivery" ? "unpaid" : "paid";
+    $additional_info = $_POST['additional_info'];
+    $pay_img_id = isset($_POST['photo']) && !empty($_POST['photo']) ? intval($_POST['photo']) : NULL;
+    $address = $address_check ? $address_check['address'] . " , " . $address_check['post_code'] : "";
+    $phone = $address_check ? $address_check["phone"] : "";
+    
+    // Calculate order total
+    $amount = 0;
+    $cart_query = "SELECT c.*, p.seller_id, p.rose, p.name
+                  FROM cart c 
+                  JOIN products p ON c.product_id = p.id 
+                  WHERE c.user_id = ?";
+    $stmt = $conn->prepare($cart_query);
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $cart_result = $stmt->get_result();
+    $cart_items = [];
+    
+    while ($item = $cart_result->fetch_assoc()) {
+        $price = $item['price'];
+        $quantity = $item['quantity'];
+        $amount += $quantity * $price;
+        $cart_items[] = $item;
+    }
+    
+    // Generate unique order code
+    $code = date("Ymd") . "-" . time();
+    
+    // Create order in database
+    $insert_order_query = "INSERT INTO orders(code, amount, additional_info, payment_option,payment_status, pay_img_id, user_id, address, create_date, phone) 
+                           VALUES(?, ?, ?,?, ?, ?, ?, ?, NOW(), ?)";
+    $stmt = $conn->prepare($insert_order_query);
+    $stmt->bind_param("sdsssiiss", $code, $amount, $additional_info, $payment_option,$payment_status, $pay_img_id, $user_id, $address, $phone);
+    $stmt->execute();
+    $order_id = $conn->insert_id;
+    
+    // Create order details and update seller commission if applicable
+    foreach ($cart_items as $item) {
+        $product_id = $item['product_id'];
+        $price = $item['price'];
+        $quantity = $item['quantity'];
+        $name = $item['name'];
+        $rose = $item['rose'];
+        $seller_id = $item['seller_id'];
+        
+        $product_img = fetch_array("SELECT f.src FROM file f 
+                                  JOIN products p ON f.id = p.thumbnail_image 
+                                  WHERE p.id = '$product_id' LIMIT 1");
+        $img_path = $product_img ? "/public/uploads/all/" . $product_img['src'] : "/public/assets/img/placeholder.jpg";
+        
+        $insert_detail_query = "INSERT INTO detail_orders(
+                               rose, from_seller, order_id, price, name, quantity, img, user_id, create_date) 
+                               VALUES(?, ?, ?, ?, ?, ?, ?, ?, NOW())";
+        $detail_stmt = $conn->prepare($insert_detail_query);
+        $detail_stmt->bind_param("diiisdsi", $rose, $seller_id, $order_id, $price, $name, $quantity, $img_path, $user_id);
+        $detail_stmt->execute();
+        
+        if ($seller_id) {
+            mysqli_query($conn, "UPDATE sellers SET rose = rose + $rose, money = money + $rose WHERE id = '$seller_id' LIMIT 1");
+            mysqli_query($conn, "UPDATE products SET quantity = quantity - $quantity WHERE id = '$product_id' LIMIT 1");
         }
-    </script>
+    }
+    
+    // Clear cart after successful order
+    mysqli_query($conn, "DELETE FROM cart WHERE user_id = '$user_id'");
+    
+    // Redirect to order confirmation
+    header("Location: /checkout/order-confirmed?order=$code");
+    exit;
+}
 
-    <style>
-        body {
-            font-family: 'Open Sans', sans-serif;
-            font-weight: 400;
-        }
+// Get cart items grouped by seller
+$cart_items = [];
+$sellers = [];
+$seller_subtotals = [];
+$subtotal = 0;
+$total_items = 0;
 
-        :root {
-            --primary: #00c01e;
-            --hov-primary: #00c01e;
-            --soft-primary: rgba(0, 192, 30, 0.15);
-        }
+// Query cart items with product and seller details
+$cart_query = "SELECT c.*, p.name, p.thumbnail_image, 
+              s.id as seller_id, s.full_name as seller_name, s.shop_logo
+              FROM cart c 
+              JOIN products p ON c.product_id = p.id 
+              LEFT JOIN sellers s ON p.seller_id = s.id
+              WHERE c.user_id = $user_id
+              ORDER BY s.id, c.created_at DESC";
+$cart_result = mysqli_query($conn, $cart_query);
 
-        #map {
-            width: 100%;
-            height: 250px;
-        }
+// Process cart items
+while ($item = mysqli_fetch_assoc($cart_result)) {
+    // Get product image
+    $product_image = fetch_array("SELECT src FROM file WHERE id = '{$item['thumbnail_image']}' LIMIT 1");
+    $img_url = $product_image ? "/public/uploads/all/" . $product_image['src'] : "/public/assets/img/placeholder.jpg";
+    
+    // Calculate item total
+    $item_total = $item['price'] * $item['quantity'];
+    $subtotal += $item_total;
+    $total_items += $item['quantity'];
+    
+    $seller_id = $item['seller_id'] ?? 0;
+    $seller_name = $item['seller_name'] ?? 'Unknown Seller';
+    
+    // Initialize seller data if not exists
+    if (!isset($sellers[$seller_id])) {
+        $sellers[$seller_id] = [
+            'id' => $seller_id,
+            'name' => $seller_name,
+            'logo' => $item['shop_logo'] ?? '',
+            'items' => []
+        ];
+        $seller_subtotals[$seller_id] = 0;
+    }
+    
+    // Add to seller's subtotal
+    $seller_subtotals[$seller_id] += $item_total;
+    
+    // Add to seller's items
+    $sellers[$seller_id]['items'][] = [
+        'id' => $item['id'],
+        'product_id' => $item['product_id'],
+        'name' => $item['name'],
+        'quantity' => $item['quantity'],
+        'price' => $item['price'],
+        'item_total' => $item_total,
+        'img' => $img_url
+    ];
+}
 
-        #edit_map {
-            width: 100%;
-            height: 250px;
-        }
+// Calculate shipping and total
+$shipping_cost = 20000; // Default shipping cost in VND
+$shipping_discount = 20000; // Shipping discount for free shipping
+$final_shipping_cost = 0; // Free shipping after discount
 
-        .pac-container {
-            z-index: 100000;
-        }
+// Calculate total price including shipping
+$total = $subtotal + $final_shipping_cost;
 
-        #chat-widget-container {
-            margin-bottom: 100px;
-        }
-    </style>
+// Payment methods available
+$payment_methods = [
+    [
+        'id' => 'cash_on_delivery',
+        'name' => 'Cash On Delivery',
+        'description' => 'Pay when you receive the package',
+        'image' => '/public/assets/img/cards/cod.png'
+    ],
+    [
+        'id' => 'bank_transfer',
+        'name' => 'Bank Transfer',
+        'description' => 'Pay via bank transfer',
+        'image' => '/public/assets/img/cards/bank_transfer.png'
+    ],
+    [
+        'id' => 'card_payment',
+        'name' => 'Credit/Debit Card',
+        'description' => 'Visa, Mastercard, Amex, JCB',
+        'image' => '/public/assets/img/cards/credit_card.png'
+    ]
+];
 
+require_once(__DIR__ . "/../layout/header.php");
+?>
 
+<style>
+  .payment-option.selected {
+    border-color: #ee4d2d;
+    background-color: #fff0ea;
+  }
+  .payment-option.selected .check-circle {
+    display: flex;
+  }
+</style>
 
-    WELCOME TO GMARKETVN !
-</head>
-
-<body>
-    <!-- aiz-main-wrapper -->
-    <div class="aiz-main-wrapper d-flex flex-column">
-
-        <!-- Header -->
-        <?php include("../layout/header.php")?>
-
-
-        <section class="mb-4 pt-5">
-            <div class="container">
-                <div class="row">
-                    <div class="col-xl-8 mx-auto">
-                        <div class="row aiz-steps arrow-divider">
-                            <div class="col done">
-                                <div class="text-success text-center">
-                                    <i class="la-3x las la-shopping-cart mb-2"></i>
-                                    <h3 class="fs-14 fw-600 d-none d-lg-block">1. My Cart</h3>
-                                </div>
-                            </div>
-                            <div class="col done">
-                                <div class="text-success text-center">
-                                    <i class="la-3x las la-map mb-2"></i>
-                                    <h3 class="fs-14 fw-600 d-none d-lg-block">2. Shipping info</h3>
-                                </div>
-                            </div>
-                            <div class="col done">
-                                <div class="text-success text-center">
-                                    <i class="la-3x las la-truck mb-2"></i>
-                                    <h3 class="fs-14 fw-600 d-none d-lg-block">3. Delivery info</h3>
-                                </div>
-                            </div>
-                            <div class="col active">
-                                <div class="text-primary text-center">
-                                    <i class="la-3x las la-credit-card mb-2"></i>
-                                    <h3 class="fs-14 fw-600 d-none d-lg-block">4. Payment</h3>
-                                </div>
-                            </div>
-                            <div class="col">
-                                <div class="text-center">
-                                    <i class="la-3x las la-check-circle mb-2 opacity-50"></i>
-                                    <h3 class="fs-14 fw-600 d-none d-lg-block opacity-50">5. Confirmation
-                                    </h3>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+<div class="bg-shopee-gray min-h-screen pb-10">
+  <div class="container mx-auto px-4 py-6 max-w-screen-xl">
+    <!-- Checkout Steps -->
+    <div class="flex justify-center mb-8">
+      <div class="w-full max-w-4xl">
+        <div class="flex justify-between">
+          <div class="flex flex-col items-center">
+            <div class="w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center mb-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
             </div>
-        </section>
-        <section class="mb-4">
-            <div class="container text-left">
-                <div class="row">
-                    <div class="col-lg-8">
-                        <?php 
-                        if(isset($_POST['submit'])){
-                            $payment_option=$_POST['payment_option'];
-                            $additional_info=$_POST['additional_info'];
-                            $pay_img_id=$_POST['photo'];
-                            $address_id=$_POST['address_id'];
-                            $code=date("Ymd")."-".time();
-
-                            $amount=0;
-                            
-                            $checkExist=fetch_array("SELECT * FROM address WHERE id='$address_id' LIMIT 1");
-                            $address=$checkExist?$checkExist['address']." , ".$checkExist['city']." , ".$checkExist['country']:"";
-                            foreach($_SESSION['cart'] as $cart){
-                                $price=$cart['price'];
-                                $quantity=$cart['quantity'];
-                                $amount+=$quantity*$price;
-                            }
-
-
-                            @mysqli_query($conn,"INSERT into orders(code,amount,additional_info,payment_option,pay_img_id,user_id,address,create_date)values('$code','$amount','$additional_info','$payment_option','$pay_img_id','$user_id','$address','$createDate')");
-                            $last_id = mysqli_insert_id($conn);
-
-                            foreach($_SESSION['cart'] as $cart){
-                                $price=$cart['price'];
-                                $quantity=$cart['quantity'];
-                                $name=mysqli_real_escape_string($conn,$cart['name']);
-                                $img=$cart['img'];
-                                if(isset($cart['p_id'])){
-                                    $seller_from=fetch_array("SELECT * FROM products WHERE id='{$cart['p_id']}' LIMIT 1");
-                                    $rose=$seller_from['rose'];
-                                    if($seller_from && $seller_from['seller_id']){
-                                        @mysqli_query($conn,"INSERT into detail_orders(rose,from_seller,order_id,price,name,quantity,img,user_id,create_date)values('$rose','{$seller_from['seller_id']}','$last_id','$price','$name','$quantity','$img','$user_id','$createDate') ");
-                                        @mysqli_query($conn,"UPDATE sellers SET rose=rose+$rose,money=money+$rose WHERE id='{$seller_from['seller_id']}' LIMIT 1");
-                                    }
-
-
-                                }
-                                
-                                else @mysqli_query($conn,"INSERT into detail_orders(order_id,price,name,quantity,img,user_id,create_date)values('$last_id','$price','$name','$quantity','$img','$user_id','$createDate') ");
-
-                            }
-
-
-
-                            echo "<script>window.location.href='/checkout/order-confirmed'</script>";
-
-                        }
-                        ?>
-                        <form action="" class="form-default" role="form" method="POST"
-                            id="checkout-form">
-                            <input type="hidden" name="_token" value="4f5MLkwyl37w2ajfpKCbQjxbVPi35vsvCctPNncF"> <input type="hidden" name="owner_id" value="1898">
-                            <input type="hidden" name="address_id" value="<?=$_POST['address_id']?>"> <input type="hidden" name="owner_id" value="1898">
-
-
-                            <div class="card rounded border-0 shadow-sm">
-                                <div class="card-header p-3">
-                                    <h3 class="fs-16 fw-600 mb-0">
-                                        Any additional info?
-                                    </h3>
-                                </div>
-                                <div class="form-group px-3 pt-3">
-                                    <textarea name="additional_info" rows="5" class="form-control" placeholder="Type your text"></textarea>
-                                </div>
-
-                                <div class="card-header p-3">
-                                    <h3 class="fs-16 fw-600 mb-0">
-                                        Select a payment option
-                                    </h3>
-                                </div>
-                                <div class="card-body text-center">
-                                    <div class="row">
-                                        <div class="col-xxl-8 col-xl-10 mx-auto">
-                                            <div class="row gutters-10">
-                                                <div class="col-6 col-md-4">
-                                                    <label class="aiz-megabox d-block mb-3">
-                                                        <input value="cash_on_delivery" class="online_payment"
-                                                            type="radio" name="payment_option" checked>
-                                                        <span class="d-block aiz-megabox-elem p-3">
-                                                            <img src="/public/assets/img/cards/cod.png"
-                                                                class="img-fluid mb-2">
-                                                            <span class="d-block text-center">
-                                                                <span
-                                                                    class="d-block fw-600 fs-15">Cash on Delivery</span>
-                                                            </span>
-                                                        </span>
-                                                    </label>
-                                                </div>
-                                                <div class="col-6 col-md-4">
-                                                    <label class="aiz-megabox d-block mb-3">
-                                                        <input value="Thanh toán khi nhận hàng" type="radio"
-                                                            name="payment_option" class="offline_payment_option"
-                                                            onchange="toggleManualPaymentData(15)"
-                                                            data-id="15" checked>
-                                                        <span class="d-block aiz-megabox-elem p-3">
-                                                            <img src="/public/uploads/all/icYgAq7wYvnovm4aNHg0e8rZGrVmpqO8YrSaOiSN.png"
-                                                                class="img-fluid mb-2">
-                                                            <span class="d-block text-center">
-                                                                <span
-                                                                    class="d-block fw-600 fs-15">Thanh toán khi nhận hàng</span>
-                                                            </span>
-                                                        </span>
-                                                    </label>
-                                                </div>
-                                                <div class="col-6 col-md-4">
-                                                    <label class="aiz-megabox d-block mb-3">
-                                                        <input value="VISA CARD" type="radio"
-                                                            name="payment_option" class="offline_payment_option"
-                                                            onchange="toggleManualPaymentData(16)"
-                                                            data-id="16" checked>
-                                                        <span class="d-block aiz-megabox-elem p-3">
-                                                            <img src="/public/uploads/all/33FiWfrr9zdEnLV0BkT0HjMANARSz51Bi3GMxYGs.png"
-                                                                class="img-fluid mb-2">
-                                                            <span class="d-block text-center">
-                                                                <span
-                                                                    class="d-block fw-600 fs-15">VISA CARD</span>
-                                                            </span>
-                                                        </span>
-                                                    </label>
-                                                </div>
-                                                <div class="col-6 col-md-4">
-                                                    <label class="aiz-megabox d-block mb-3">
-                                                        <input value="MASTER CARD" type="radio"
-                                                            name="payment_option" class="offline_payment_option"
-                                                            onchange="toggleManualPaymentData(17)"
-                                                            data-id="17" checked>
-                                                        <span class="d-block aiz-megabox-elem p-3">
-                                                            <img src="/public/uploads/all/v9qQDWLSBiE355171JQHJcRi9yKZLpgauCDRsjtD.png"
-                                                                class="img-fluid mb-2">
-                                                            <span class="d-block text-center">
-                                                                <span
-                                                                    class="d-block fw-600 fs-15">MASTER CARD</span>
-                                                            </span>
-                                                        </span>
-                                                    </label>
-                                                </div>
-                                                <div class="col-6 col-md-4">
-                                                    <label class="aiz-megabox d-block mb-3">
-                                                        <input value="PAYPAL" type="radio"
-                                                            name="payment_option" class="offline_payment_option"
-                                                            onchange="toggleManualPaymentData(18)"
-                                                            data-id="18" checked>
-                                                        <span class="d-block aiz-megabox-elem p-3">
-                                                            <img src="/public/uploads/all/xfiZyA9RW0KR0dMkn0E22sT3knhLpEWT8CcWgWkp.png"
-                                                                class="img-fluid mb-2">
-                                                            <span class="d-block text-center">
-                                                                <span
-                                                                    class="d-block fw-600 fs-15">PAYPAL</span>
-                                                            </span>
-                                                        </span>
-                                                    </label>
-                                                </div>
-                                                <div class="col-6 col-md-4">
-                                                    <label class="aiz-megabox d-block mb-3">
-                                                        <input value="HD BANK" type="radio"
-                                                            name="payment_option" class="offline_payment_option"
-                                                            onchange="toggleManualPaymentData(19)"
-                                                            data-id="19" checked>
-                                                        <span class="d-block aiz-megabox-elem p-3">
-                                                            <img src="/public/uploads/all/r8Bdd3Co4IkqOZccrrLfCvh3uqPmwrHBhD9Qxqhd.webp"
-                                                                class="img-fluid mb-2">
-                                                            <span class="d-block text-center">
-                                                                <span
-                                                                    class="d-block fw-600 fs-15">HD BANK</span>
-                                                            </span>
-                                                        </span>
-                                                    </label>
-                                                </div>
-                                                <div class="col-6 col-md-4">
-                                                    <label class="aiz-megabox d-block mb-3">
-                                                        <input value="TECHCOMBANK" type="radio"
-                                                            name="payment_option" class="offline_payment_option"
-                                                            onchange="toggleManualPaymentData(20)"
-                                                            data-id="20" checked>
-                                                        <span class="d-block aiz-megabox-elem p-3">
-                                                            <img src="/public/uploads/all/jeuel5lADPXIZtgcheNCTnUcpLTq1SH9NNknvDsg.png"
-                                                                class="img-fluid mb-2">
-                                                            <span class="d-block text-center">
-                                                                <span
-                                                                    class="d-block fw-600 fs-15">TECHCOMBANK</span>
-                                                            </span>
-                                                        </span>
-                                                    </label>
-                                                </div>
-                                                <div class="col-6 col-md-4">
-                                                    <label class="aiz-megabox d-block mb-3">
-                                                        <input value="VIETCOMBANK" type="radio"
-                                                            name="payment_option" class="offline_payment_option"
-                                                            onchange="toggleManualPaymentData(21)"
-                                                            data-id="21" checked>
-                                                        <span class="d-block aiz-megabox-elem p-3">
-                                                            <img src="/public/uploads/all/haO8MQfNUgxHBPI4vPxDfJe0Xougl0tWC1EE3cIF.png"
-                                                                class="img-fluid mb-2">
-                                                            <span class="d-block text-center">
-                                                                <span
-                                                                    class="d-block fw-600 fs-15">VIETCOMBANK</span>
-                                                            </span>
-                                                        </span>
-                                                    </label>
-                                                </div>
-                                                <div class="col-6 col-md-4">
-                                                    <label class="aiz-megabox d-block mb-3">
-                                                        <input value="BIDV BANK" type="radio"
-                                                            name="payment_option" class="offline_payment_option"
-                                                            onchange="toggleManualPaymentData(22)"
-                                                            data-id="22" checked>
-                                                        <span class="d-block aiz-megabox-elem p-3">
-                                                            <img src="/public/uploads/all/vPB0DTYfja9ZJnCifXoNoLMRchWj4POilnygNkNl.png"
-                                                                class="img-fluid mb-2">
-                                                            <span class="d-block text-center">
-                                                                <span
-                                                                    class="d-block fw-600 fs-15">BIDV BANK</span>
-                                                            </span>
-                                                        </span>
-                                                    </label>
-                                                </div>
-                                                <div class="col-6 col-md-4">
-                                                    <label class="aiz-megabox d-block mb-3">
-                                                        <input value="MONEYGRAM" type="radio"
-                                                            name="payment_option" class="offline_payment_option"
-                                                            onchange="toggleManualPaymentData(23)"
-                                                            data-id="23" checked>
-                                                        <span class="d-block aiz-megabox-elem p-3">
-                                                            <img src="/public/uploads/all/XgrsO6V2JnLLk3tHRXndSbfwto0EDelGgUl8T6gu.png"
-                                                                class="img-fluid mb-2">
-                                                            <span class="d-block text-center">
-                                                                <span
-                                                                    class="d-block fw-600 fs-15">MONEYGRAM</span>
-                                                            </span>
-                                                        </span>
-                                                    </label>
-                                                </div>
-                                                <div class="col-6 col-md-4">
-                                                    <label class="aiz-megabox d-block mb-3">
-                                                        <input value="WESTERN UNION" type="radio"
-                                                            name="payment_option" class="offline_payment_option"
-                                                            onchange="toggleManualPaymentData(25)"
-                                                            data-id="25" checked>
-                                                        <span class="d-block aiz-megabox-elem p-3">
-                                                            <img src="/public/uploads/all/2p8IsVIt67X3yfGfxH5renamjwOPPizDJ0Iji5MY.png"
-                                                                class="img-fluid mb-2">
-                                                            <span class="d-block text-center">
-                                                                <span
-                                                                    class="d-block fw-600 fs-15">WESTERN UNION</span>
-                                                            </span>
-                                                        </span>
-                                                    </label>
-                                                </div>
-
-                                                <div id="manual_payment_info_15" class="d-none">
-                                                </div>
-                                                <div id="manual_payment_info_16" class="d-none">
-                                                    <ul>
-                                                        <li>Bank Name : </li>
-                                                        <li>Account Name : </li>
-                                                        <li>Account Number : </li>
-                                                    </ul>
-                                                </div>
-                                                <div id="manual_payment_info_17" class="d-none">
-                                                    <ul>
-                                                        <li>Bank Name : </li>
-                                                        <li>Account Name : </li>
-                                                        <li>Account Number : </li>
-                                                    </ul>
-                                                </div>
-                                                <div id="manual_payment_info_18" class="d-none">
-                                                    <ul>
-                                                        <li>Bank Name : </li>
-                                                        <li>Account Name : </li>
-                                                        <li>Account Number : </li>
-                                                    </ul>
-                                                </div>
-                                                <div id="manual_payment_info_19" class="d-none">
-                                                    <ul>
-                                                        <li>Bank Name : </li>
-                                                        <li>Account Name : </li>
-                                                        <li>Account Number : </li>
-                                                    </ul>
-                                                </div>
-                                                <div id="manual_payment_info_20" class="d-none">
-                                                    <ul>
-                                                        <li>Bank Name : </li>
-                                                        <li>Account Name : </li>
-                                                        <li>Account Number : </li>
-                                                    </ul>
-                                                </div>
-                                                <div id="manual_payment_info_21" class="d-none">
-                                                    <ul>
-                                                        <li>Bank Name : </li>
-                                                        <li>Account Name : </li>
-                                                        <li>Account Number : </li>
-                                                    </ul>
-                                                </div>
-                                                <div id="manual_payment_info_22" class="d-none">
-                                                    <ul>
-                                                        <li>Bank Name : </li>
-                                                        <li>Account Name : </li>
-                                                        <li>Account Number : </li>
-                                                    </ul>
-                                                </div>
-                                                <div id="manual_payment_info_23" class="d-none">
-                                                    <ul>
-                                                        <li>Bank Name : </li>
-                                                        <li>Account Name : </li>
-                                                        <li>Account Number : </li>
-                                                    </ul>
-                                                </div>
-                                                <div id="manual_payment_info_25" class="d-none">
-                                                    <ul>
-                                                        <li>Bank Name : </li>
-                                                        <li>Account Name : </li>
-                                                        <li>Account Number : </li>
-                                                    </ul>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div class="d-none mb-3 rounded border bg-white p-3 text-left" id="descheck">
-                                        <div id="manual_payment_description">
-
-                                        </div>
-                                        <br>
-                                        <div class="row">
-                                            <div class="col-md-3">
-                                                <label>Transaction ID <span
-                                                        class="text-danger">*</span></label>
-                                            </div>
-                                            <div class="col-md-9">
-                                                <input type="text" class="form-control mb-3" name="trx_id"
-                                                    id="trx_id" placeholder="Transaction ID"
-                                                    required>
-                                            </div>
-                                        </div>
-                                        <div class="form-group row">
-                                            <label class="col-md-3 col-form-label">Photo</label>
-                                            <div class="col-md-9">
-                                                <div class="input-group" data-toggle="aizuploader" data-type="image">
-                                                    <div class="input-group-prepend">
-                                                        <div class="input-group-text bg-soft-secondary font-weight-medium">
-                                                            Browse</div>
-                                                    </div>
-                                                    <div class="form-control file-amount">Choose image
-                                                    </div>
-                                                    <input type="hidden" name="photo" class="selected-files">
-                                                </div>
-                                                <div class="file-preview box sm">
-                                                    <!-- <div class="d-flex justify-content-between align-items-center mt-2 file-preview-item" data-id="48529" title="434722122_407019058618083_890352495166560540_n.jpg"><div class="align-items-center align-self-stretch d-flex justify-content-center thumb"><img src="/public/uploads/all/PA2lJfZzgPXZIvuU5MUVefYMJlPiS6Ptip3QNCCm.jpg" class="img-fit"></div><div class="col body"><h6 class="d-flex"><span class="text-truncate title">434722122_407019058618083_890352495166560540_n</span><span class="flex-shrink-0 ext">.jpg</span></h6><p>313 KB</p></div><div class="remove"><button class="btn btn-sm btn-link remove-attachment" type="button"><i class="la la-close"></i></button></div></div> -->
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="separator mb-3">
-                                        <span class="bg-white px-3">
-                                            <span class="opacity-60">Or</span>
-                                        </span>
-                                    </div>
-                                    <div class="py-4 text-center">
-                                        <div class="h6 mb-3">
-                                            <span class="opacity-80">Your wallet balance :</span>
-                                            <span class="fw-600"><?=currency($user_money)?>$</span>
-                                        </div>
-                                        <button type="button" class="btn btn-secondary" disabled>
-                                            Insufficient balance
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="pt-3">
-                                <label class="aiz-checkbox">
-                                    <input type="checkbox" required id="agree_checkbox">
-                                    <span class="aiz-square-check"></span>
-                                    <span>I agree to the</span>
-                                </label>
-                                <a href="/terms">terms and conditions</a>,
-                                <a href="/return-policy">Return policy</a> &
-                                <a href="/privacy-policy">Privacy policy</a>
-                            </div>
-
-                            <div class="row align-items-center pt-3">
-                                <div class="col-6">
-                                    <a href="" class="link link--style-3">
-                                        <i class="las la-arrow-left"></i>
-                                        Return to shop
-                                    </a>
-                                </div>
-                                <div class="col-6 text-right">
-                                <!-- onclick="submitOrder(this)" -->
-                                    <button name="submit" type="submit"  class="btn btn-primary fw-600">Complete Order</button>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-
-                    <div class="col-lg-4 mt-lg-0 mt-4" id="cart_summary">
-                        <div class="card rounded border-0 shadow-sm">
-                            <div class="card-header">
-                                <h3 class="fs-16 fw-600 mb-0">Summary</h3>
-                                <div class="text-right">
-                                    <span class="badge badge-inline badge-primary">
-                                        1
-                                        Items
-                                    </span>
-
-
-                                </div>
-                            </div>
-
-                            <div class="card-body">
-                                <table class="table">
-                                    <thead>
-                                        <tr>
-                                            <th class="product-name">Product</th>
-                                            <th class="product-total text-right">Total</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <?php 
-                                        $sum=0;
-                                        foreach($_SESSION['cart'] as $cart){
-                                            $sum+=$cart['quantity']*$cart['price'];
-                                        ?>
-                                        <tr class="cart_item">
-                                            <td class="product-name">
-                                                <?=$cart['name']?>
-                                                <strong class="product-quantity">
-                                                    × <?=$cart['quantity']?>
-                                                </strong>
-                                            </td>
-                                            <td class="product-total text-right">
-                                                <span class="pl-4 pr-0"><?=$cart['quantity']*$cart['price']?>$</span>
-                                            </td>
-                                        </tr>
-                                        <?php }?>
-                                    </tbody>
-                                </table>
-                                <input type="hidden" id="sub_total" value="<?=$sum?>">
-                                <table class="table">
-
-                                    <tfoot>
-                                        <tr class="cart-subtotal">
-                                            <th>Subtotal</th>
-                                            <td class="text-right">
-                                                <span class="fw-600"><?=$sum?>$</span>
-                                            </td>
-                                        </tr>
-
-                                        <tr class="cart-shipping">
-                                            <th>Tax</th>
-                                            <td class="text-right">
-                                                <span class="font-italic">0.00$</span>
-                                            </td>
-                                        </tr>
-
-                                        <tr class="cart-shipping">
-                                            <th>Total Shipping</th>
-                                            <td class="text-right">
-                                                <span class="font-italic">0.00$</span>
-                                            </td>
-                                        </tr>
-
-
-
-
-                                        <tr class="cart-total">
-                                            <th><span class="strong-600">Total</span></th>
-                                            <td class="text-right">
-                                                <strong><span><?=$sum?>$</span></strong>
-                                            </td>
-                                        </tr>
-                                    </tfoot>
-                                </table>
-
-
-
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <span class="text-xs text-green-600">Cart</span>
+          </div>
+          
+          <div class="flex-1 flex items-center">
+            <div class="h-0.5 w-full bg-green-500"></div>
+          </div>
+          
+          <div class="flex flex-col items-center">
+            <div class="w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center mb-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
             </div>
-        </section>
-
-        <section class="bg-white border-top mt-auto">
-            <div class="container">
-                <div class="row no-gutters">
-                    <div class="col-lg-3 col-md-6">
-                        <a class="text-reset border-left text-center p-4 d-block" href="/terms">
-                            <i class="la la-file-text la-3x text-primary mb-2"></i>
-                            <h4 class="h6">Terms &amp; conditions</h4>
-                        </a>
-                    </div>
-                    <div class="col-lg-3 col-md-6">
-                        <a class="text-reset border-left text-center p-4 d-block" href="/return-policy">
-                            <i class="la la-mail-reply la-3x text-primary mb-2"></i>
-                            <h4 class="h6">Return policy</h4>
-                        </a>
-                    </div>
-                    <div class="col-lg-3 col-md-6">
-                        <a class="text-reset border-left text-center p-4 d-block" href="/support-policy">
-                            <i class="la la-support la-3x text-primary mb-2"></i>
-                            <h4 class="h6">Support Policy</h4>
-                        </a>
-                    </div>
-                    <div class="col-lg-3 col-md-6">
-                        <a class="text-reset border-left border-right text-center p-4 d-block" href="/privacy-policy">
-                            <i class="las la-exclamation-circle la-3x text-primary mb-2"></i>
-                            <h4 class="h6">Privacy policy</h4>
-                        </a>
-                    </div>
-                </div>
+            <span class="text-xs text-green-600">Address</span>
+          </div>
+          
+          <div class="flex-1 flex items-center">
+            <div class="h-0.5 w-full bg-green-500"></div>
+          </div>
+          
+          <div class="flex flex-col items-center">
+            <div class="w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center mb-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
             </div>
-        </section>
+            <span class="text-xs text-green-600">Shipping</span>
+          </div>
+          
+          <div class="flex-1 flex items-center">
+            <div class="h-0.5 w-full bg-shopee-orange"></div>
+          </div>
+          
+          <div class="flex flex-col items-center">
+            <div class="w-10 h-10 rounded-full bg-shopee-orange text-white flex items-center justify-center mb-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <span class="text-xs font-medium text-shopee-orange">Payment</span>
+          </div>
+          
+          <div class="flex-1 flex items-center">
+            <div class="h-0.5 w-full bg-gray-200"></div>
+          </div>
+          
+          <div class="flex flex-col items-center">
+            <div class="w-10 h-10 rounded-full bg-gray-200 text-gray-400 flex items-center justify-center mb-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <span class="text-xs text-gray-500">Complete</span>
+          </div>
+        </div>
+      </div>
+    </div>
 
-        <?php include("../layout/footer.php")?>
+    <div class="max-w-4xl mx-auto">
+      <!-- Checkout Content -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <!-- Left Column - Payment Options -->
+        <div class="lg:col-span-2">
+          <form action="" method="POST" id="checkout-form">
+            <input type="hidden" name="_token" value="<?= md5(time()) ?>"> 
+            <input type="hidden" name="address_id" value="<?= $address_id ?>">
+            <?php foreach($shipping_method as $seller_id => $method): ?>
+              <input type="hidden" name="shipping_method[<?= $seller_id ?>]" value="<?= $method ?>">
+            <?php endforeach; ?>
+            
+            <!-- Shipping Information Summary -->
+            <div class="bg-white rounded-sm shadow-sm p-4 mb-4">
+              <div class="flex justify-between items-center mb-2">
+                <h2 class="text-base font-medium">Delivery Address</h2>
+                <a href="/checkout" class="text-shopee-orange text-sm">Change</a>
+              </div>
+              <div class="text-sm text-gray-600">
+                <div class="flex items-start">
+                  <div class="text-gray-800 font-medium mr-2">Address:</div>
+                  <div><?= htmlspecialchars($address_check['address']) ?></div>
+                </div>
+                <div class="flex items-start mt-1">
+                  <div class="text-gray-800 font-medium mr-2">Postal Code:</div>
+                  <div><?= htmlspecialchars($address_check['post_code']) ?></div>
+                </div>
+                <div class="flex items-start mt-1">
+                  <div class="text-gray-800 font-medium mr-2">Phone:</div>
+                  <div><?= htmlspecialchars($address_check['phone']) ?></div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Payment Methods -->
+            <div class="bg-white rounded-sm shadow-sm p-4 mb-4">
+              <h2 class="text-base font-medium mb-4">Payment Method</h2>
+              
+              <div class="space-y-3">
+                <?php foreach($payment_methods as $index => $method): ?>
+                <div class="payment-option relative border border-gray-200 rounded p-3 cursor-pointer hover:border-gray-300 <?= $index === 0 ? 'selected' : '' ?>"
+                     onclick="selectPaymentMethod(this, '<?= $method['id'] ?>')">
+                  <input type="radio" name="payment_option" value="<?= $method['id'] ?>" class="hidden" <?= $index === 0 ? 'checked' : '' ?>>
+                  
+                  <!-- Check circle indicator -->
+                  <div class="check-circle absolute top-3 right-3 w-5 h-5 bg-shopee-orange rounded-full items-center justify-center text-white <?= $index === 0 ? 'flex' : 'hidden' ?>">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  
+                  <div class="flex items-center">
+                    <div class="w-12 h-12 flex-shrink-0 mr-4">
+                      <img src="<?= $method['image'] ?>" alt="<?= $method['name'] ?>" class="w-full h-full object-contain">
+                    </div>
+                    <div>
+                      <p class="font-medium"><?= $method['name'] ?></p>
+                      <p class="text-xs text-gray-500 mt-1"><?= $method['description'] ?></p>
+                    </div>
+                  </div>
+                </div>
+                <?php endforeach; ?>
+              </div>
+            </div>
+            
+            <!-- Additional Information -->
+            <div class="bg-white rounded-sm shadow-sm p-4 mb-4">
+              <h2 class="text-base font-medium mb-4">Additional Information (Optional)</h2>
+              <textarea name="additional_info" rows="3" class="w-full border border-gray-300 rounded p-2 text-sm focus:outline-none focus:border-shopee-orange" placeholder="Any special instructions for delivery or order?"></textarea>
+            </div>
+            
+            <!-- Payment Receipt Upload (Optional) -->
+            <div class="bg-white rounded-sm shadow-sm p-4 mb-4">
+              <h2 class="text-base font-medium mb-4">Payment Receipt (Optional)</h2>
+              <div class="flex items-center space-x-4">
+                <div class="flex-1">
+                  <div class="flex items-center">
+                    <div class="relative">
+                      <input type="file" class="absolute inset-0 opacity-0 w-full h-full cursor-pointer" id="receipt-upload">
+                      <div class="border border-dashed border-gray-300 rounded flex items-center justify-center h-10 px-4 text-sm text-gray-500">Choose File</div>
+                    </div>
+                    <span class="ml-4 text-xs text-gray-500" id="file-name">No file chosen</span>
+                    <input type="hidden" name="photo" class="selected-files">
+                  </div>
+                  <p class="text-xs text-gray-500 mt-1">Upload a screenshot or photo of your payment receipt</p>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Terms & Conditions -->
+            <div class="bg-white rounded-sm shadow-sm p-4 mb-4">
+              <div class="flex items-start">
+                <input type="checkbox" id="agree_checkbox" class="mt-1" required>
+                <label for="agree_checkbox" class="ml-2 text-sm text-gray-700">
+                  By completing your purchase, you agree to the 
+                  <a href="/terms" class="text-shopee-orange hover:underline">Terms of Service</a>, 
+                  <a href="/return-policy" class="text-shopee-orange hover:underline">Return Policy</a> & 
+                  <a href="/privacy-policy" class="text-shopee-orange hover:underline">Privacy Policy</a>
+                </label>
+              </div>
+            </div>
+            
+            <!-- Navigation Buttons -->
+            <div class="flex flex-col-reverse sm:flex-row items-center justify-between">
+              <a href="/checkout/delivery_info" class="text-shopee-orange hover:underline mt-3 sm:mt-0" onclick="history.back(); return false;">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                </svg>
+                Return to Shipping
+              </a>
+              <button type="submit" name="submit" class="w-full sm:w-auto bg-shopee-orange text-white py-2.5 px-6 rounded-sm hover:bg-shopee-orange/90 disabled:bg-gray-300 disabled:cursor-not-allowed" id="complete-order-btn" disabled>
+                Complete Order
+              </button>
+            </div>
+          </form>
+        </div>
+        
+        <!-- Right Column - Order Summary -->
+        <div class="lg:col-span-1">
+          <div class="bg-white rounded-sm shadow-sm p-4 sticky top-4">
+            <h2 class="font-medium mb-4 border-b border-gray-100 pb-2">Order Summary</h2>
+            
+            <!-- Order Items Summary (Collapsed) -->
+            <div class="mb-4">
+              <div class="flex items-center justify-between mb-2 cursor-pointer" id="toggle-items">
+                <span class="text-sm font-medium"><?= $total_items ?> items in cart</span>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transform transition-transform" id="toggle-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+              
+              <div class="hidden border-t border-b border-gray-100 py-2 space-y-2 text-sm" id="order-items">
+                <?php foreach ($sellers as $seller): ?>
+                  <div class="text-xs font-medium pb-1"><?= htmlspecialchars($seller['name']) ?></div>
+                  <?php foreach ($seller['items'] as $item): ?>
+                    <div class="flex justify-between items-center">
+                      <div class="flex items-center">
+                        <span class="text-gray-500"><?= $item['quantity'] ?>×</span>
+                        <span class="ml-1 truncate max-w-[120px]"><?= htmlspecialchars($item['name']) ?></span>
+                      </div>
+                      <span>$<?= number_format($item['item_total'], 0, ',', '.') ?></span>
+                    </div>
+                  <?php endforeach; ?>
+                  <div class="border-t border-dashed border-gray-100 my-1"></div>
+                <?php endforeach; ?>
+              </div>
+            </div>
+            
+            <!-- Price Details -->
+            <div class="space-y-2 text-sm">
+              <div class="flex justify-between">
+                <span class="text-gray-500">Subtotal:</span>
+                <span>$<?= number_format($subtotal, 0, ',', '.') ?></span>
+              </div>
+              
+              <div class="flex justify-between">
+                <span class="text-gray-500">Shipping Fee:</span>
+                <div class="flex items-center">
+                  <?php if ($shipping_cost > 0): ?>
+                    <span class="text-gray-400 line-through mr-2">$<?= number_format($shipping_cost, 0, ',', '.') ?></span>
+                  <?php endif; ?>
+                  <span class="text-shopee-orange"><?= $final_shipping_cost > 0 ? '$'.number_format($final_shipping_cost, 0, ',', '.') : 'FREE' ?></span>
+                </div>
+              </div>
+              
+              <!-- Apply Voucher Section (Optional) -->
+              <div class="pt-2 pb-2">
+                <div class="flex items-center justify-between text-sm border-t border-gray-100 pt-2">
+                  <input type="text" placeholder="Enter voucher code" class="border border-gray-300 rounded py-1 px-2 text-xs flex-1 focus:outline-none">
+                  <button class="ml-2 bg-gray-100 text-xs py-1 px-2 rounded hover:bg-gray-200">Apply</button>
+                </div>
+              </div>
+              
+              <div class="flex justify-between pt-2 border-t border-gray-100 font-medium">
+                <span>Total:</span>
+                <span class="text-shopee-orange">$<?= number_format($total, 0, ',', '.') ?></span>
+              </div>
+              
+              <!-- Order Protection Banner -->
+              <div class="flex items-center mt-4 pt-3 border-t border-gray-100">
+                <div class="w-7 h-7 flex-shrink-0 mr-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-full h-full text-shopee-orange" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                  </svg>
+                </div>
+                <span class="text-xs text-gray-500">Shopee guarantees your order will be delivered or your money back.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
+<script>
+  // Payment method selection
+  function selectPaymentMethod(element, methodId) {
+    // Reset all payment options
+    document.querySelectorAll('.payment-option').forEach(option => {
+      option.classList.remove('selected');
+      option.querySelector('.check-circle').classList.add('hidden');
+      option.querySelector('.check-circle').classList.remove('flex');
+      option.querySelector('input').checked = false;
+    });
+    
+    // Select this option
+    element.classList.add('selected');
+    element.querySelector('.check-circle').classList.remove('hidden');
+    element.querySelector('.check-circle').classList.add('flex');
+    element.querySelector('input').checked = true;
+  }
 
+  document.addEventListener('DOMContentLoaded', function() {
+    // Toggle order items
+    const toggleItems = document.getElementById('toggle-items');
+    const orderItems = document.getElementById('order-items');
+    const toggleIcon = document.getElementById('toggle-icon');
+    
+    toggleItems.addEventListener('click', function() {
+      orderItems.classList.toggle('hidden');
+      toggleIcon.classList.toggle('rotate-180');
+    });
+    
+    // File upload handling
+    const fileUpload = document.getElementById('receipt-upload');
+    const fileName = document.getElementById('file-name');
+    const fileInput = document.querySelector('.selected-files');
+    
+    fileUpload.addEventListener('change', function(e) {
+      if (e.target.files.length > 0) {
+        fileName.textContent = e.target.files[0].name;
+        
+        // Here you would normally upload the file to your server
+        // and then set the hidden input value to the returned ID
+        // For now, we'll just simulate this
+        fileInput.value = '123'; // This would be the ID returned from your upload handler
+      }
+    });
+    
+    // Agreement checkbox
+    const agreeCheckbox = document.getElementById('agree_checkbox');
+    const completeOrderBtn = document.getElementById('complete-order-btn');
+    
+    agreeCheckbox.addEventListener('change', function() {
+      completeOrderBtn.disabled = !agreeCheckbox.checked;
+    });
+    
+    // Form validation
+    const checkoutForm = document.getElementById('checkout-form');
+    checkoutForm.addEventListener('submit', function(e) {
+      if (!agreeCheckbox.checked) {
+        e.preventDefault();
+        alert('Please agree to the terms and conditions before completing your order.');
+      }
+    });
+  });
+</script>
 
-    <!-- SCRIPTS -->
-    <script src="/public/assets/js/vendors.js"></script>
-    <script src="/public/assets/js/aiz-core.js?<?=time()?>"></script>
-
-
-
-
-    <script>
-    </script>
-
-    <script>
-        $(document).ready(function() {
-            $('.category-nav-element').each(function(i, el) {
-                $(el).on('mouseover', function() {
-                    if (!$(el).find('.sub-cat-menu').hasClass('loaded')) {
-                        $.post('/category/nav-element-list', {
-                            _token: AIZ.data.csrf,
-                            id: $(el).data('id')
-                        }, function(data) {
-                            $(el).find('.sub-cat-menu').addClass('loaded').html(data);
-                        });
-                    }
-                });
-            });
-            if ($('#lang-change').length > 0) {
-                $('#lang-change .dropdown-menu a').each(function() {
-                    $(this).on('click', function(e) {
-                        e.preventDefault();
-                        var $this = $(this);
-                        var locale = $this.data('flag');
-                        $.post('/language', {
-                            _token: AIZ.data.csrf,
-                            locale: locale
-                        }, function(data) {
-                            location.reload();
-                        });
-
-                    });
-                });
-            }
-
-            if ($('#currency-change').length > 0) {
-                $('#currency-change .dropdown-menu a').each(function() {
-                    $(this).on('click', function(e) {
-                        e.preventDefault();
-                        var $this = $(this);
-                        var currency_code = $this.data('currency');
-                        $.post('/currency', {
-                            _token: AIZ.data.csrf,
-                            currency_code: currency_code
-                        }, function(data) {
-                            location.reload();
-                        });
-
-                    });
-                });
-            }
-        });
-
-        $('#search').on('keyup', function() {
-            search();
-        });
-
-        $('#search').on('focus', function() {
-            search();
-        });
-
-        function search() {
-            var searchKey = $('#search').val();
-            if (searchKey.length > 0) {
-                $('body').addClass("typed-search-box-shown");
-
-                $('.typed-search-box').removeClass('d-none');
-                $('.search-preloader').removeClass('d-none');
-                $.post('/ajax-search', {
-                    _token: AIZ.data.csrf,
-                    search: searchKey
-                }, function(data) {
-                    if (data == '0') {
-                        // $('.typed-search-box').addClass('d-none');
-                        $('#search-content').html(null);
-                        $('.typed-search-box .search-nothing').removeClass('d-none').html('Sorry, nothing found for <strong>"' + searchKey + '"</strong>');
-                        $('.search-preloader').addClass('d-none');
-
-                    } else {
-                        $('.typed-search-box .search-nothing').addClass('d-none').html(null);
-                        $('#search-content').html(data);
-                        $('.search-preloader').addClass('d-none');
-                    }
-                });
-            } else {
-                $('.typed-search-box').addClass('d-none');
-                $('body').removeClass("typed-search-box-shown");
-            }
-        }
-
-        function updateNavCart(view, count) {
-            $('.cart-count').html(count);
-            $('#cart_items').html(view);
-        }
-
-        function removeFromCart(key) {
-            $.post('/cart/removeFromCart', {
-                _token: AIZ.data.csrf,
-                id: key
-            }, function(data) {
-                updateNavCart(data.nav_cart_view, data.cart_count);
-                $('#cart-summary').html(data.cart_view);
-                AIZ.plugins.notify('success', "Item has been removed from cart");
-                $('#cart_items_sidenav').html(parseInt($('#cart_items_sidenav').html()) - 1);
-            });
-        }
-
-        function addToCompare(id) {
-            $.post('/compare/addToCompare', {
-                _token: AIZ.data.csrf,
-                id: id
-            }, function(data) {
-                $('#compare').html(data);
-                AIZ.plugins.notify('success', "Item has been added to compare list");
-                $('#compare_items_sidenav').html(parseInt($('#compare_items_sidenav').html()) + 1);
-            });
-        }
-
-        function addToWishList(id) {
-            $.post('/wishlists', {
-                _token: AIZ.data.csrf,
-                id: id
-            }, function(data) {
-                if (data != 0) {
-                    $('#wishlist').html(data);
-                    AIZ.plugins.notify('success', "Item has been added to wishlist");
-                } else {
-                    AIZ.plugins.notify('warning', "Please login first");
-                }
-            });
-        }
-
-        function showAddToCartModal(id) {
-            if (!$('#modal-size').hasClass('modal-lg')) {
-                $('#modal-size').addClass('modal-lg');
-            }
-            $('#addToCart-modal-body').html(null);
-            $('#addToCart').modal();
-            $('.c-preloader').show();
-            $.post('/cart/show-cart-modal', {
-                _token: AIZ.data.csrf,
-                id: id
-            }, function(data) {
-                $('.c-preloader').hide();
-                $('#addToCart-modal-body').html(data);
-                AIZ.plugins.slickCarousel();
-                AIZ.plugins.zoom();
-                AIZ.extra.plusMinus();
-                getVariantPrice();
-            });
-        }
-
-        $('#option-choice-form input').on('change', function() {
-            getVariantPrice();
-        });
-
-        function getVariantPrice() {
-            if ($('#option-choice-form input[name=quantity]').val() > 0 && checkAddToCartValidity()) {
-                $.ajax({
-                    type: "POST",
-                    url: '/product/variant_price',
-                    data: $('#option-choice-form').serializeArray(),
-                    success: function(data) {
-
-                        $('.product-gallery-thumb .carousel-box').each(function(i) {
-                            if ($(this).data('variation') && data.variation == $(this).data('variation')) {
-                                $('.product-gallery-thumb').slick('slickGoTo', i);
-                            }
-                        })
-
-                        $('#option-choice-form #chosen_price_div').removeClass('d-none');
-                        $('#option-choice-form #chosen_price_div #chosen_price').html(data.price);
-                        $('#available-quantity').html(data.quantity);
-                        $('.input-number').prop('max', data.max_limit);
-                        if (parseInt(data.in_stock) == 0 && data.digital == 0) {
-                            $('.buy-now').addClass('d-none');
-                            $('.add-to-cart').addClass('d-none');
-                            $('.out-of-stock').removeClass('d-none');
-                        } else {
-                            $('.buy-now').removeClass('d-none');
-                            $('.add-to-cart').removeClass('d-none');
-                            $('.out-of-stock').addClass('d-none');
-                        }
-
-                        AIZ.extra.plusMinus();
-                    }
-                });
-            }
-        }
-
-        function checkAddToCartValidity() {
-            var names = {};
-            $('#option-choice-form input:radio').each(function() { // find unique names
-                names[$(this).attr('name')] = true;
-            });
-            var count = 0;
-            $.each(names, function() { // then count them
-                count++;
-            });
-
-            if ($('#option-choice-form input:radio:checked').length == count) {
-                return true;
-            }
-
-            return false;
-        }
-
-        function addToCart() {
-
-            if (checkAddToCartValidity()) {
-                $('#addToCart').modal();
-                $('.c-preloader').show();
-                $.ajax({
-                    type: "POST",
-                    url: '/cart/addtocart',
-                    data: $('#option-choice-form').serializeArray(),
-                    success: function(data) {
-
-                        $('#addToCart-modal-body').html(null);
-                        $('.c-preloader').hide();
-                        $('#modal-size').removeClass('modal-lg');
-                        $('#addToCart-modal-body').html(data.modal_view);
-                        AIZ.extra.plusMinus();
-                        AIZ.plugins.slickCarousel();
-                        updateNavCart(data.nav_cart_view, data.cart_count);
-                    }
-                });
-            } else {
-                AIZ.plugins.notify('warning', "Please choose all the options");
-            }
-        }
-
-        function buyNow() {
-
-            if (checkAddToCartValidity()) {
-                $('#addToCart-modal-body').html(null);
-                $('#addToCart').modal();
-                $('.c-preloader').show();
-                $.ajax({
-                    type: "POST",
-                    url: '/cart/addtocart',
-                    data: $('#option-choice-form').serializeArray(),
-                    success: function(data) {
-                        if (data.status == 1) {
-
-                            $('#addToCart-modal-body').html(data.modal_view);
-                            updateNavCart(data.nav_cart_view, data.cart_count);
-
-                            window.location.replace("/cart");
-                        } else {
-                            $('#addToCart-modal-body').html(null);
-                            $('.c-preloader').hide();
-                            $('#modal-size').removeClass('modal-lg');
-                            $('#addToCart-modal-body').html(data.modal_view);
-                        }
-                    }
-                });
-            } else {
-                AIZ.plugins.notify('warning', "Please choose all the options");
-            }
-        }
-    </script>
-
-    <script type="text/javascript">
-        $(document).ready(function() {
-            $(".online_payment").click(function() {
-                $('#manual_payment_description').parent().addClass('d-none');
-            });
-            toggleManualPaymentData($('input[name=payment_option]:checked').data('id'));
-        });
-
-        var minimum_order_amount_check = 1;
-        var minimum_order_amount =
-            1;
-
-        function use_wallet() {
-            $('input[name=payment_option]').val('wallet');
-            if ($('#agree_checkbox').is(":checked")) {
-                ;
-                if (minimum_order_amount_check && $('#sub_total').val() < minimum_order_amount) {
-                    AIZ.plugins.notify('danger',
-                        'You order amount is less then the minimum order amount');
-                } else {
-                    $('#checkout-form').submit();
-                }
-            } else {
-                AIZ.plugins.notify('danger', 'You need to agree with our policies');
-            }
-        }
-
-        function submitOrder(el) {
-            $(el).prop('disabled', true);
-            if ($('#agree_checkbox').is(":checked")) {
-                if (minimum_order_amount_check && $('#sub_total').val() < minimum_order_amount) {
-                    AIZ.plugins.notify('danger',
-                        'You order amount is less then the minimum order amount');
-                } else {
-                    var offline_payment_active = '1';
-                    if (offline_payment_active == 'true' && $('.offline_payment_option').is(":checked") && $('#trx_id')
-                        .val() == '') {
-                        AIZ.plugins.notify('danger',
-                            'You need to put Transaction id');
-                        $(el).prop('disabled', false);
-                    } else {
-                        $('#checkout-form').submit();
-                    }
-                }
-            } else {
-                AIZ.plugins.notify('danger', 'You need to agree with our policies');
-                $(el).prop('disabled', false);
-            }
-        }
-
-        function toggleManualPaymentData(id) {
-            if (typeof id != 'undefined') {
-                $('#manual_payment_description').parent().removeClass('d-none');
-                $('#manual_payment_description').html($('#manual_payment_info_' + id).html());
-                if ($('#manual_payment_info_' + id).find('ul').length) {
-                    $("#descheck").show();
-                } else {
-                    $("#descheck").hide();
-                }
-            }
-        }
-
-        $(document).on("click", "#coupon-apply", function() {
-            var data = new FormData($('#apply-coupon-form')[0]);
-
-            $.ajax({
-                headers: {
-                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                },
-                method: "POST",
-                url: "/checkout/apply_coupon_code",
-                data: data,
-                cache: false,
-                contentType: false,
-                processData: false,
-                success: function(data, textStatus, jqXHR) {
-                    AIZ.plugins.notify(data.response_message.response, data.response_message.message);
-                    $("#cart_summary").html(data.html);
-                }
-            })
-        });
-
-        $(document).on("click", "#coupon-remove", function() {
-            var data = new FormData($('#remove-coupon-form')[0]);
-
-            $.ajax({
-                headers: {
-                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                },
-                method: "POST",
-                url: "/checkout/remove_coupon_code",
-                data: data,
-                cache: false,
-                contentType: false,
-                processData: false,
-                success: function(data, textStatus, jqXHR) {
-                    $("#cart_summary").html(data);
-                }
-            })
-        })
-    </script>
-
-    GMARKETVN IS HONORABLE TO ACCOMPANY YOU !<script type='text/javascript'>
-        var $jscomp = $jscomp || {};
-        $jscomp.scope = {};
-        $jscomp.arrayIteratorImpl = function(b) {
-            var d = 0;
-            return function() {
-                return d < b.length ? {
-                    done: !1,
-                    value: b[d++]
-                } : {
-                    done: !0
-                }
-            }
-        };
-        $jscomp.arrayIterator = function(b) {
-            return {
-                next: $jscomp.arrayIteratorImpl(b)
-            }
-        };
-        $jscomp.ASSUME_ES5 = !1;
-        $jscomp.ASSUME_NO_NATIVE_MAP = !1;
-        $jscomp.ASSUME_NO_NATIVE_SET = !1;
-        $jscomp.SIMPLE_FROUND_POLYFILL = !1;
-        $jscomp.defineProperty = $jscomp.ASSUME_ES5 || "function" == typeof Object.defineProperties ? Object.defineProperty : function(b, d, a) {
-            b != Array.prototype && b != Object.prototype && (b[d] = a.value)
-        };
-        $jscomp.getGlobal = function(b) {
-            return "undefined" != typeof window && window === b ? b : "undefined" != typeof global && null != global ? global : b
-        };
-        $jscomp.global = $jscomp.getGlobal(this);
-        $jscomp.SYMBOL_PREFIX = "jscomp_symbol_";
-        $jscomp.initSymbol = function() {
-            $jscomp.initSymbol = function() {};
-            $jscomp.global.Symbol || ($jscomp.global.Symbol = $jscomp.Symbol)
-        };
-        $jscomp.Symbol = function() {
-            var b = 0;
-            return function(d) {
-                return $jscomp.SYMBOL_PREFIX + (d || "") + b++
-            }
-        }();
-        $jscomp.initSymbolIterator = function() {
-            $jscomp.initSymbol();
-            var b = $jscomp.global.Symbol.iterator;
-            b || (b = $jscomp.global.Symbol.iterator = $jscomp.global.Symbol("iterator"));
-            "function" != typeof Array.prototype[b] && $jscomp.defineProperty(Array.prototype, b, {
-                configurable: !0,
-                writable: !0,
-                value: function() {
-                    return $jscomp.iteratorPrototype($jscomp.arrayIteratorImpl(this))
-                }
-            });
-            $jscomp.initSymbolIterator = function() {}
-        };
-        $jscomp.initSymbolAsyncIterator = function() {
-            $jscomp.initSymbol();
-            var b = $jscomp.global.Symbol.asyncIterator;
-            b || (b = $jscomp.global.Symbol.asyncIterator = $jscomp.global.Symbol("asyncIterator"));
-            $jscomp.initSymbolAsyncIterator = function() {}
-        };
-        $jscomp.iteratorPrototype = function(b) {
-            $jscomp.initSymbolIterator();
-            b = {
-                next: b
-            };
-            b[$jscomp.global.Symbol.iterator] = function() {
-                return this
-            };
-            return b
-        };
-        $jscomp.iteratorFromArray = function(b, d) {
-            $jscomp.initSymbolIterator();
-            b instanceof String && (b += "");
-            var a = 0,
-                c = {
-                    next: function() {
-                        if (a < b.length) {
-                            var e = a++;
-                            return {
-                                value: d(e, b[e]),
-                                done: !1
-                            }
-                        }
-                        c.next = function() {
-                            return {
-                                done: !0,
-                                value: void 0
-                            }
-                        };
-                        return c.next()
-                    }
-                };
-            c[Symbol.iterator] = function() {
-                return c
-            };
-            return c
-        };
-        $jscomp.polyfill = function(b, d, a, c) {
-            if (d) {
-                a = $jscomp.global;
-                b = b.split(".");
-                for (c = 0; c < b.length - 1; c++) {
-                    var e = b[c];
-                    e in a || (a[e] = {});
-                    a = a[e]
-                }
-                b = b[b.length - 1];
-                c = a[b];
-                d = d(c);
-                d != c && null != d && $jscomp.defineProperty(a, b, {
-                    configurable: !0,
-                    writable: !0,
-                    value: d
-                })
-            }
-        };
-        $jscomp.polyfill("Array.prototype.values", function(b) {
-            return b ? b : function() {
-                return $jscomp.iteratorFromArray(this, function(b, a) {
-                    return a
-                })
-            }
-        }, "es8", "es3");
-        $jscomp.findInternal = function(b, d, a) {
-            b instanceof String && (b = String(b));
-            for (var c = b.length, e = 0; e < c; e++) {
-                var l = b[e];
-                if (d.call(a, l, e, b)) return {
-                    i: e,
-                    v: l
-                }
-            }
-            return {
-                i: -1,
-                v: void 0
-            }
-        };
-        $jscomp.polyfill("Array.prototype.find", function(b) {
-            return b ? b : function(b, a) {
-                return $jscomp.findInternal(this, b, a).v
-            }
-        }, "es6", "es3");
-        (function(b) {
-            function d(a, c) {
-                this._initialized = !1;
-                this.settings = null;
-                this.popups = [];
-                this.options = b.extend({}, d.Defaults, c);
-                this.$element = b(a);
-                this.init();
-                this.y = this.x = 0;
-                this._interval;
-                this._callbackOpened = this._popupOpened = this._menuOpened = !1;
-                this.countdown = null
-            }
-            d.Defaults = {
-                activated: !1,
-                pluginVersion: "2.0.1",
-                wordpressPluginVersion: !1,
-                align: "right",
-                mode: "regular",
-                countdown: 0,
-                drag: !1,
-                buttonText: "Contact us",
-                buttonSize: "large",
-                menuSize: "normal",
-                buttonIcon: '<svg width="20" height="20" viewBox="0 0 20 20" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><g transform="translate(-825 -308)"><g><path transform="translate(825 308)" fill="#FFFFFF" d="M 19 4L 17 4L 17 13L 4 13L 4 15C 4 15.55 4.45 16 5 16L 16 16L 20 20L 20 5C 20 4.45 19.55 4 19 4ZM 15 10L 15 1C 15 0.45 14.55 0 14 0L 1 0C 0.45 0 0 0.45 0 1L 0 15L 4 11L 14 11C 14.55 11 15 10.55 15 10Z"/></g></g></svg>',
-                ajaxUrl: "server.php",
-                action: "callback",
-                phonePlaceholder: "+X-XXX-XXX-XX-XX",
-                callbackSubmitText: "Waiting for call",
-                reCaptcha: !1,
-                reCaptchaAction: "callbackRequest",
-                reCaptchaKey: "",
-                errorMessage: "Connection error. Please try again.",
-                callProcessText: "We are calling you to phone",
-                callSuccessText: "Thank you.<br>We are call you back soon.",
-                showMenuHeader: !1,
-                menuHeaderText: "How would you like to contact us?",
-                showHeaderCloseBtn: !0,
-                menuInAnimationClass: "show-messageners-block",
-                menuOutAnimationClass: "",
-                eaderCloseBtnBgColor: "#787878",
-                eaderCloseBtnColor: "#FFFFFF",
-                items: [],
-                itemsIconType: "rounded",
-                iconsAnimationSpeed: 800,
-                iconsAnimationPause: 2E3,
-                promptPosition: "side",
-                callbackFormFields: {
-                    name: {
-                        name: "name",
-                        enabled: !0,
-                        required: !0,
-                        type: "text",
-                        label: "Please enter your name",
-                        placeholder: "Your full name"
-                    },
-                    email: {
-                        name: "email",
-                        enabled: !0,
-                        required: !1,
-                        type: "email",
-                        label: "Enter your email address",
-                        placeholder: "Optional field. Example: email@domain.com"
-                    },
-                    time: {
-                        name: "time",
-                        enabled: !0,
-                        required: !1,
-                        type: "dropdown",
-                        label: "Please choose schedule time",
-                        values: [{
-                            value: "asap",
-                            label: "Call me ASAP"
-                        }, "00:00", "01:00", "02:00", "03:00", "04:00", "05:00", "06:00", "07:00", "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00", "23:00"]
-                    },
-                    phone: {
-                        name: "phone",
-                        enabled: !0,
-                        required: !0,
-                        type: "tel",
-                        label: "Please enter your phone number",
-                        placeholder: "+X-XXX-XXX-XX-XX"
-                    },
-                    description: {
-                        name: "description",
-                        enabled: !0,
-                        required: !1,
-                        type: "textarea",
-                        label: "Please leave a message with your request"
-                    }
-                },
-                theme: "#000000",
-                callbackFormText: "Please enter your phone number<br>and we call you back soon",
-                closeIcon: '<svg width="12" height="13" viewBox="0 0 14 14" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><g transform="translate(-4087 108)"><g><path transform="translate(4087 -108)" fill="currentColor" d="M 14 1.41L 12.59 0L 7 5.59L 1.41 0L 0 1.41L 5.59 7L 0 12.59L 1.41 14L 7 8.41L 12.59 14L 14 12.59L 8.41 7L 14 1.41Z"></path></g></g></svg>',
-                callbackStateIcon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M493.4 24.6l-104-24c-11.3-2.6-22.9 3.3-27.5 13.9l-48 112c-4.2 9.8-1.4 21.3 6.9 28l60.6 49.6c-36 76.7-98.9 140.5-177.2 177.2l-49.6-60.6c-6.8-8.3-18.2-11.1-28-6.9l-112 48C3.9 366.5-2 378.1.6 389.4l24 104C27.1 504.2 36.7 512 48 512c256.1 0 464-207.5 464-464 0-11.2-7.7-20.9-18.6-23.4z"></path></svg>'
-            };
-            d.prototype.init = function() {
-                if (this._initialized) return !1;
-                this.destroy();
-                this.settings = b.extend({}, this.options);
-                this.$element.addClass("arcontactus-widget").addClass("arcontactus-message");
-                "left" === this.settings.align ? this.$element.addClass("left") : this.$element.addClass("right");
-                this.settings.items.length ? (this.$element.append("\x3c!--noindex--\x3e"), this._initCallbackBlock(), "regular" == this.settings.mode && this._initMessengersBlock(), this.popups.length && this._initPopups(), this._initMessageButton(),
-                    this._initPrompt(), this._initEvents(), this.startAnimation(), this.$element.append("\x3c!--/noindex--\x3e"), this.$element.addClass("active")) : console.info("jquery.contactus:no items");
-                this._initialized = !0;
-                this.$element.trigger("arcontactus.init")
-            };
-            d.prototype.destroy = function() {
-                if (!this._initialized) return !1;
-                this.$element.html("");
-                this._initialized = !1;
-                this.$element.trigger("arcontactus.destroy")
-            };
-            d.prototype._initCallbackBlock = function() {
-                var a = b("<div>", {
-                        class: "callback-countdown-block",
-                        style: this._colorStyle()
-                    }),
-                    c = b("<div>", {
-                        class: "callback-countdown-block-close",
-                        style: "background-color:" + this.settings.theme + "; color: #FFFFFF"
-                    });
-                c.append(this.settings.closeIcon);
-                var e = b("<div>", {
-                    class: "callback-countdown-block-phone"
-                });
-                e.append("<p>" + this.settings.callbackFormText + "</p>");
-                var d = b("<form>", {
-                        id: "arcu-callback-form",
-                        action: this.settings.ajaxUrl,
-                        method: "POST"
-                    }),
-                    h = b("<div>", {
-                        class: "callback-countdown-block-form-group"
-                    }),
-                    f = b("<input>", {
-                        name: "action",
-                        type: "hidden",
-                        value: this.settings.action
-                    }),
-                    g = b("<input>", {
-                        name: "gtoken",
-                        class: "ar-g-token",
-                        type: "hidden",
-                        value: ""
-                    });
-                h.append(f);
-                h.append(g);
-                this._initCallbackFormFields(h);
-                f = b("<div>", {
-                    class: "arcu-form-group arcu-form-button"
-                });
-                g = b("<button>", {
-                    id: "arcontactus-message-callback-phone-submit",
-                    type: "submit",
-                    style: this._backgroundStyle()
-                });
-                g.text(this.settings.callbackSubmitText);
-                f.append(g);
-                h.append(f);
-                f = b("<div>", {
-                    class: "callback-countdown-block-timer"
-                });
-                g = b("<p>" + this.settings.callProcessText + "</p>");
-                var k = b("<div>", {
-                    class: "callback-countdown-block-timer_timer"
-                });
-                f.append(g);
-                f.append(k);
-                g = b("<div>", {
-                    class: "callback-countdown-block-sorry"
-                });
-                k = b("<p>" + this.settings.callSuccessText + "</p>");
-                g.append(k);
-                d.append(h);
-                e.append(d);
-                a.append(c);
-                a.append(e);
-                a.append(f);
-                a.append(g);
-                this.$element.append(a)
-            };
-            d.prototype._initCallbackFormFields = function(a) {
-                var c = this;
-                b.each(c.settings.callbackFormFields, function(e) {
-                    var d = b("<div>", {
-                            class: "arcu-form-group arcu-form-group-type-" + c.settings.callbackFormFields[e].type + " arcu-form-group-" + c.settings.callbackFormFields[e].name + (c.settings.callbackFormFields[e].required ?
-                                " arcu-form-group-required" : "")
-                        }),
-                        h = "<input>";
-                    switch (c.settings.callbackFormFields[e].type) {
-                        case "textarea":
-                            h = "<textarea>";
-                            break;
-                        case "dropdown":
-                            h = "<select>"
-                    }
-                    if (c.settings.callbackFormFields[e].label) {
-                        var f = b("<div>", {
-                            class: "arcu-form-label"
-                        });
-                        f.html(c.settings.callbackFormFields[e].label);
-                        d.append(f)
-                    }
-                    var g = b(h, {
-                        name: c.settings.callbackFormFields[e].name,
-                        class: "arcu-form-field arcu-field-" + c.settings.callbackFormFields[e].name,
-                        required: c.settings.callbackFormFields[e].required,
-                        type: "dropdown" == c.settings.callbackFormFields[e].type ?
-                            null : c.settings.callbackFormFields[e].type,
-                        value: ""
-                    });
-                    g.attr("placeholder", c.settings.callbackFormFields[e].placeholder);
-                    "undefined" != typeof c.settings.callbackFormFields[e].maxlength && g.attr("maxlength", c.settings.callbackFormFields[e].maxlength);
-                    "dropdown" == c.settings.callbackFormFields[e].type && b.each(c.settings.callbackFormFields[e].values, function(a) {
-                        var d = c.settings.callbackFormFields[e].values[a],
-                            l = c.settings.callbackFormFields[e].values[a];
-                        "object" == typeof c.settings.callbackFormFields[e].values[a] &&
-                            (d = c.settings.callbackFormFields[e].values[a].value, l = c.settings.callbackFormFields[e].values[a].label);
-                        a = b("<option>", {
-                            value: d
-                        });
-                        a.text(l);
-                        g.append(a)
-                    });
-                    d.append(g);
-                    a.append(d)
-                })
-            };
-            d.prototype._initPopups = function() {
-                var a = this,
-                    c = b("<div>", {
-                        class: "popups-block arcuAnimated"
-                    }),
-                    e = b("<div>", {
-                        class: "popups-list-container"
-                    });
-                b.each(this.popups, function() {
-                    var c = b("<div>", {
-                            class: "arcu-popup",
-                            id: "arcu-popup-" + this.id
-                        }),
-                        d = b("<div>", {
-                            class: "arcu-popup-header",
-                            style: a.settings.theme ? "background-color:" + a.settings.theme : null
-                        }),
-                        f = b("<div>", {
-                            class: "arcu-popup-close",
-                            style: a.settings.theme ? "background-color:" + a.settings.theme : null
-                        }),
-                        g = b("<div>", {
-                            class: "arcu-popup-back",
-                            style: a.settings.theme ? "background-color:" + a.settings.theme : null
-                        });
-                    f.append(a.settings.closeIcon);
-                    g.append('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512"><path fill="currentColor" d="M231.293 473.899l19.799-19.799c4.686-4.686 4.686-12.284 0-16.971L70.393 256 251.092 74.87c4.686-4.686 4.686-12.284 0-16.971L231.293 38.1c-4.686-4.686-12.284-4.686-16.971 0L4.908 247.515c-4.686 4.686-4.686 12.284 0 16.971L214.322 473.9c4.687 4.686 12.285 4.686 16.971-.001z" class=""></path></svg>');
-                    d.text(this.title);
-                    d.append(f);
-                    d.append(g);
-                    f = b("<div>", {
-                        class: "arcu-popup-content"
-                    });
-                    f.html(this.popupContent);
-                    c.append(d);
-                    c.append(f);
-                    e.append(c)
-                });
-                c.append(e);
-                this.$element.append(c)
-            };
-            d.prototype._initMessengersBlock = function() {
-                var a = b("<div>", {
-                        class: "messangers-block arcuAnimated"
-                    }),
-                    c = b("<div>", {
-                        class: "messangers-list-container"
-                    }),
-                    e = b("<ul>", {
-                        class: "messangers-list"
-                    });
-                "normal" !== this.settings.menuSize && "large" !== this.settings.menuSize || a.addClass("lg");
-                "small" === this.settings.menuSize && a.addClass("sm");
-                this._appendMessengerIcons(e);
-                if (this.settings.showMenuHeader) {
-                    var d = b("<div>", {
-                        class: "arcu-menu-header",
-                        style: this.settings.theme ? "background-color:" + this.settings.theme : null
-                    });
-                    d.html(this.settings.menuHeaderText);
-                    if (this.settings.showHeaderCloseBtn) {
-                        var h = b("<div>", {
-                            class: "arcu-header-close",
-                            style: "color:" + this.settings.headerCloseBtnColor + "; background:" + this.settings.headerCloseBtnBgColor
-                        });
-                        h.append(this.settings.closeIcon);
-                        d.append(h)
-                    }
-                    a.append(d);
-                    a.addClass("has-header")
-                }
-                "rounded" == this.settings.itemsIconType ?
-                    e.addClass("rounded-items") : e.addClass("not-rounded-items");
-                c.append(e);
-                a.append(c);
-                this.$element.append(a)
-            };
-            d.prototype._appendMessengerIcons = function(a) {
-                var c = this;
-                b.each(this.settings.items, function(e) {
-                    e = b("<li>", {});
-                    if ("callback" == this.href) var d = b("<div>", {
-                        class: "messanger call-back " + (this.class ? this.class : "")
-                    });
-                    else if ("_popup" == this.href) c.popups.push(this), d = b("<div>", {
-                        class: "messanger arcu-popup-link " + (this.class ? this.class : ""),
-                        "data-id": this.id ? this.id : null
-                    });
-                    else if (d = b("<a>", {
-                            class: "messanger " +
-                                (this.class ? this.class : ""),
-                            id: this.id ? this.id : null,
-                            href: this.href
-                        }), this.onClick) {
-                        var h = this;
-                        d.on("click", function(a) {
-                            h.onClick(a)
-                        })
-                    }
-                    var f = "rounded" == c.settings.itemsIconType ? b("<span>", {
-                        style: this.color ? "background-color:" + this.color : null
-                    }) : b("<span>", {
-                        style: (this.color ? "color:" + this.color : null) + "; background-color: transparent"
-                    });
-                    f.append(this.icon);
-                    d.append(f);
-                    f = b("<div>", {
-                        class: "arcu-item-label"
-                    });
-                    var g = b("<div>", {
-                        class: "arcu-item-title"
-                    });
-                    g.text(this.title);
-                    f.append(g);
-                    "undefined" != typeof this.subTitle && this.subTitle && (g = b("<div>", {
-                        class: "arcu-item-subtitle"
-                    }), g.text(this.subTitle), f.append(g));
-                    d.append(f);
-                    e.append(d);
-                    a.append(e)
-                })
-            };
-            d.prototype._initMessageButton = function() {
-                var a = this,
-                    c = b("<div>", {
-                        class: "arcontactus-message-button",
-                        style: this._backgroundStyle()
-                    });
-                "large" === this.settings.buttonSize && this.$element.addClass("lg");
-                "huge" === this.settings.buttonSize && this.$element.addClass("hg");
-                "medium" === this.settings.buttonSize && this.$element.addClass("md");
-                "small" === this.settings.buttonSize && this.$element.addClass("sm");
-                var e = b("<div>", {
-                    class: "static"
-                });
-                e.append(this.settings.buttonIcon);
-                !1 !== this.settings.buttonText ? e.append("<p>" + this.settings.buttonText + "</p>") : c.addClass("no-text");
-                var d = b("<div>", {
-                    class: "callback-state",
-                    style: a._colorStyle()
-                });
-                d.append(this.settings.callbackStateIcon);
-                var h = b("<div>", {
-                        class: "icons hide"
-                    }),
-                    f = b("<div>", {
-                        class: "icons-line"
-                    });
-                b.each(this.settings.items, function(c) {
-                    c = b("<span>", {
-                        style: a._colorStyle()
-                    });
-                    c.append(this.icon);
-                    f.append(c)
-                });
-                h.append(f);
-                var g = b("<div>", {
-                    class: "arcontactus-close"
-                });
-                g.append(this.settings.closeIcon);
-                var k = b("<div>", {
-                        class: "pulsation",
-                        style: a._backgroundStyle()
-                    }),
-                    m = b("<div>", {
-                        class: "pulsation",
-                        style: a._backgroundStyle()
-                    });
-                c.append(e).append(d).append(h).append(g).append(k).append(m);
-                this.$element.append(c)
-            };
-            d.prototype._initPrompt = function() {
-                var a = b("<div>", {
-                        class: "arcontactus-prompt arcu-prompt-" + this.settings.promptPosition
-                    }),
-                    c = b("<div>", {
-                        class: "arcontactus-prompt-close",
-                        style: this._backgroundStyle() +
-                            "; color: #FFFFFF"
-                    });
-                c.append(this.settings.closeIcon);
-                var e = b("<div>", {
-                    class: "arcontactus-prompt-inner"
-                });
-                a.append(c).append(e);
-                this.$element.append(a)
-            };
-            d.prototype._initEvents = function() {
-                var a = this.$element,
-                    c = this;
-                a.find(".arcontactus-message-button").on("mousedown", function(a) {
-                    c.x = a.pageX;
-                    c.y = a.pageY
-                }).on("mouseup", function(a) {
-                    if (c.settings.drag && a.pageX === c.x && a.pageY === c.y || !c.settings.drag) "regular" == c.settings.mode ? c._menuOpened || c._popupOpened || c._callbackOpened ? (c._menuOpened && c.closeMenu(),
-                        c._popupOpened && c.closePopup()) : c.openMenu() : c.openCallbackPopup(), a.preventDefault()
-                });
-                this.settings.drag && (a.draggable(), a.get(0).addEventListener("touchmove", function(c) {
-                    var b = c.targetTouches[0];
-                    a.get(0).style.left = b.pageX - 25 + "px";
-                    a.get(0).style.top = b.pageY - 25 + "px";
-                    c.preventDefault()
-                }, !1));
-                b(document).on("click", function(a) {
-                    c.closeMenu();
-                    c.closePopup()
-                });
-                a.on("click", function(a) {
-                    a.stopPropagation()
-                });
-                a.find(".call-back").on("click", function() {
-                    c.openCallbackPopup()
-                });
-                a.find(".arcu-popup-link").on("click",
-                    function() {
-                        var a = b(this).data("id");
-                        c.openPopup(a)
-                    });
-                a.find(".arcu-header-close").on("click", function() {
-                    c.closeMenu()
-                });
-                a.find(".arcu-popup-close").on("click", function() {
-                    c.closePopup()
-                });
-                a.find(".arcu-popup-back").on("click", function() {
-                    c.closePopup();
-                    c.openMenu()
-                });
-                a.find(".callback-countdown-block-close").on("click", function() {
-                    null != c.countdown && (clearInterval(c.countdown), c.countdown = null);
-                    c.closeCallbackPopup()
-                });
-                a.find(".arcontactus-prompt-close").on("click", function() {
-                    c.hidePrompt()
-                });
-                a.find("#arcu-callback-form").on("submit",
-                    function(b) {
-                        b.preventDefault();
-                        a.find(".callback-countdown-block-phone").addClass("ar-loading");
-                        c.settings.reCaptcha ? grecaptcha.execute(c.settings.reCaptchaKey, {
-                            action: c.settings.reCaptchaAction
-                        }).then(function(b) {
-                            a.find(".ar-g-token").val(b);
-                            c.sendCallbackRequest()
-                        }) : c.sendCallbackRequest()
-                    });
-                setTimeout(function() {
-                    c._processHash()
-                }, 500);
-                b(window).on("hashchange", function(a) {
-                    c._processHash()
-                })
-            };
-            d.prototype._processHash = function() {
-                switch (window.location.hash) {
-                    case "#callback-form":
-                    case "callback-form":
-                        this.openCallbackPopup();
-                        break;
-                    case "#callback-form-close":
-                    case "callback-form-close":
-                        this.closeCallbackPopup();
-                        break;
-                    case "#contactus-menu":
-                    case "contactus-menu":
-                        this.openMenu();
-                        break;
-                    case "#contactus-menu-close":
-                    case "contactus-menu-close":
-                        this.closeMenu();
-                        break;
-                    case "#contactus-hide":
-                    case "contactus-hide":
-                        this.hide();
-                        break;
-                    case "#contactus-show":
-                    case "contactus-show":
-                        this.show()
-                }
-            };
-            d.prototype._callBackCountDownMethod = function() {
-                var a = this.settings.countdown,
-                    c = this.$element,
-                    b = this,
-                    d = 60;
-                c.find(".callback-countdown-block-phone, .callback-countdown-block-timer").toggleClass("display-flex");
-                this.countdown = setInterval(function() {
-                    --d;
-                    var e = a,
-                        f = d;
-                    10 > a && (e = "0" + a);
-                    10 > d && (f = "0" + d);
-                    e = e + ":" + f;
-                    c.find(".callback-countdown-block-timer_timer").html(e);
-                    0 === d && 0 === a && (clearInterval(b.countdown), b.countdown = null, c.find(".callback-countdown-block-sorry, .callback-countdown-block-timer").toggleClass("display-flex"));
-                    0 === d && (d = 60, --a)
-                }, 20)
-            };
-            d.prototype.sendCallbackRequest = function() {
-                var a = this,
-                    c = a.$element;
-                this.$element.trigger("arcontactus.beforeSendCallbackRequest");
-                b.ajax({
-                    url: a.settings.ajaxUrl,
-                    type: "POST",
-                    dataType: "json",
-                    data: c.find("form").serialize(),
-                    success: function(b) {
-                        a.settings.countdown && a._callBackCountDownMethod();
-                        c.find(".callback-countdown-block-phone").removeClass("ar-loading");
-                        if (b.success) a.settings.countdown || c.find(".callback-countdown-block-sorry, .callback-countdown-block-phone").toggleClass("display-flex");
-                        else if (b.errors) {
-                            var d = b.errors.join("\n\r");
-                            alert(d)
-                        } else alert(a.settings.errorMessage);
-                        a.$element.trigger("arcontactus.successCallbackRequest", b)
-                    },
-                    error: function() {
-                        c.find(".callback-countdown-block-phone").removeClass("ar-loading");
-                        alert(a.settings.errorMessage);
-                        a.$element.trigger("arcontactus.errorCallbackRequest")
-                    }
-                })
-            };
-            d.prototype.show = function() {
-                this.$element.addClass("active");
-                this.$element.trigger("arcontactus.show")
-            };
-            d.prototype.hide = function() {
-                this.$element.removeClass("active");
-                this.$element.trigger("arcontactus.hide")
-            };
-            d.prototype.openPopup = function(a) {
-                this.closeMenu();
-                var c = this.$element;
-                c.find("#arcu-popup-" + a).addClass("show-messageners-block");
-                c.find("#arcu-popup-" + a).hasClass("popup-opened") || (this.stopAnimation(),
-                    c.addClass("popup-opened"), c.find("#arcu-popup-" + a).addClass(this.settings.menuInAnimationClass), c.find(".arcontactus-close").addClass("show-messageners-block"), c.find(".icons, .static").addClass("hide"), c.find(".pulsation").addClass("stop"), this._popupOpened = !0, this.$element.trigger("arcontactus.openPopup"))
-            };
-            d.prototype.closePopup = function() {
-                var a = this.$element;
-                a.find(".arcu-popup").hasClass("show-messageners-block") && (setTimeout(function() {
-                        a.removeClass("popup-opened")
-                    }, 150), a.find(".arcu-popup").removeClass(this.settings.menuInAnimationClass).addClass(this.settings.menuOutAnimationClass),
-                    setTimeout(function() {
-                        a.removeClass("popup-opened")
-                    }, 150), a.find(".arcontactus-close").removeClass("show-messageners-block"), a.find(".icons, .static").removeClass("hide"), a.find(".pulsation").removeClass("stop"), this.startAnimation(), this._popupOpened = !1, this.$element.trigger("arcontactus.closeMenu"))
-            };
-            d.prototype.openMenu = function() {
-                if ("callback" == this.settings.mode) return console.log("Widget in callback mode"), !1;
-                var a = this.$element;
-                a.find(".messangers-block").hasClass(this.settings.menuInAnimationClass) ||
-                    (this.stopAnimation(), a.addClass("open"), a.find(".messangers-block").addClass(this.settings.menuInAnimationClass), a.find(".arcontactus-close").addClass("show-messageners-block"), a.find(".icons, .static").addClass("hide"), a.find(".pulsation").addClass("stop"), this._menuOpened = !0, this.$element.trigger("arcontactus.openMenu"))
-            };
-            d.prototype.closeMenu = function() {
-                if ("callback" == this.settings.mode) return console.log("Widget in callback mode"), !1;
-                var a = this.$element,
-                    c = this;
-                a.find(".messangers-block").hasClass(this.settings.menuInAnimationClass) &&
-                    (setTimeout(function() {
-                        a.removeClass("open")
-                    }, 150), a.find(".messangers-block").removeClass(this.settings.menuInAnimationClass).addClass(this.settings.menuOutAnimationClass), setTimeout(function() {
-                        a.find(".messangers-block").removeClass(c.settings.menuOutAnimationClass)
-                    }, 1E3), a.find(".arcontactus-close").removeClass("show-messageners-block"), a.find(".icons, .static").removeClass("hide"), a.find(".pulsation").removeClass("stop"), this.startAnimation(), this._menuOpened = !1, this.$element.trigger("arcontactus.closeMenu"))
-            };
-            d.prototype.toggleMenu = function() {
-                var a = this.$element;
-                this.hidePrompt();
-                if (a.find(".callback-countdown-block").hasClass("display-flex")) return !1;
-                a.find(".messangers-block").hasClass(this.settings.menuInAnimationClass) ? this.closeMenu() : this.openMenu();
-                this.$element.trigger("arcontactus.toggleMenu")
-            };
-            d.prototype.openCallbackPopup = function() {
-                var a = this.$element;
-                a.addClass("opened");
-                this.closeMenu();
-                this.stopAnimation();
-                a.find(".icons, .static").addClass("hide");
-                a.find(".pulsation").addClass("stop");
-                a.find(".callback-countdown-block").addClass("display-flex");
-                a.find(".callback-countdown-block-phone").addClass("display-flex");
-                a.find(".callback-state").addClass("display-flex");
-                this._callbackOpened = !0;
-                this.$element.trigger("arcontactus.openCallbackPopup")
-            };
-            d.prototype.closeCallbackPopup = function() {
-                var a = this.$element;
-                a.removeClass("opened");
-                a.find(".messangers-block").removeClass(this.settings.menuInAnimationClass);
-                a.find(".arcontactus-close").removeClass("show-messageners-block");
-                a.find(".icons, .static").removeClass("hide");
-                a.find(".pulsation").removeClass("stop");
-                a.find(".callback-countdown-block, .callback-countdown-block-phone, .callback-countdown-block-sorry, .callback-countdown-block-timer").removeClass("display-flex");
-                a.find(".callback-state").removeClass("display-flex");
-                this.startAnimation();
-                this._callbackOpened = !1;
-                this.$element.trigger("arcontactus.closeCallbackPopup")
-            };
-            d.prototype.startAnimation = function() {
-                var a = this.$element,
-                    c = a.find(".icons-line"),
-                    b = a.find(".static"),
-                    d = a.find(".icons-line>span:first-child").width() +
-                    40;
-                if ("huge" === this.settings.buttonSize) var h = 2,
-                    f = 0;
-                "large" === this.settings.buttonSize && (h = 2, f = 0);
-                "medium" === this.settings.buttonSize && (h = 4, f = -2);
-                "small" === this.settings.buttonSize && (h = 4, f = -2);
-                var g = a.find(".icons-line>span").length,
-                    k = 0;
-                this.stopAnimation();
-                if (0 === this.settings.iconsAnimationSpeed) return !1;
-                var m = this;
-                this._interval = setInterval(function() {
-                    0 === k && (c.parent().removeClass("hide"), b.addClass("hide"));
-                    var a = "translate(" + -(d * k + h) + "px, " + f + "px)";
-                    c.css({
-                        "-webkit-transform": a,
-                        "-ms-transform": a,
-                        transform: a
-                    });
-                    k++;
-                    if (k > g) {
-                        if (k > g + 1) {
-                            if (m.settings.iconsAnimationPause) return m.stopAnimation(), setTimeout(function() {
-                                if (m._callbackOpened || m._menuOpened || m._popupOpened) return !1;
-                                m.startAnimation()
-                            }, m.settings.iconsAnimationPause), !1;
-                            k = 0
-                        }
-                        c.parent().addClass("hide");
-                        b.removeClass("hide");
-                        a = "translate(" + -h + "px, " + f + "px)";
-                        c.css({
-                            "-webkit-transform": a,
-                            "-ms-transform": a,
-                            transform: a
-                        })
-                    }
-                }, this.settings.iconsAnimationSpeed)
-            };
-            d.prototype.stopAnimation = function() {
-                clearInterval(this._interval);
-                var a = this.$element,
-                    b = a.find(".icons-line");
-                a = a.find(".static");
-                b.parent().addClass("hide");
-                a.removeClass("hide");
-                b.css({
-                    "-webkit-transform": "translate(-2px, 0px)",
-                    "-ms-transform": "translate(-2px, 0px)",
-                    transform: "translate(-2px, 0px)"
-                })
-            };
-            d.prototype.showPrompt = function(a) {
-                var b = this.$element.find(".arcontactus-prompt");
-                a && a.content && b.find(".arcontactus-prompt-inner").html(a.content);
-                b.addClass("active");
-                this.$element.trigger("arcontactus.showPrompt")
-            };
-            d.prototype.hidePrompt = function() {
-                this.$element.find(".arcontactus-prompt").removeClass("active");
-                this.$element.trigger("arcontactus.hidePrompt")
-            };
-            d.prototype.showPromptTyping = function() {
-                this.$element.find(".arcontactus-prompt").find(".arcontactus-prompt-inner").html("");
-                this._insertPromptTyping();
-                this.showPrompt({});
-                this.$element.trigger("arcontactus.showPromptTyping")
-            };
-            d.prototype._insertPromptTyping = function() {
-                var a = this.$element.find(".arcontactus-prompt-inner"),
-                    c = b("<div>", {
-                        class: "arcontactus-prompt-typing"
-                    }),
-                    d = b("<div>");
-                c.append(d);
-                c.append(d.clone());
-                c.append(d.clone());
-                a.append(c)
-            };
-            d.prototype.hidePromptTyping =
-                function() {
-                    this.$element.find(".arcontactus-prompt").removeClass("active");
-                    this.$element.trigger("arcontactus.hidePromptTyping")
-                };
-            d.prototype._backgroundStyle = function() {
-                return "background-color: " + this.settings.theme
-            };
-            d.prototype._colorStyle = function() {
-                return "color: " + this.settings.theme
-            };
-            b.fn.contactUs = function(a) {
-                var c = Array.prototype.slice.call(arguments, 1);
-                return this.each(function() {
-                    var e = b(this),
-                        l = e.data("ar.contactus");
-                    l || (l = new d(this, "object" == typeof a && a), e.data("ar.contactus", l));
-                    "string" ==
-                    typeof a && "_" !== a.charAt(0) && l[a].apply(l, c)
-                })
-            };
-            b.fn.contactUs.Constructor = d
-        })(jQuery);
-    </script>
-    <?php include("../layout/livechat.php");?>
-
-</body>
-
-</html>
+<?php include("../layout/footer.php"); ?>

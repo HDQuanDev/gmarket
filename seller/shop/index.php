@@ -14,7 +14,7 @@
 
     <!-- Favicon -->
     <link rel="icon" href="/public/uploads/all/gTpdv1822yoHhDKtwGLenMSNg19P86n99DzgA91a.jpg">
-    <title>Gmarket Viet Nam | Buy Korean domestic products at original prices from the manufacturer</title>
+    <title>TAKASHIMAYA ONLINE STORE VIETNAM | Mua sản phẩm nội địa Nhật Bản với giá gốc từ nhà sản xuất</title>
 
     <!-- google font -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Poppins:300,400,500,600,700">
@@ -45,26 +45,26 @@
     <script>
         var AIZ = AIZ || {};
         AIZ.local = {
-            nothing_selected: 'Nothing selected',
-            nothing_found: 'Nothing found',
-            choose_file: 'Choose File',
-            file_selected: 'File selected',
-            files_selected: 'Files selected',
-            add_more_files: 'Add more files',
-            adding_more_files: 'Adding more files',
-            drop_files_here_paste_or: 'Drop files here, paste or',
-            browse: 'Browse',
-            upload_complete: 'Upload complete',
-            upload_paused: 'Upload paused',
-            resume_upload: 'Resume upload',
-            pause_upload: 'Pause upload',
-            retry_upload: 'Retry upload',
-            cancel_upload: 'Cancel upload',
-            uploading: 'Uploading',
-            processing: 'Processing',
-            complete: 'Complete',
-            file: 'File',
-            files: 'Files',
+            nothing_selected: 'Không có gì được chọn',
+            nothing_found: 'Không tìm thấy',
+            choose_file: 'Chọn tệp',
+            file_selected: 'Tệp đã được chọn',
+            files_selected: 'Các tệp đã được chọn',
+            add_more_files: 'Thêm nhiều tệp hơn',
+            adding_more_files: 'Đang thêm nhiều tệp hơn',
+            drop_files_here_paste_or: 'Thả tệp vào đây, dán hoặc',
+            browse: 'Duyệt',
+            upload_complete: 'Tải lên hoàn tất',
+            upload_paused: 'Tải lên bị tạm dừng',
+            resume_upload: 'Tiếp tục tải lên',
+            pause_upload: 'Tạm dừng tải lên',
+            retry_upload: 'Thử tải lên lại',
+            cancel_upload: 'Hủy tải lên',
+            uploading: 'Đang tải lên',
+            processing: 'Đang xử lý',
+            complete: 'Hoàn tất',
+            file: 'Tệp',
+            files: 'Các tệp',
         }
     </script>
 
@@ -74,7 +74,7 @@
 
     <div class="aiz-main-wrapper">
         <?php include("../layout/sidebar.php")?>
-        <div class="aiz-content-wrapper">
+        <div class="py-3 px-4 lg:px-6">
             <?php include("../layout/topbar.php")?>
 
             <div class="aiz-main-content">
@@ -106,15 +106,15 @@
                                 }
                                 else{
                                     $shop_address=$_POST['shop_address'];
-                                    $shop_phone=$_POST['shop_phone'];
+                                    $phone=$_POST['phone'];
     
                                     $meta_description=$_POST['meta_description'];
-                                    $meta_title=$_POST['meta_title'];
+                                    $meta_title=$_POST['meta_title'] ?? "";
     
-                                    $front_id=$_POST['authzm'];
-                                    $back_id=$_POST['authfm'];
+                                    $front_id=$_POST['authzm'] ?? null;
+                                    $back_id=$_POST['authfm'] ?? null;
     
-                                    @mysqli_query($conn,"UPDATE sellers SET shop_phone='$shop_phone',shop_name='$shop_name',shop_logo='$shop_logo',shop_address='$shop_address',meta_description='$meta_description',meta_title='$meta_title',front_id_card='$front_id',back_id_card='$back_id' WHERE id=$seller_id");
+                                    @mysqli_query($conn,"UPDATE sellers SET phone='$phone',shop_name='$shop_name',shop_logo='$shop_logo',shop_address='$shop_address',meta_description='$meta_description',meta_title='$meta_title' WHERE id=$seller_id");
                                     echo "<script>window.location.href=''</script>";
     
                                 }
@@ -131,7 +131,7 @@
                                     </div>
                                 </div>
                                 <div class="row mb-3">
-                                    <label class="col-md-2 col-form-label"><?=tran("Shop Logo")?>Shop Logo</label>
+                                    <label class="col-md-2 col-form-label"><?=tran("Shop Logo")?></label>
                                     <div class="col-md-10">
                                         <div class="input-group" data-toggle="aizuploader" data-type="image">
                                             <div class="input-group-prepend">
@@ -149,20 +149,13 @@
                                     <?=tran("Shop Phone")?>
                                     </label>
                                     <div class="col-md-10">
-                                        <input type="text" class="form-control mb-3" placeholder="Phone" name="shop_phone" value="<?=$seller_shop_phone?>" required>
+                                        <input type="text" class="form-control mb-3" placeholder="Phone" name="phone" value="<?=$seller_phone?>" required>
                                     </div>
                                 </div>
                                 <div class="row">
                                     <label class="col-md-2 col-form-label"><?=tran("Shop Address")?> <span class="text-danger text-danger">*</span></label>
                                     <div class="col-md-10">
                                         <input type="text" class="form-control mb-3" placeholder="Address" name="shop_address" value="<?=$seller_shop_address?>" required>
-                                    </div>
-                                </div>
-
-                                <div class="row">
-                                    <label class="col-md-2 col-form-label"><?=tran("Meta Title")?><span class="text-danger text-danger">*</span></label>
-                                    <div class="col-md-10">
-                                        <input type="text" class="form-control mb-3" placeholder="Meta Title" name="meta_title" value="<?=$seller_meta_title?>" required>
                                     </div>
                                 </div>
                                 <div class="row">
@@ -180,7 +173,7 @@
                                                 <div class="input-group-text bg-soft-secondary font-weight-medium"><?=tran("Browse")?></div>
                                             </div>
                                             <div class="form-control file-amount"><?=tran("Choose File")?></div>
-                                            <input type="hidden" name="authzm" value="<?=$seller_front_id_card?>" class="selected-files">
+                                            <input type="hidden" name="front_id_card" value="<?=$seller_front_id_card?>" class="selected-files">
                                         </div>
                                         <div class="file-preview box sm">
                                         </div>
@@ -194,7 +187,7 @@
                                                 <div class="input-group-text bg-soft-secondary font-weight-medium"><?=tran("Browse")?></div>
                                             </div>
                                             <div class="form-control file-amount"><?=tran("Choose File")?></div>
-                                            <input type="hidden" name="authfm" value="<?=$seller_back_id_card?>" class="selected-files">
+                                            <input type="hidden" name="back_id_card" value="<?=$seller_back_id_card?>" class="selected-files">
                                         </div>
                                         <div class="file-preview box sm">
                                         </div>
@@ -272,27 +265,7 @@
                                 <input type="hidden" name="shop_id" value="550">
                                 <input type="hidden" name="_token" value="c6MXnpe4lPP7N32uzv6W24NEiPEWxjq4Y54fVWYP">
                                 <div class="form-box-content p-3">
-                                    <div class="row mb-3">
-                                        <label class="col-md-2 col-form-label">Facebook</label>
-                                        <div class="col-md-10">
-                                            <input type="text" class="form-control" placeholder="Facebook" name="facebook" value="<?=$seller_facebook_url?>">
-                                            <small class="text-muted"><?=tran("Insert link with https")?></small>
-                                        </div>
-                                    </div>
-                                    <div class="row mb-3">
-                                        <label class="col-md-2 col-form-label">Instagram</label>
-                                        <div class="col-md-10">
-                                            <input type="text" class="form-control" placeholder="Instagram" name="instagram" value="<?=$seller_instagram_url?>">
-                                            <small class="text-muted"><?=tran("Insert link with https")?></small>
-                                        </div>
-                                    </div>
-                                    <div class="row mb-3">
-                                        <label class="col-md-2 col-form-label">Twitter</label>
-                                        <div class="col-md-10">
-                                            <input type="text" class="form-control" placeholder="Twitter" name="twitter" value="<?=$seller_twitter_url?>">
-                                            <small class="text-muted"><?=tran("Insert link with https")?></small>
-                                        </div>
-                                    </div>
+
                                     <div class="row mb-3">
                                         <label class="col-md-2 col-form-label">Google</label>
                                         <div class="col-md-10">
@@ -317,7 +290,7 @@
 
                 </div>
                 <div class="bg-white text-center py-3 px-15px px-lg-25px mt-auto border-sm-top">
-                    <p class="mb-0">&copy; Gmarket Viet Nam v7.4.0</p>
+                    <p class="mb-0"></p>
                 </div>
             </div><!-- .aiz-main-content -->
         </div><!-- .aiz-content-wrapper -->

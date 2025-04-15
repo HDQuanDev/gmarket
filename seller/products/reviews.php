@@ -12,7 +12,7 @@
 
 	<!-- Favicon -->
 	<link rel="icon" href="https://gmarketagents.com/public/uploads/all/gTpdv1822yoHhDKtwGLenMSNg19P86n99DzgA91a.jpg">
-	<title>Gmarket Viet Nam | Buy Korean domestic products at original prices from the manufacturer</title>
+	<title>TAKASHIMAYA ONLINE STORE VIETNAM | Mua sản phẩm nội địa Nhật Bản với giá gốc từ nhà sản xuất</title>
 
 	<!-- google font -->
 	<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Poppins:300,400,500,600,700">
@@ -271,7 +271,7 @@
         </div><!-- .aiz-side-nav-wrap -->
     </div><!-- .aiz-sidebar -->
     <div class="aiz-sidebar-overlay"></div>
-</div><!-- .aiz-sidebar -->		<div class="aiz-content-wrapper">
+</div><!-- .aiz-sidebar -->		<div class="py-3 px-4 lg:px-6">
             <div class="aiz-topbar px-15px px-lg-25px d-flex align-items-stretch justify-content-between">
     <div class="d-flex">
         <div class="aiz-topbar-nav-toggler d-flex align-items-center justify-content-start mr-2 mr-md-3 ml-0" data-toggle="aiz-mobile-nav">
@@ -433,7 +433,7 @@
 
 				</div>
 				<div class="bg-white text-center py-3 px-15px px-lg-25px mt-auto border-sm-top">
-					<p class="mb-0">&copy; Gmarket Viet Nam v7.4.0</p>
+					<p class="mb-0"></p>
 				</div>
 			</div><!-- .aiz-main-content -->
 		</div><!-- .aiz-content-wrapper -->

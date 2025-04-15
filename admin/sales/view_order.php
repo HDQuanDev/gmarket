@@ -25,7 +25,7 @@ else die();
 
     <!-- Favicon -->
     <link rel="icon" href="/public/uploads/all/ImUXrP5YC9e0hsv4zR6xjoYJCuxmFYkonSInvGtJ.jpg">
-    <title>GMARKETVN | Buy Korean domestic products at original prices from the manufacturer</title>
+    <title>Takashimaya | Buy Korean domestic products at original prices from the manufacturer</title>
 
     <!-- google font -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Poppins:300,400,500,600,700">
@@ -215,6 +215,7 @@ else die();
                                                 <th data-breakpoints="lg" class="min-col">#</th>
                                                 <th width="10%">Photo</th>
                                                 <th class="text-uppercase">Description</th>
+                                                <th data-breakpoints="lg" class="text-uppercase">Seller</th>
                                                 <th data-breakpoints="lg" class="text-uppercase">Delivery Type</th>
                                                 <th data-breakpoints="lg" class="min-col text-uppercase text-center">
                                                     QTY
@@ -228,9 +229,14 @@ else die();
                                         <tbody>
                                             <?php 
                                             $total=0;
-                                            $sql=mysqli_query($conn,"SELECT *,price*quantity as total FROM detail_orders WHERE order_id='{$_GET['id']}' ");
+                                            $sql=mysqli_query($conn,"SELECT *, price*quantity as total FROM detail_orders WHERE order_id='{$_GET['id']}' ");
                                             while($row=fetch_assoc($sql)){
                                                 $total+=$row['total'];
+                                                $seller_name = "Inhouse";
+                                                if(!empty($row['from_seller'])) {
+                                                    $seller = fetch_array("SELECT * FROM sellers WHERE id='{$row['from_seller']}' LIMIT 1");
+                                                    $seller_name = $seller ? $seller['full_name'] : "Unknown Seller";
+                                                }
                                             ?>
                                             <tr>
                                                 <td><?=$row['id']?></td>
@@ -248,8 +254,11 @@ else die();
                                                     </small>
                                                     <br>
                                                     <small>
-                                                        SKU:
+                                                        Order Item #<?=$row['id']?>
                                                     </small>
+                                                </td>
+                                                <td>
+                                                    <?=$seller_name?>
                                                 </td>
                                                 <td>
                                                     Home Delivery
@@ -324,7 +333,7 @@ else die();
                     </div>
                 </div>
                 <div class="bg-white text-center py-3 px-15px px-lg-25px mt-auto">
-                    <p class="mb-0">&copy; GMARKETVN v7.4.0</p>
+                    <p class="mb-0">&copy; Takashimaya v7.4.0</p>
                 </div>
             </div><!-- .aiz-main-content -->
         </div><!-- .aiz-content-wrapper -->
@@ -357,7 +366,17 @@ else die();
                 order_id: order_id,
                 status: status
             }, function(data) {
-                AIZ.plugins.notify('success', 'Delivery status has been updated');
+                try {
+                    const response = JSON.parse(data);
+                    if(response.status === 1) {
+                        AIZ.plugins.notify('success', 'Delivery status has been updated');
+                        console.log('Transaction details:', response.details);
+                    } else {
+                        AIZ.plugins.notify('danger', response.message || 'Error updating delivery status');
+                    }
+                } catch(e) {
+                    AIZ.plugins.notify('danger', 'Invalid response from server');
+                }
             });
         });
         $('#update_payment_status').on('change', function() {
@@ -369,6 +388,7 @@ else die();
                 status: status
             }, function(data) {
                 AIZ.plugins.notify('success', 'Payment status has been updated');
+                location.reload();
             });
         });
 
@@ -380,9 +400,8 @@ else die();
                 order_id: order_id,
                 tracking_code: tracking_code
             }, function(data) {
-                //$('#order_details').modal('hide');
-                AIZ.plugins.notify('success', 'Order status has been updated');
-                location.reload().setTimeOut(500);
+                AIZ.plugins.notify('success', 'Tracking code has been updated');
+                location.reload();
             });
         });
     </script>

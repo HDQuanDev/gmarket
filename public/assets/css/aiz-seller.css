@@ -6,35 +6,6 @@ use custom-style.css
 */
 
 :root {
-    --blue: #007bff;
-    --indigo: #6610f2;
-    --purple: #6f42c1;
-    --pink: #e83e8c;
-    --red: #dc3545;
-    --orange: #fd7e14;
-    --yellow: #ffc107;
-    --green: #28a745;
-    --teal: #20c997;
-    --cyan: #17a2b8;
-    --white: #fff;
-    --gray: #6c757d;
-    --gray-dark: #343a40;
-    --primary: #2E294E;
-    --hov-primary: #2E294E;
-    --soft-primary: rgba(233, 233, 240, 1);
-    --secondary: #8f97ab;
-    --soft-secondary: rgba(143, 151, 171, 0.15);
-    --success: #0abb75;
-    --soft-success: rgba(10, 187, 117, 0.15);
-    --info: #25bcf1;
-    --soft-info: rgba(37, 188, 241, 0.15);
-    --warning: #ffc519;
-    --soft-warning: rgba(255, 197, 25, 0.15);
-    --danger: #ef486a;
-    --soft-danger: rgba(239, 72, 106, 0.15);
-    --light: #f2f3f8;
-    --dark: #111723;
-    --soft-dark: rgba(42, 50, 66, 0.15);
     --breakpoint-xs: 0;
     --breakpoint-sm: 576px;
     --breakpoint-md: 768px;
@@ -46,11 +17,16 @@ use custom-style.css
         "Noto Color Emoji";
     --font-family-monospace: SFMono-Regular, Menlo, Monaco, Consolas,
         "Liberation Mono", "Courier New", monospace;
+    
+    /* Red theme variables */
+    --primary: #e60000;
+    --hov-primary: #cc0000;
+    --soft-primary: rgba(230, 0, 0, 0.15);
 }
 .tagify {
     --tags-border-color: #e2e5ec;
     --tag-bg: #e2e5ec;
-    --tag-hover: #d9e6ff;
+    --tag-hover: #ffdddd;
     --tag-text-color: #212529;
     --tag-text-color--edit: #212529;
     --tag-pad: 0.3rem 0.5rem;
@@ -59,7 +35,7 @@ use custom-style.css
     --tag-invalid-bg: rgba(253, 57, 75, 0.5);
     --tag-remove-bg: rgba(253, 57, 75, 0.3);
     --tag-remove-btn-bg: none;
-    --tag-remove-btn-bg--hover: #fd394b;
+    --tag-remove-btn-bg--hover: #e60000;
     --tag--min-width: 1ch;
     --tag--max-width: auto;
     --tag-hide-transition: 0.3s;

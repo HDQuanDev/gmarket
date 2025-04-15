@@ -1,5 +1,5 @@
 <?php
-
+ob_start();
 session_start();
 date_default_timezone_set('Asia/Ho_Chi_Minh');
 //giỏ hàng
@@ -26,7 +26,8 @@ if(!isset($_SESSION['currency_character']))$_SESSION['currency_character']="$";
 
 
 
-$conn=mysqli_connect("localhost","root","","gmarket");
+$conn=mysqli_connect("localhost","csdl","25012002","csdl");
+mysqli_query($conn, "SET time_zone = '+07:00'");
 mysqli_set_charset($conn,"utf8");
 
 $domain=$_SERVER['HTTP_HOST'];
@@ -67,6 +68,8 @@ $createDate=$dateImmutable->format('Y-m-d H:i:s');
 $isLogin=false;
 $isAdmin=false;
 $isSeller=false;
+$user_id = null;
+$seller_id = null;
 
 if(isset($_SESSION['user_id']) ){
      $isLogin=true;
@@ -85,7 +88,6 @@ if(isset($_SESSION['user_id']) ){
 
 
 
-
      $user_role=$users['role'];
 
      $user_time=$users['create_date'];
@@ -96,7 +98,6 @@ if(isset($_SESSION['user_id']) ){
 }
 if(isset($_SESSION['seller_id'])){
      $isLogin=true;
-
      $seller_id=$_SESSION['seller_id'];
      $sellers=fetch_array("SELECT * FROM sellers WHERE id=$seller_id LIMIT 1");
      if(!$sellers)die();
@@ -107,6 +108,7 @@ if(isset($_SESSION['seller_id'])){
 
 
      $seller_money=$sellers['money'];
+     
 
      $seller_phone=$sellers['phone'];
 
@@ -154,7 +156,29 @@ if(isset($_SESSION['seller_id'])){
 
 
 }
-
+function dd(...$args) {
+    echo '<pre style="background: #f8f8f8; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">';
+    foreach ($args as $arg) {
+        var_dump($arg);
+    }
+    echo '</pre>';
+    die();
+}
+function get_image($conn,$id) {
+    $stmt2 = $conn->prepare("SELECT * FROM file WHERE id = ? LIMIT 1");
+    $stmt2->bind_param("i", $id);
+    $stmt2->execute();
+    $logo = $stmt2->get_result()->fetch_assoc();
+    $stmt2->close();
+    return $logo ? 'https://takashimayavn.com/public/uploads/all/' . $logo['src'] : 'https://takashimayavn.com/public/uploads/all/' . $id;
+}
+if(!function_exists("isJSON")) {
+function isJSON($string) {
+    if (!is_string($string)) return false;
+    json_decode($string);
+    return json_last_error() === JSON_ERROR_NONE;
+}
+}
 include_once($_SERVER['DOCUMENT_ROOT'] . '/translate.php');
 
 ?>

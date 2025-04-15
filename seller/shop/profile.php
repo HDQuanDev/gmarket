@@ -14,7 +14,7 @@
 
     <!-- Favicon -->
     <link rel="icon" href="/public/uploads/all/gTpdv1822yoHhDKtwGLenMSNg19P86n99DzgA91a.jpg">
-    <title>Gmarket Viet Nam | Buy Korean domestic products at original prices from the manufacturer</title>
+   <title>TAKASHIMAYA ONLINE STORE VIETNAM | Mua sản phẩm nội địa Nhật Bản với giá gốc từ nhà sản xuất</title>
 
     <!-- google font -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Poppins:300,400,500,600,700">
@@ -77,7 +77,7 @@
     <div class="aiz-main-wrapper">
         <?php include("../layout/sidebar.php")?>
 
-        <div class="aiz-content-wrapper">
+        <div class="py-3 px-4 lg:px-6">
             <?php include("../layout/topbar.php")?>
 
             <div class="aiz-main-content">
@@ -85,7 +85,7 @@
                     <div class="aiz-titlebar mt-2 mb-4">
                         <div class="row align-items-center">
                             <div class="col-md-6">
-                                <h1 class="h3">Manage Profile</h1>
+                                <h1 class="h3">Quản lý hồ sơ</h1>
                             </div>
                         </div>
                     </div>
@@ -148,30 +148,30 @@
                         <!-- <input type="hidden" name="_token" value="QRLUoW1AMnSkkhBhHHYJFvoE9vsvOKYIyRGadUL7"> Basic Info -->
                         <div class="card">
                             <div class="card-header">
-                                <h5 class="mb-0 h6">Basic Info</h5>
+                                <h5 class="mb-0 h6">Thông tin cơ bản</h5>
                             </div>
                             <div class="card-body">
                                 <div class="form-group row">
-                                    <label class="col-md-2 col-form-label" for="name">Your name</label>
+                                    <label class="col-md-2 col-form-label" for="name">Họ và tên</label>
                                     <div class="col-md-10">
-                                        <input type="text" name="name" translate="no" value="<?=$seller_full_name?>" id="full_name" class="form-control" placeholder="Your name" required>
+                                        <input type="text" name="name" translate="no" value="<?=$seller_full_name?>" id="full_name" class="form-control" placeholder="Tên của bạn" required>
                                     </div>
                                 </div>
 
                                 <div class="form-group row">
-                                    <label class="col-md-2 col-form-label" for="phone">Your Phone</label>
+                                    <label class="col-md-2 col-form-label" for="phone">Số điện thoại</label>
                                     <div class="col-md-10">
-                                        <input type="text" name="phone" value="<?=$seller_phone?>" id="phone" class="form-control" placeholder="Your Phone">
+                                        <input type="text" name="phone" value="<?=$seller_phone?>" id="phone" class="form-control" placeholder="Số điện thoại của bạn">
                                     </div>
                                 </div>
                                 <div class="form-group row">
-                                    <label class="col-md-2 col-form-label">Photo</label>
+                                    <label class="col-md-2 col-form-label">Ảnh</label>
                                     <div class="col-md-10">
                                         <div class="input-group" data-toggle="aizuploader" data-type="image">
                                             <div class="input-group-prepend">
-                                                <div class="input-group-text bg-soft-secondary font-weight-medium">Browse</div>
+                                                <div class="input-group-text bg-soft-secondary font-weight-medium">Duyệt</div>
                                             </div>
-                                            <div class="form-control file-amount">Choose File</div>
+                                            <div class="form-control file-amount">Chọn tệp</div>
                                             <input type="hidden" name="front_id_card" value="<?=$seller_front_id_card?>" class="selected-files">
                                         </div>
                                         <div class="file-preview box sm">
@@ -179,21 +179,21 @@
                                     </div>
                                 </div>
                                 <div class="form-group row">
-                                    <label class="col-md-2 col-form-label" for="password">Current password</label>
+                                    <label class="col-md-2 col-form-label" for="password">Mật khẩu hiện tại</label>
                                     <div class="col-md-10">
-                                        <input type="password" name="current_password"  class="form-control" placeholder="Current Password">
+                                        <input type="password" name="current_password"  class="form-control" placeholder="Mật khẩu hiện tại">
                                     </div>
                                 </div>
                                 <div class="form-group row">
-                                    <label class="col-md-2 col-form-label" for="password">Your Password</label>
+                                    <label class="col-md-2 col-form-label" for="password">Mật khẩu mới</label>
                                     <div class="col-md-10">
-                                        <input type="password" name="new_password" id="password" class="form-control" placeholder="New Password">
+                                        <input type="password" name="new_password" id="password" class="form-control" placeholder="Mật khẩu mới">
                                     </div>
                                 </div>
                                 <div class="form-group row">
-                                    <label class="col-md-2 col-form-label" for="confirm_password">Confirm Password</label>
+                                    <label class="col-md-2 col-form-label" for="confirm_password">Xác nhận mật khẩu</label>
                                     <div class="col-md-10">
-                                        <input type="password" name="confirm_password" id="confirm_password" class="form-control" placeholder="Confirm Password">
+                                        <input type="password" name="confirm_password" id="confirm_password" class="form-control" placeholder="Xác nhận mật khẩu">
                                     </div>
                                 </div>
 
@@ -203,11 +203,11 @@
                         <!-- Payment System -->
                         <div class="card">
                             <div class="card-header">
-                                <h5 class="mb-0 h6">Payment Setting</h5>
+                                <h5 class="mb-0 h6">Cài đặt thanh toán</h5>
                             </div>
                             <div class="card-body">
                                 <div class="row">
-                                    <label class="col-md-3 col-form-label">Cash Payment</label>
+                                    <label class="col-md-3 col-form-label">Thanh toán tiền mặt</label>
                                     <div class="col-md-9">
                                         <label class="aiz-switch aiz-switch-success mb-3">
                                             <input value="1" name="cash_on_delivery_status" <?=$seller_cash_payment?"checked":""?> type="checkbox"  >
@@ -216,7 +216,7 @@
                                     </div>
                                 </div>
                                 <div class="row">
-                                    <label class="col-md-3 col-form-label">Bank Payment</label>
+                                    <label class="col-md-3 col-form-label">Thanh toán qua ngân hàng</label>
                                     <div class="col-md-9">
                                         <label class="aiz-switch aiz-switch-success mb-3">
                                             <input value="1" name="bank_payment_status" type="checkbox" <?=$seller_bank_payment?"checked":""?>>
@@ -225,34 +225,28 @@
                                     </div>
                                 </div>
                                 <div class="row">
-                                    <label class="col-md-3 col-form-label" for="bank_name">Bank Name</label>
+                                    <label class="col-md-3 col-form-label" for="bank_name">Tên ngân hàng</label>
                                     <div class="col-md-9">
-                                        <input type="text" name="bank_name" value="<?=$seller_bank_name?>" id="bank_name" class="form-control mb-3" placeholder="Bank Name">
+                                        <input type="text" name="bank_name" value="<?=$seller_bank_name?>" id="bank_name" class="form-control mb-3" placeholder="Tên ngân hàng">
                                     </div>
                                 </div>
                                 <div class="row">
-                                    <label class="col-md-3 col-form-label" for="bank_acc_name">Bank Account Name</label>
+                                    <label class="col-md-3 col-form-label" for="bank_acc_name">Tên tài khoản ngân hàng</label>
                                     <div class="col-md-9">
-                                        <input type="text" name="bank_account_name" value="<?=$seller_bank_account_name?>" id="bank_acc_name" class="form-control mb-3" placeholder="Bank Account Name">
+                                        <input type="text" name="bank_account_name" value="<?=$seller_bank_account_name?>" id="bank_acc_name" class="form-control mb-3" placeholder="Tên tài khoản ngân hàng">
                                     </div>
                                 </div>
                                 <div class="row">
-                                    <label class="col-md-3 col-form-label" for="bank_acc_no">Bank Account Number</label>
+                                    <label class="col-md-3 col-form-label" for="bank_acc_no">Số tài khoản ngân hàng</label>
                                     <div class="col-md-9">
-                                        <input type="text" name="bank_account_number" value="<?=$seller_bank_account_number?>" id="bank_acc_no" class="form-control mb-3" placeholder="Bank Account Number">
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <label class="col-md-3 col-form-label" for="bank_routing_no">Bank Routing Number</label>
-                                    <div class="col-md-9">
-                                        <input type="text" name="bank_routing_number" value="<?=$seller_bank_routing_number?>" id="bank_routing_no" lang="en" class="form-control mb-3" placeholder="Bank Routing Number">
+                                        <input type="text" name="bank_account_number" value="<?=$seller_bank_account_number?>" id="bank_acc_no" class="form-control mb-3" placeholder="Số tài khoản ngân hàng">
                                     </div>
                                 </div>
                             </div>
                         </div>
 
                         <div class="form-group mb-0 text-right">
-                            <button type="submit" class="btn btn-primary" name="save1">Update Profile</button>
+                            <button type="submit" class="btn btn-primary" name="save1">Cập nhật thông tin</button>
                         </div>
                     </form>
 
@@ -261,14 +255,14 @@
                     <!-- Address -->
                     <div class="card">
                         <div class="card-header">
-                            <h5 class="mb-0 h6">Address</h5>
+                            <h5 class="mb-0 h6">Địa chỉ</h5>
                         </div>
                         <div class="card-body">
                             <div class="row gutters-10">
                                 <div class="col-lg-4 mx-auto" onclick="add_new_address()">
                                     <div class="border p-3 rounded mb-3 c-pointer text-center bg-light">
                                         <i class="la la-plus la-2x"></i>
-                                        <div class="alpha-7">Add New Address</div>
+                                        <div class="alpha-7">Thêm địa chỉ mới</div>
                                     </div>
                                 </div>
                             </div>
@@ -280,12 +274,12 @@
                         <input type="hidden" name="_token" value="QRLUoW1AMnSkkhBhHHYJFvoE9vsvOKYIyRGadUL7">
                         <div class="card">
                             <div class="card-header">
-                                <h5 class="mb-0 h6">Change your email</h5>
+                                <h5 class="mb-0 h6">Đổi email</h5>
                             </div>
                             <div class="card-body">
                                 <div class="row">
                                     <div class="col-md-2">
-                                        <label>Your Email</label>
+                                        <label>Email của bạn</label>
                                     </div>
                                     <div class="col-md-10">
                                         <div class="input-group mb-3">
@@ -293,14 +287,14 @@
                                             <div class="input-group-append">
                                                 <button type="button" class="btn btn-outline-secondary new-email-verification">
                                                     <span class="d-none loading">
-                                                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>Sending Email...
+                                                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>Đang gửi ...
                                                     </span>
-                                                    <span class="default">Verify</span>
+                                                    <span class="default">Xác thực</span>
                                                 </button>
                                             </div>
                                         </div>
                                         <div class="form-group mb-0 text-right">
-                                            <button type="submit" class="btn btn-primary">Update Email</button>
+                                            <button type="submit" class="btn btn-primary">Cập nhật email</button>
                                         </div>
                                     </div>
                                 </div>
@@ -310,7 +304,7 @@
 
                 </div>
                 <div class="bg-white text-center py-3 px-15px px-lg-25px mt-auto border-sm-top">
-                    <p class="mb-0">&copy; Gmarket Viet Nam v7.4.0</p>
+                    <p class="mb-0"></p>
                 </div>
             </div><!-- .aiz-main-content -->
         </div><!-- .aiz-content-wrapper -->
@@ -321,8 +315,8 @@
         <div class="modal-dialog modal-dialog-centered" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="exampleModalLabel">New Address</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <h5 class="modal-title" id="exampleModalLabel">Địa chỉ mới</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Đóng"></button>
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
@@ -332,22 +326,22 @@
                         <div class="p-3">
                             <div class="row">
                                 <div class="col-md-2">
-                                    <label>Address</label>
+                                    <label>Địa chỉ</label>
                                 </div>
                                 <div class="col-md-10">
-                                    <textarea class="form-control mb-3" placeholder="Your Address" rows="2" name="address" required></textarea>
+                                    <textarea class="form-control mb-3" placeholder="Địa chỉ của bạn" rows="2" name="address" required></textarea>
                                 </div>
                             </div>
                             <div class="row">
                                 <div class="col-md-2">
-                                    <label>Country</label>
+                                    <label>Quốc gia</label>
                                 </div>
                                 <div class="col-md-10">
                                     <div class="mb-3">
-                                        <select class="form-control aiz-selectpicker" data-live-search="true" data-placeholder="Select your country" name="country_id" required>
-                                            <option value="">Select your country</option>
-                                            <option value="231">United States</option>
-                                            <option value="238">Vietnam</option>
+                                        <select class="form-control aiz-selectpicker" data-live-search="true" data-placeholder="Chọn quốc gia của bạn" name="country_id" required>
+                                            <option value="">Chọn quốc gia của bạn</option>
+                                            <option value="231">Hoa Kỳ</option>
+                                            <option value="238">Việt Nam</option>
                                         </select>
                                     </div>
                                 </div>
@@ -355,7 +349,7 @@
 
                             <div class="row">
                                 <div class="col-md-2">
-                                    <label>State</label>
+                                    <label>Tỉnh/Thành phố</label>
                                 </div>
                                 <div class="col-md-10">
                                     <select class="form-control mb-3 aiz-selectpicker" data-live-search="true" name="state_id" required>
@@ -366,7 +360,7 @@
 
                             <div class="row">
                                 <div class="col-md-2">
-                                    <label>City</label>
+                                    <label>Quận/Huyện</label>
                                 </div>
                                 <div class="col-md-10">
                                     <select class="form-control mb-3 aiz-selectpicker" data-live-search="true" name="city_id" required>
@@ -378,22 +372,22 @@
 
                             <div class="row">
                                 <div class="col-md-2">
-                                    <label>Postal code</label>
+                                    <label>Mã bưu điện</label>
                                 </div>
                                 <div class="col-md-10">
-                                    <input type="text" class="form-control mb-3" placeholder="Your Postal Code" name="postal_code" value="" required>
+                                    <input type="text" class="form-control mb-3" placeholder="Mã bưu điện của bạn" name="postal_code" value="" required>
                                 </div>
                             </div>
                             <div class="row">
                                 <div class="col-md-2">
-                                    <label>Phone</label>
+                                    <label>Số điện thoại</label>
                                 </div>
                                 <div class="col-md-10">
                                     <input type="text" class="form-control mb-3" placeholder="+880" name="phone" value="" required>
                                 </div>
                             </div>
                             <div class="form-group text-right">
-                                <button type="submit" class="btn btn-sm btn-primary">Save</button>
+                                <button type="submit" class="btn btn-sm btn-primary">Lưu</button>
                             </div>
                         </div>
                     </div>
@@ -407,7 +401,7 @@
         <div class="modal-dialog modal-dialog-centered" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="exampleModalLabel">New Address</h5>
+                    <h5 class="modal-title" id="exampleModalLabel">Địa chỉ mới</h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>

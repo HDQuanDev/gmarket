@@ -14,7 +14,7 @@
 
     <!-- Favicon -->
     <link rel="icon" href="/public/uploads/all/gTpdv1822yoHhDKtwGLenMSNg19P86n99DzgA91a.jpg">
-    <title>Gmarket Viet Nam | Buy Korean domestic products at original prices from the manufacturer</title>
+    <title>TAKASHIMAYA ONLINE STORE VIETNAM | Mua sản phẩm nội địa Nhật Bản với giá gốc từ nhà sản xuất</title>
 
     <!-- google font -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Poppins:300,400,500,600,700">
@@ -45,26 +45,26 @@
     <script>
         var AIZ = AIZ || {};
         AIZ.local = {
-            nothing_selected: 'Nothing selected',
-            nothing_found: 'Nothing found',
-            choose_file: 'Choose File',
-            file_selected: 'File selected',
-            files_selected: 'Files selected',
-            add_more_files: 'Add more files',
-            adding_more_files: 'Adding more files',
-            drop_files_here_paste_or: 'Drop files here, paste or',
-            browse: 'Browse',
-            upload_complete: 'Upload complete',
-            upload_paused: 'Upload paused',
-            resume_upload: 'Resume upload',
-            pause_upload: 'Pause upload',
-            retry_upload: 'Retry upload',
-            cancel_upload: 'Cancel upload',
-            uploading: 'Uploading',
-            processing: 'Processing',
-            complete: 'Complete',
-            file: 'File',
-            files: 'Files',
+            nothing_selected: 'Không có gì được chọn',
+            nothing_found: 'Không tìm thấy',
+            choose_file: 'Chọn tệp',
+            file_selected: 'Tệp đã được chọn',
+            files_selected: 'Các tệp đã được chọn',
+            add_more_files: 'Thêm tệp khác',
+            adding_more_files: 'Đang thêm tệp khác',
+            drop_files_here_paste_or: 'Thả tệp vào đây, dán hoặc',
+            browse: 'Duyệt',
+            upload_complete: 'Tải lên hoàn tất',
+            upload_paused: 'Tải lên đã tạm dừng',
+            resume_upload: 'Tiếp tục tải lên',
+            pause_upload: 'Tạm dừng tải lên',
+            retry_upload: 'Thử tải lên lại',
+            cancel_upload: 'Hủy tải lên',
+            uploading: 'Đang tải lên',
+            processing: 'Đang xử lý',
+            complete: 'Hoàn tất',
+            file: 'Tệp',
+            files: 'Các tệp',
         }
     </script>
 
@@ -74,7 +74,7 @@
 
     <div class="aiz-main-wrapper">
         <?php include("../layout/sidebar.php")?>
-        <div class="aiz-content-wrapper">
+        <div class="py-3 px-4 lg:px-6">
             <?php include("../layout/topbar.php")?>
 
             <div class="aiz-main-content">
@@ -86,20 +86,10 @@
                             </div>
                         </div>
                     </div>
-                    <div class="row">
-                        <div class="col-md-4 mx-auto mb-3">
-                            <div class="p-3 rounded mb-3 c-pointer text-center bg-white shadow-sm hov-shadow-lg has-transition" data-toggle="modal" data-target="#ticket_modal">
-                                <span class="size-70px rounded-circle mx-auto bg-secondary d-flex align-items-center justify-content-center mb-3">
-                                    <i class="las la-plus la-3x text-white"></i>
-                                </span>
-                                <div class="fs-20 text-primary"><?=tran("Create a Ticket")?></div>
-                            </div>
-                        </div>
-                    </div>
 
                     <div class="card">
                         <div class="card-header">
-                            <h5 class="mb-0 h6"><?=tran("Tickets")?></h5>
+                            <h5 class="mb-0 h6">Bình luận</h5>
                         </div>
                         <div class="card-body">
                             <table class="table aiz-table mb-0">
@@ -141,7 +131,7 @@
                     </div>
                 </div>
                 <div class="bg-white text-center py-3 px-15px px-lg-25px mt-auto border-sm-top">
-                    <p class="mb-0">&copy; Gmarket Viet Nam v7.4.0</p>
+                    <p class="mb-0"></p>
                 </div>
             </div><!-- .aiz-main-content -->
         </div><!-- .aiz-content-wrapper -->
@@ -259,7 +249,7 @@
                         $("#search-menu").append(`<li class="aiz-side-nav-item"><a href="${link}" class="aiz-side-nav-link"><i class="las la-ellipsis-h aiz-side-nav-icon"></i><span>${text}</span></a></li`);
                     }
                 } else {
-                    $("#search-menu").html(`<li class="aiz-side-nav-item"><span	class="text-center text-muted d-block">Nothing found</span></li>`);
+                    $("#search-menu").html(`<li class="aiz-side-nav-item"><span	class="text-center text-muted d-block">Không tìm thấy dữ liệu</span></li>`);
                 }
             } else {
                 $("#main-menu").removeClass('d-none');

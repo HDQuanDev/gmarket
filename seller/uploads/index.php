@@ -14,8 +14,7 @@
 
     <!-- Favicon -->
     <link rel="icon" href="/public/uploads/all/gTpdv1822yoHhDKtwGLenMSNg19P86n99DzgA91a.jpg">
-    <title>Gmarket Viet Nam | Buy Korean domestic products at original prices from the manufacturer</title>
-
+    <title>TAKASHIMAYA ONLINE STORE VIETNAM | Mua sản phẩm nội địa Nhật Bản với giá gốc từ nhà sản xuất</title>
     <!-- google font -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Poppins:300,400,500,600,700">
 
@@ -74,7 +73,7 @@
 
     <div class="aiz-main-wrapper">
         <?php include("../layout/sidebar.php")?>
-        <div class="aiz-content-wrapper">
+        <div class="py-3 px-4 lg:px-6">
             <?php include("../layout/topbar.php")?>
 
             <div class="aiz-main-content">
@@ -82,11 +81,11 @@
                     <div class="aiz-titlebar text-left mt-2 mb-3">
                         <div class="row align-items-center">
                             <div class="col-md-6">
-                                <h1 class="h3">All uploaded files</h1>
+                                <h1 class="h3">Quản lý tệp</h1>
                             </div>
                             <div class="col-md-6 text-md-right">
                                 <a href="/seller/uploads/create.php" class="btn btn-primary">
-                                    <span>Upload New File</span>
+                                    <span>Tải lên tệp mới</span>
                                 </a>
                             </div>
                         </div>
@@ -96,29 +95,29 @@
                         <form id="sort_uploads" action="">
                             <div class="card-header row gutters-5">
                                 <div class="col">
-                                    <h5 class="mb-0 h6">All files</h5>
+                                    <h5 class="mb-0 h6">Tất cả các file</h5>
                                 </div>
                                 <div class="dropdown mb-2 mb-md-0">
                                     <button class="btn border dropdown-toggle" type="button" data-toggle="dropdown">
-                                        Bulk Action
+                                       Chọn nhiều
                                     </button>
                                     <div class="dropdown-menu dropdown-menu-right">
-                                        <a class="dropdown-item" href="#" onclick="bulk_delete()"> Delete selection</a>
+                                        <a class="dropdown-item" href="#" onclick="bulk_delete()"> Xóa lựa chọn</a>
                                     </div>
                                 </div>
                                 <div class="col-md-3 ml-auto mr-0">
                                     <select class="form-control form-control-xs aiz-selectpicker" name="sort" onchange="sort_uploads()">
-                                        <option value="newest">Sort by newest</option>
-                                        <option value="oldest">Sort by oldest</option>
-                                        <option value="smallest">Sort by smallest</option>
-                                        <option value="largest">Sort by largest</option>
+                                        <option value="newest">Sắp xếp theo mới nhất</option>
+                                        <option value="oldest">Sắp xếp theo cũ nhất</option>
+                                        <option value="smallest">Sắp xếp theo nhỏ nhất</option>
+                                        <option value="largest">Sắp xếp theo lớn nhất</option>
                                     </select>
                                 </div>
                                 <div class="col-md-3">
                                     <input type="text" class="form-control form-control-xs" name="search" placeholder="Search your files" value="">
                                 </div>
                                 <div class="col-auto">
-                                    <button type="submit" class="btn btn-primary">Search</button>
+                                    <button type="submit" class="btn btn-primary">Tìm kiếm</button>
                                 </div>
                             </div>
 
@@ -126,7 +125,7 @@
                                 <div class="form-group">
                                     <div class="aiz-checkbox-inline">
                                         <label class="aiz-checkbox">
-                                            Select All
+                                            Chọn tất cả
                                             <input type="checkbox" class="check-all">
                                             <span class="aiz-square-check"></span>
                                         </label>
@@ -149,19 +148,20 @@
                                                 <div class="dropdown-menu dropdown-menu-right">
                                                     <a href="javascript:void(0)" class="dropdown-item" onclick="detailsInfo(this)" data-id="<?=$row['id']?>">
                                                         <i class="las la-info-circle mr-2"></i>
-                                                        <span>Details Info</span>
+                                                        <span>Thông tin chi tiết</span>
                                                     </a>
                                                     <a href="/public/uploads/all/<?=$row['src']?>" target="_blank" download="<?=time()?>_gmarket_n.png" class="dropdown-item">
                                                         <i class="la la-download mr-2"></i>
-                                                        <span>Download</span>
+                                                        <span>Tải xuống</span>
                                                     </a>
                                                     <a href="javascript:void(0)" class="dropdown-item" onclick="copyUrl(this)" data-url="<?=$_SERVER['HTTP_HOST']?>/public/uploads/all/<?=$row['src']?>">
                                                         <i class="las la-clipboard mr-2"></i>
-                                                        <span>Copy Link</span>
+                                                        <span>Sao chép liên kết</span>
                                                     </a>
                                                     <a href="javascript:void(0)" class="dropdown-item confirm-alert" data-href="/seller/uploads/destroy.php?id=<?=$row['id']?>" data-target="#delete-modal">
                                                         <i class="las la-trash mr-2"></i>
-                                                        <span>Delete</span>
+                                                        <span>Xóa</span>
+                                                    </a>
                                                     </a>
                                                 </div>
                                             </div>
@@ -202,7 +202,7 @@
                     </div>
                 </div>
                 <div class="bg-white text-center py-3 px-15px px-lg-25px mt-auto border-sm-top">
-                    <p class="mb-0">&copy; Gmarket Viet Nam v7.4.0</p>
+                    <p class="mb-0"></p>
                 </div>
             </div><!-- .aiz-main-content -->
         </div><!-- .aiz-content-wrapper -->
@@ -212,13 +212,13 @@
         <div class="modal-dialog modal-sm modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h4 class="modal-title h6">Delete Confirmation</h4>
+                    <h4 class="modal-title h6">Xác nhận xóa</h4>
                     <button type="button" class="close" data-dismiss="modal" aria-hidden="true"></button>
                 </div>
                 <div class="modal-body text-center">
-                    <p class="mt-1">Are you sure to delete this file?</p>
-                    <button type="button" class="btn btn-link mt-2" data-dismiss="modal">Cancel</button>
-                    <a href="" class="btn btn-primary mt-2 comfirm-link">Delete</a>
+                    <p class="mt-1">Bạn có chắc chắn muốn xóa tệp này không?</p>
+                    <button type="button" class="btn btn-link mt-2" data-dismiss="modal">Hủy</button>
+                    <a href="" class="btn btn-primary mt-2 comfirm-link">Xóa</a>
                 </div>
             </div>
         </div>
@@ -227,7 +227,7 @@
         <div class="modal-dialog modal-dialog-right">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title h6">File Info</h5>
+                    <h5 class="modal-title h6">Thông tin tệp</h5>
                     <button type="button" class="close" data-dismiss="modal">
                     </button>
                 </div>
